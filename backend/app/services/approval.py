@@ -35,7 +35,9 @@ async def approve_greeting(
     # Send once approved
     recipient = "unknown"
     if g.client_id is not None:
-        c = (await session.execute(select(Client).where(Client.id == g.client_id))).scalar_one_or_none()
+        c = (
+            await session.execute(select(Client).where(Client.id == g.client_id))
+        ).scalar_one_or_none()
         if c:
             recipient = c.email or c.phone or f"client:{c.id}"
 
@@ -68,5 +70,3 @@ async def reject_greeting(
         g.review_comment = review_comment
     await session.commit()
     return {"status": "rejected"}
-
-

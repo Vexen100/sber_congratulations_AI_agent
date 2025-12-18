@@ -31,7 +31,9 @@ async def test_vip_requires_approval_and_sends_after_approve(db_session, monkeyp
     assert summary.generated_greetings >= 1
     assert summary.sent_deliveries == 0
 
-    greeting = (await db_session.execute(select(Greeting).order_by(Greeting.id.desc()))).scalars().first()
+    greeting = (
+        (await db_session.execute(select(Greeting).order_by(Greeting.id.desc()))).scalars().first()
+    )
     assert greeting is not None
     assert greeting.status == "needs_approval"
 
