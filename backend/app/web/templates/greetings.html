@@ -17,6 +17,7 @@
             <th>Event</th>
             <th>Client</th>
             <th>Status</th>
+            <th>Actions</th>
             <th>Subject</th>
             <th>Card</th>
           </tr>
@@ -30,10 +31,30 @@
               <td>
                 {% if g.status == "sent" %}
                   <span class="badge text-bg-success">sent</span>
+                {% elif g.status == "needs_approval" %}
+                  <span class="badge text-bg-warning">needs approval</span>
+                {% elif g.status == "approved" %}
+                  <span class="badge text-bg-info">approved</span>
+                {% elif g.status == "rejected" %}
+                  <span class="badge text-bg-dark">rejected</span>
                 {% elif g.status == "error" %}
                   <span class="badge text-bg-danger">error</span>
                 {% else %}
                   <span class="badge text-bg-secondary">{{ g.status }}</span>
+                {% endif %}
+              </td>
+              <td class="small">
+                {% if g.status == "needs_approval" %}
+                  <div class="d-flex gap-2">
+                    <form method="post" action="/actions/greetings/{{ g.id }}/approve">
+                      <button class="btn btn-sm btn-success">Approve & send</button>
+                    </form>
+                    <form method="post" action="/actions/greetings/{{ g.id }}/reject">
+                      <button class="btn btn-sm btn-outline-danger">Reject</button>
+                    </form>
+                  </div>
+                {% else %}
+                  <span class="text-muted">—</span>
                 {% endif %}
               </td>
               <td class="small">

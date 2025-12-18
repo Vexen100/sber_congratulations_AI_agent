@@ -149,20 +149,21 @@ async def run_once(
                 subject=subject,
                 body=body,
                 image_path=str(card_path),
-                status="generated",
+                status="needs_approval" if client.segment.lower() == "vip" else "generated",
             )
             session.add(greeting)
             await session.commit()
             await session.refresh(greeting)
             summary.generated_greetings += 1
 
-            # Send (MVP: file outbox)
-            recipient = client.email or client.phone or f"client:{client.id}"
-            delivery = await send_greeting_file(session, greeting=greeting, recipient=recipient)
-            if delivery.status == "sent":
-                greeting.status = "sent"
-                await session.commit()
-                summary.sent_deliveries += 1
+            # Send (MVP: file outbox) — only if not VIP approval-gated
+            if client.segment.lower() != "vip":
+                recipient = client.email or client.phone or f"client:{client.id}"
+                delivery = await send_greeting_file(session, greeting=greeting, recipient=recipient)
+                if delivery.status == "sent":
+                    greeting.status = "sent"
+                    await session.commit()
+                    summary.sent_deliveries += 1
 
         except Exception as e:
             log.exception("agent error on event=%s: %s", getattr(ev, "id", None), e)

@@ -51,4 +51,11 @@
 - **Причина**: убрать deprecation warnings и быть совместимыми с будущими версиями.
 - **Файлы**: `backend/app/main.py`.
 
+## 9) VIP approval gating
+
+- **Решение**: для клиентов с `segment=vip` агент создаёт `Greeting.status="needs_approval"` и **не отправляет автоматически**.
+  Отправка происходит после действия **Approve & send** в UI (через `services/approval.py`).
+- **Причина**: контроль качества/рисков для VIP и соответствие требованиям процесса.
+- **Файлы**: `backend/app/agent/orchestrator.py`, `backend/app/services/approval.py`, `backend/app/web/templates/greetings.html`.
+
 

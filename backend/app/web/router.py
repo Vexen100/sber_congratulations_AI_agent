@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.agent.orchestrator import run_once
 from app.db.models import Client, Delivery, Event, Greeting
 from app.db.session import get_session
+from app.services.approval import approve_greeting, reject_greeting
 
 router = APIRouter()
 
@@ -108,6 +109,24 @@ async def greetings_page(request: Request, session: AsyncSession = Depends(get_s
     return templates.TemplateResponse(
         "greetings.html", {"request": request, "greetings": greetings}
     )
+
+
+@router.post("/actions/greetings/{greeting_id}/approve")
+async def action_approve_greeting(
+    greeting_id: int,
+    session: AsyncSession = Depends(get_session),
+):
+    await approve_greeting(session, greeting_id=greeting_id, approved_by="web-ui")
+    return RedirectResponse(url="/greetings", status_code=303)
+
+
+@router.post("/actions/greetings/{greeting_id}/reject")
+async def action_reject_greeting(
+    greeting_id: int,
+    session: AsyncSession = Depends(get_session),
+):
+    await reject_greeting(session, greeting_id=greeting_id, rejected_by="web-ui")
+    return RedirectResponse(url="/greetings", status_code=303)
 
 
 @router.get("/deliveries", response_class=HTMLResponse)

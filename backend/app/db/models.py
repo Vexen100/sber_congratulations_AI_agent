@@ -89,7 +89,17 @@ class Greeting(Base):
     subject: Mapped[str] = mapped_column(String(250))
     body: Mapped[str] = mapped_column(Text)
     image_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    status: Mapped[str] = mapped_column(String(50), default="generated")  # generated|sent|error
+    # Status lifecycle:
+    # - generated: created by agent (non-VIP default)
+    # - needs_approval: created by agent for VIP, must be approved in UI
+    # - rejected: rejected in UI (no send)
+    # - sent: delivered (at least once)
+    # - error: processing failure
+    status: Mapped[str] = mapped_column(String(50), default="generated")
+
+    approved_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    approved_by: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    review_comment: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 

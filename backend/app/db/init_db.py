@@ -23,6 +23,33 @@ async def init_db(db_engine: AsyncEngine | None = None) -> None:
     db_engine = db_engine or engine
     async with db_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # Lightweight SQLite migration for existing local demo DBs (no Alembic in MVP).
+        await _migrate_sqlite(conn)
+
+
+async def _migrate_sqlite(conn) -> None:
+    """Best-effort migration for SQLite demo DB.
+
+    Adds new columns when upgrading MVP without requiring users to delete app.db.
+    """
+    try:
+        # PRAGMA table_info returns: cid, name, type, notnull, dflt_value, pk
+        res = await conn.exec_driver_sql("PRAGMA table_info(greetings)")
+        rows = res.fetchall()
+        existing = {r[1] for r in rows}
+        alter_stmts: list[str] = []
+        if "approved_at" not in existing:
+            alter_stmts.append("ALTER TABLE greetings ADD COLUMN approved_at DATETIME")
+        if "approved_by" not in existing:
+            alter_stmts.append("ALTER TABLE greetings ADD COLUMN approved_by VARCHAR(120)")
+        if "review_comment" not in existing:
+            alter_stmts.append("ALTER TABLE greetings ADD COLUMN review_comment TEXT")
+
+        for stmt in alter_stmts:
+            await conn.exec_driver_sql(stmt)
+    except Exception:
+        # For non-sqlite dialects or first-time DB, ignore.
+        return
 
 
 async def seed_holidays_if_empty(session: AsyncSession) -> int:
