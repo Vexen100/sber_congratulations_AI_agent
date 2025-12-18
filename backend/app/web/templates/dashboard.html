@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+      <h2 class="mb-1">Dashboard</h2>
+      <div class="text-muted">Обзор данных и статусов конвейера поздравлений</div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-12 col-md-3">
+      <div class="card">
+        <div class="card-body">
+          <div class="text-muted">Clients</div>
+          <div class="fs-3">{{ clients_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-md-3">
+      <div class="card">
+        <div class="card-body">
+          <div class="text-muted">Events</div>
+          <div class="fs-3">{{ events_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-md-3">
+      <div class="card">
+        <div class="card-body">
+          <div class="text-muted">Greetings</div>
+          <div class="fs-3">{{ greetings_count }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-md-3">
+      <div class="card">
+        <div class="card-body">
+          <div class="text-muted">Deliveries</div>
+          <div class="fs-3">{{ deliveries_count }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-4">
+    <div class="alert alert-info">
+      <div class="fw-semibold mb-1">Как быстро показать демо</div>
+      <ol class="mb-0">
+        <li>Нажмите <b>Seed demo data</b> (слева).</li>
+        <li>Нажмите <b>Run agent now</b> (слева).</li>
+        <li>Откройте <b>Greetings</b> и <b>Deliveries</b> и покажите статусы.</li>
+        <li>Откройте папку <code class="small">backend\data\outbox\</code> и покажите файлы «отправки».</li>
+      </ol>
+    </div>
+  </div>
+{% endblock %}
+
+

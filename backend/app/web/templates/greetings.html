@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+      <h2 class="mb-1">Greetings</h2>
+      <div class="text-muted">Сгенерированные поздравления</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">Список поздравлений</div>
+    <div class="card-body table-responsive">
+      <table class="table table-sm align-middle">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Event</th>
+            <th>Client</th>
+            <th>Status</th>
+            <th>Subject</th>
+            <th>Card</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for g in greetings %}
+            <tr>
+              <td>{{ g.id }}</td>
+              <td>{{ g.event_id }}</td>
+              <td>{{ g.client_id }}</td>
+              <td>
+                {% if g.status == "sent" %}
+                  <span class="badge text-bg-success">sent</span>
+                {% elif g.status == "error" %}
+                  <span class="badge text-bg-danger">error</span>
+                {% else %}
+                  <span class="badge text-bg-secondary">{{ g.status }}</span>
+                {% endif %}
+              </td>
+              <td class="small">
+                <div class="fw-semibold">{{ g.subject }}</div>
+                <details class="mt-1">
+                  <summary class="text-muted">body</summary>
+                  <pre class="small mb-0" style="white-space: pre-wrap;">{{ g.body }}</pre>
+                </details>
+              </td>
+              <td class="small">
+                {% if g.image_path %}
+                  <code class="small">{{ g.image_path }}</code>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}
+
+

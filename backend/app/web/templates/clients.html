@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+      <h2 class="mb-1">Clients</h2>
+      <div class="text-muted">CRM-минимум для персонализации</div>
+    </div>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-header">Добавить клиента (ручной ввод для демо)</div>
+    <div class="card-body">
+      <form method="post" action="/clients" class="row g-2">
+        <div class="col-12 col-md-3">
+          <input class="form-control" name="first_name" placeholder="Имя" required>
+        </div>
+        <div class="col-12 col-md-3">
+          <input class="form-control" name="last_name" placeholder="Фамилия" required>
+        </div>
+        <div class="col-12 col-md-3">
+          <input class="form-control" name="company_name" placeholder="Компания">
+        </div>
+        <div class="col-12 col-md-3">
+          <input class="form-control" name="position" placeholder="Должность">
+        </div>
+
+        <div class="col-12 col-md-2">
+          <select class="form-select" name="segment">
+            <option value="standard">standard</option>
+            <option value="vip">vip</option>
+            <option value="loyal">loyal</option>
+            <option value="new">new</option>
+          </select>
+        </div>
+        <div class="col-12 col-md-3">
+          <input class="form-control" name="email" placeholder="Email">
+        </div>
+        <div class="col-12 col-md-3">
+          <input class="form-control" name="phone" placeholder="Телефон">
+        </div>
+        <div class="col-12 col-md-2">
+          <select class="form-select" name="preferred_channel">
+            <option value="email">email</option>
+            <option value="sms">sms</option>
+            <option value="messenger">messenger</option>
+          </select>
+        </div>
+        <div class="col-12 col-md-2">
+          <input class="form-control" name="birth_date" placeholder="Дата ДР (YYYY-MM-DD)">
+        </div>
+        <div class="col-12 col-md-12">
+          <button class="btn btn-primary">Добавить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">Список клиентов</div>
+    <div class="card-body table-responsive">
+      <table class="table table-sm align-middle">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>ФИО</th>
+            <th>Компания / Должность</th>
+            <th>Сегмент</th>
+            <th>Контакт</th>
+            <th>ДР</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in clients %}
+            <tr>
+              <td>{{ c.id }}</td>
+              <td>{{ c.first_name }} {{ c.last_name }}</td>
+              <td>
+                <div class="fw-semibold">{{ c.company_name or "" }}</div>
+                <div class="text-muted small">{{ c.position or "" }}</div>
+              </td>
+              <td><span class="badge text-bg-secondary">{{ c.segment }}</span></td>
+              <td class="small">
+                <div>{{ c.email or "" }}</div>
+                <div class="text-muted">{{ c.phone or "" }}</div>
+              </td>
+              <td class="small">{{ c.birth_date or "" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}
+
+

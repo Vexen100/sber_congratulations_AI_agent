@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+      <h2 class="mb-1">Deliveries</h2>
+      <div class="text-muted">Лог «отправок» (MVP: файловый outbox)</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">Список доставок</div>
+    <div class="card-body table-responsive">
+      <table class="table table-sm align-middle">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Greeting</th>
+            <th>Channel</th>
+            <th>Recipient</th>
+            <th>Status</th>
+            <th>Sent at</th>
+            <th>Provider message</th>
+            <th>Idempotency</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in deliveries %}
+            <tr>
+              <td>{{ d.id }}</td>
+              <td>{{ d.greeting_id }}</td>
+              <td><span class="badge text-bg-light">{{ d.channel }}</span></td>
+              <td class="small">{{ d.recipient }}</td>
+              <td>
+                {% if d.status == "sent" %}
+                  <span class="badge text-bg-success">sent</span>
+                {% elif d.status == "error" %}
+                  <span class="badge text-bg-danger">error</span>
+                {% else %}
+                  <span class="badge text-bg-secondary">{{ d.status }}</span>
+                {% endif %}
+              </td>
+              <td class="small">{{ d.sent_at or "" }}</td>
+              <td class="small">{{ d.provider_message or "" }}</td>
+              <td class="small"><code class="small">{{ d.idempotency_key }}</code></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}
+
+

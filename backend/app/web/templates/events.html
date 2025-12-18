@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+      <h2 class="mb-1">Events</h2>
+      <div class="text-muted">Поводы для поздравлений (авто + ручные)</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">Список событий</div>
+    <div class="card-body table-responsive">
+      <table class="table table-sm align-middle">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Client ID</th>
+            <th>Type</th>
+            <th>Date</th>
+            <th>Title</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for e in events %}
+            <tr>
+              <td>{{ e.id }}</td>
+              <td>{{ e.client_id }}</td>
+              <td><span class="badge text-bg-light">{{ e.event_type }}</span></td>
+              <td>{{ e.event_date }}</td>
+              <td>{{ e.title }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}
+
+

@@ -1,0 +1,28 @@
+[
+  {
+    "date": "2025-12-31",
+    "title": "С наступающим Новым годом!",
+    "tags": { "type": "holiday", "tone_hint": "warm" },
+    "is_business_relevant": true
+  },
+  {
+    "date": "2026-01-01",
+    "title": "Новый год",
+    "tags": { "type": "holiday", "tone_hint": "warm" },
+    "is_business_relevant": true
+  },
+  {
+    "date": "2026-03-08",
+    "title": "8 Марта",
+    "tags": { "type": "holiday", "tone_hint": "warm" },
+    "is_business_relevant": true
+  },
+  {
+    "date": "2026-02-23",
+    "title": "23 Февраля",
+    "tags": { "type": "holiday", "tone_hint": "official" },
+    "is_business_relevant": true
+  }
+]
+
+
