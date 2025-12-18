@@ -5,6 +5,7 @@ MVP-проект: **автоматизированный конвейер под
 ## Репозиторий
 
 - **CI**: GitHub Actions workflow в `.github/workflows/ci.yml` (ruff/black/pytest)
+- **Handoff для нового чата (Cursor)**: начните с `AI_HANDOFF.md` и `docs/DECISIONS.md`
 
 ## Что входит в MVP
 
