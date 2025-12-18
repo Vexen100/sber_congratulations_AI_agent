@@ -13,7 +13,7 @@ from app.db.session import SessionLocal
 
 async def _job() -> None:
     async with SessionLocal() as session:
-        summary = await run_once(session, today=dt.date.today())
+        summary = await run_once(session, today=dt.date.today(), triggered_by="scheduler")
         logging.getLogger(__name__).info("agent run summary: %s", summary.as_dict())
 
 

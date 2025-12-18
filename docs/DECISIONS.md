@@ -58,4 +58,10 @@
 - **Причина**: контроль качества/рисков для VIP и соответствие требованиям процесса.
 - **Файлы**: `backend/app/agent/orchestrator.py`, `backend/app/services/approval.py`, `backend/app/web/templates/greetings.html`.
 
+## 10) Аудит запусков агента (AgentRun)
+
+- **Решение**: каждый вызов `run_once()` создаёт запись `AgentRun` и заполняет счётчики/статус по завершению.
+- **Причина**: наблюдаемость конвейера, демо “регулярности”, диагностика ошибок и объёма работы.
+- **Файлы**: `backend/app/db/models.py` (AgentRun), `backend/app/agent/orchestrator.py`, UI: `backend/app/web/router.py` + `backend/app/web/templates/runs.html`.
+
 

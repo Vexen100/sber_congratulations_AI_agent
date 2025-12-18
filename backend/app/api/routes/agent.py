@@ -12,5 +12,5 @@ router = APIRouter(prefix="/agent")
 
 @router.post("/run-once", response_model=AgentRunResult)
 async def run_agent_once(session: AsyncSession = Depends(get_session)) -> dict:
-    summary = await run_once(session)
+    summary = await run_once(session, triggered_by="api")
     return summary.as_dict()

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+      <h2 class="mb-1">Agent runs</h2>
+      <div class="text-muted">Аудит и статистика запусков агента</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">Последние 100 запусков</div>
+    <div class="card-body table-responsive">
+      <table class="table table-sm align-middle">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Status</th>
+            <th>Triggered by</th>
+            <th>Lookahead</th>
+            <th>LLM</th>
+            <th>Image</th>
+            <th>Started</th>
+            <th>Finished</th>
+            <th>Events</th>
+            <th>Greetings</th>
+            <th>Sent</th>
+            <th>Skipped</th>
+            <th>Errors</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in runs %}
+            <tr>
+              <td>{{ r.id }}</td>
+              <td>
+                {% if r.status == "success" %}
+                  <span class="badge text-bg-success">success</span>
+                {% elif r.status == "partial" %}
+                  <span class="badge text-bg-warning">partial</span>
+                {% elif r.status == "error" %}
+                  <span class="badge text-bg-danger">error</span>
+                {% else %}
+                  <span class="badge text-bg-secondary">{{ r.status }}</span>
+                {% endif %}
+              </td>
+              <td class="small">{{ r.triggered_by }}</td>
+              <td>{{ r.lookahead_days }}</td>
+              <td class="small">{{ r.llm_mode }}</td>
+              <td class="small">{{ r.image_mode }}</td>
+              <td class="small">{{ r.started_at }}</td>
+              <td class="small">{{ r.finished_at or "" }}</td>
+              <td>{{ r.scanned_events }}</td>
+              <td>{{ r.generated_greetings }}</td>
+              <td>{{ r.sent_deliveries }}</td>
+              <td>{{ r.skipped_existing }}</td>
+              <td>{{ r.errors }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}
+
+

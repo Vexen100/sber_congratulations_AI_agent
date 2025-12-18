@@ -10,7 +10,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agent.orchestrator import run_once
-from app.db.models import Client, Delivery, Event, Greeting
+from app.db.models import AgentRun, Client, Delivery, Event, Greeting
 from app.db.session import get_session
 from app.services.approval import approve_greeting, reject_greeting
 
@@ -26,6 +26,11 @@ async def dashboard(request: Request, session: AsyncSession = Depends(get_sessio
     events_count = (await session.execute(select(func.count(Event.id)))).scalar_one()
     greetings_count = (await session.execute(select(func.count(Greeting.id)))).scalar_one()
     deliveries_count = (await session.execute(select(func.count(Delivery.id)))).scalar_one()
+    last_runs = (
+        (await session.execute(select(AgentRun).order_by(AgentRun.id.desc()).limit(10)))
+        .scalars()
+        .all()
+    )
 
     return templates.TemplateResponse(
         "dashboard.html",
@@ -35,13 +40,14 @@ async def dashboard(request: Request, session: AsyncSession = Depends(get_sessio
             "events_count": events_count,
             "greetings_count": greetings_count,
             "deliveries_count": deliveries_count,
+            "last_runs": last_runs,
         },
     )
 
 
 @router.post("/actions/run-agent")
 async def action_run_agent(session: AsyncSession = Depends(get_session)):
-    await run_once(session)
+    await run_once(session, triggered_by="web-ui")
     return RedirectResponse(url="/greetings", status_code=303)
 
 
@@ -137,3 +143,13 @@ async def deliveries_page(request: Request, session: AsyncSession = Depends(get_
     return templates.TemplateResponse(
         "deliveries.html", {"request": request, "deliveries": deliveries}
     )
+
+
+@router.get("/runs", response_class=HTMLResponse)
+async def runs_page(request: Request, session: AsyncSession = Depends(get_session)):
+    runs = (
+        (await session.execute(select(AgentRun).order_by(AgentRun.id.desc()).limit(100)))
+        .scalars()
+        .all()
+    )
+    return templates.TemplateResponse("runs.html", {"request": request, "runs": runs})

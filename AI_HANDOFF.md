@@ -79,6 +79,7 @@ scripts\run_gigachat_smoke.cmd
 - **Отправка (MVP outbox)**: `backend/app/services/sender.py`
 - **Guardrails**: `backend/app/services/guardrails.py`
 - **Планировщик**: `backend/app/worker/run_scheduler.py`
+- **Аудит запусков (AgentRun)**: `backend/app/db/models.py` (AgentRun), запись в `backend/app/agent/orchestrator.py`, UI: `/runs`
 
 ## Что уже “принято” как решения
 

@@ -135,3 +135,29 @@ class Feedback(Base):
     score: Mapped[int | None] = mapped_column(nullable=True)  # 1..5 (manager's rating)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class AgentRun(Base):
+    __tablename__ = "agent_runs"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+
+    triggered_by: Mapped[str] = mapped_column(String(50), default="unknown")  # web-ui|api|scheduler
+    status: Mapped[str] = mapped_column(
+        String(50), default="running"
+    )  # running|success|partial|error
+
+    started_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    finished_at: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    lookahead_days: Mapped[int] = mapped_column(default=7)
+    llm_mode: Mapped[str] = mapped_column(String(30), default="template")
+    image_mode: Mapped[str] = mapped_column(String(30), default="pillow")
+
+    scanned_events: Mapped[int] = mapped_column(default=0)
+    generated_greetings: Mapped[int] = mapped_column(default=0)
+    sent_deliveries: Mapped[int] = mapped_column(default=0)
+    skipped_existing: Mapped[int] = mapped_column(default=0)
+    errors: Mapped[int] = mapped_column(default=0)
+
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
