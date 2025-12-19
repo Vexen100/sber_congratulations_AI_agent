@@ -55,12 +55,10 @@ async def action_run_agent(session: AsyncSession = Depends(get_session)):
 
 @router.post("/actions/seed-demo")
 async def action_seed_demo(session: AsyncSession = Depends(get_session)):
-    # Reuse API logic quickly: add a couple of clients if empty-ish
-    existing = (await session.execute(select(func.count(Client.id)))).scalar_one()
-    if existing < 1:
-        from app.api.routes.clients import seed_demo
+    # Reseed demo data every time: random 5 clients with upcoming birthdays (good for demos).
+    from app.api.routes.clients import seed_demo_clients
 
-        await seed_demo(session)
+    await seed_demo_clients(session, n=5, replace=True)
     return RedirectResponse(url="/clients", status_code=303)
 
 
