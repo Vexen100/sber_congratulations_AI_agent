@@ -48,13 +48,21 @@ async def test_generator_falls_back_on_invalid_llm_json(monkeypatch):
 
 
 async def test_generator_uses_llm_when_valid(monkeypatch):
+    # Body must be at least 450 characters (as per new strict validation)
+    long_body = (
+        "Иван Тестов, поздравляем с днём рождения! "
+        "Желаем крепкого здоровья, уверенных решений и новых достижений в работе. "
+        "Пусть этот год принесёт вдохновение, поддержку команды и яркие успехи. "
+        "Мы ценим наше сотрудничество и надеемся на дальнейшее плодотворное взаимодействие. "
+        "Пусть каждый день будет наполнен новыми возможностями и профессиональными победами. "
+        "Желаем вам реализации всех планов, стабильного роста и взаимопонимания в команде.\\n\\n"
+        "Спасибо, что остаётесь с нами.\\n\\n"
+        "С уважением, Команда Сбер"
+    )
     monkeypatch.setattr(
         "app.agent.generator.get_llm_provider",
         lambda: FakeLLM(
-            '{"tone":"official","subject":"Поздравляем, Иван!","body":"Иван Тестов, поздравляем с днём рождения! '
-            "Желаем крепкого здоровья, уверенных решений и новых достижений в работе. "
-            "Пусть этот год принесёт вдохновение, поддержку команды и яркие успехи.\\n\\n"
-            'С уважением, Команда Сбер"}'
+            f'{{"tone":"official","subject":"Поздравляем, Иван!","body":"{long_body}"}}'
         ),
     )
 
@@ -82,3 +90,4 @@ async def test_generator_uses_llm_when_valid(monkeypatch):
     assert tone == "official"
     assert subject == "Поздравляем, Иван!"
     assert "Команда Сбер" in body
+    assert len(body) >= 450  # Verify that body meets minimum length requirement

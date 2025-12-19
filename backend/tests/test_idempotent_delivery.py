@@ -26,12 +26,18 @@ async def test_file_sender_is_idempotent(db_session, tmp_path):
     await db_session.commit()
     await db_session.refresh(ev)
 
+    long_body = (
+        "Первая строка.\n\n"
+        "Вторая строка — это продолжение поздравления с достаточно длинным текстом, "
+        "чтобы было заметно, если что-то вдруг обрезается при записи в outbox.\n\n"
+        "Третья строка. Спасибо, что остаётесь с нами."
+    )
     g = Greeting(
         event_id=ev.id,
         client_id=c.id,
         tone="warm",
         subject="Subj",
-        body="Body",
+        body=long_body,
         image_path=None,
         status="generated",
     )
@@ -46,3 +52,8 @@ async def test_file_sender_is_idempotent(db_session, tmp_path):
     assert d1.id == d2.id
     assert d1.idempotency_key == d2.idempotency_key
     assert (await db_session.execute(select(Delivery))).scalars().all()
+    # Ensure the actual file contains the full body (no truncation).
+    files = list(outbox.glob("delivery_*.txt"))
+    assert files, "Expected outbox delivery file to be created"
+    payload = files[0].read_text(encoding="utf-8")
+    assert long_body in payload
