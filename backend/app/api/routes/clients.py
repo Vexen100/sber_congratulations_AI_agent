@@ -31,6 +31,7 @@ async def create_client(
 
 @router.post("/seed-demo")
 async def seed_demo(session: AsyncSession = Depends(get_session)) -> dict:
+    # Moderate dataset for demos: diverse, but not too large (to avoid token burn).
     demo = [
         Client(
             first_name="Ирина",
@@ -41,7 +42,7 @@ async def seed_demo(session: AsyncSession = Depends(get_session)) -> dict:
             email="irina.sokolova@example.com",
             preferred_channel="email",
             birth_date=dt.date(1988, 12, 18),
-            last_interaction_summary="обсуждали условия РКО и зарплатный проект",
+            last_interaction_summary="",
         ),
         Client(
             first_name="Артём",
@@ -52,7 +53,7 @@ async def seed_demo(session: AsyncSession = Depends(get_session)) -> dict:
             email="artem.polyakov@example.com",
             preferred_channel="email",
             birth_date=dt.date(1991, 12, 20),
-            last_interaction_summary="планировали лимиты по кредитной линии",
+            last_interaction_summary="",
         ),
         Client(
             first_name="Мария",
@@ -63,7 +64,77 @@ async def seed_demo(session: AsyncSession = Depends(get_session)) -> dict:
             email="maria.kuznetsova@example.com",
             preferred_channel="email",
             birth_date=dt.date(1996, 12, 22),
-            last_interaction_summary="первичное подключение эквайринга",
+            last_interaction_summary="",
+        ),
+        Client(
+            first_name="Сергей",
+            last_name="Волков",
+            company_name="ООО СеверЭнерго",
+            position="Коммерческий директор",
+            segment="standard",
+            email="sergey.volkov@example.com",
+            preferred_channel="email",
+            birth_date=dt.date(1985, 12, 21),
+        ),
+        Client(
+            first_name="Екатерина",
+            last_name="Николаева",
+            company_name="АО МедТех",
+            position="Руководитель проектов",
+            segment="standard",
+            email="ekaterina.nikolaeva@example.com",
+            preferred_channel="email",
+            birth_date=dt.date(1992, 12, 19),
+        ),
+        Client(
+            first_name="Дмитрий",
+            last_name="Орлов",
+            company_name="ООО АгроПром",
+            position="Директор по развитию",
+            segment="loyal",
+            email="dmitry.orlov@example.com",
+            preferred_channel="email",
+            birth_date=dt.date(1989, 12, 23),
+        ),
+        Client(
+            first_name="Анна",
+            last_name="Романова",
+            company_name="ООО Ритейл-Плюс",
+            position="Исполнительный директор",
+            segment="vip",
+            email="anna.romanova@example.com",
+            preferred_channel="email",
+            birth_date=dt.date(1987, 12, 24),
+        ),
+        Client(
+            first_name="Илья",
+            last_name="Захаров",
+            company_name="ООО ФинСервис",
+            position="Главный бухгалтер",
+            segment="standard",
+            email="ilya.zakharov@example.com",
+            preferred_channel="email",
+            birth_date=None,  # to reduce event volume
+        ),
+        Client(
+            first_name="Ольга",
+            last_name="Фёдорова",
+            company_name="АО ТрансЛайн",
+            position="Директор по персоналу",
+            segment="new",
+            email="olga.fedorova@example.com",
+            preferred_channel="email",
+            birth_date=None,
+        ),
+        Client(
+            first_name="Никита",
+            last_name="Смирнов",
+            company_name="ООО ДевСтудио",
+            position="CTO",
+            segment="standard",
+            email="nikita.smirnov@example.com",
+            preferred_channel="email",
+            birth_date=dt.date(1993, 12, 25),
         ),
     ]
     added = 0

@@ -76,6 +76,7 @@ scripts\run_gigachat_smoke.cmd
   - клиент: `backend/app/agent/gigachat_client.py`
   - провайдеры: `backend/app/agent/gigachat_providers.py`
 - **Детектор событий**: `backend/app/services/event_detector.py`
+- **Reset runtime data (для демо)**: `backend/app/services/reset_runtime.py` + кнопка в UI
 - **Отправка (MVP outbox)**: `backend/app/services/sender.py`
 - **Guardrails**: `backend/app/services/guardrails.py`
 - **Планировщик**: `backend/app/worker/run_scheduler.py`

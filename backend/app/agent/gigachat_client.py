@@ -42,11 +42,18 @@ class AccessToken:
         return self.expires_at > (dt.datetime.now(dt.timezone.utc) + dt.timedelta(seconds=skew_sec))
 
 
-IMG_SRC_RE = re.compile(r"<img[^>]*\s+src=\"([^\"]+)\"[^>]*>", re.IGNORECASE)
+# Match both formats: <img src="..." /> and <img src="..." fuse="true"/>
+IMG_SRC_RE = re.compile(r"<img[^>]*\s+src=[\"']([^\"']+)[\"'][^>]*/?>", re.IGNORECASE)
 
 
 def extract_img_file_id(message_content: str) -> str | None:
-    """Extract image file_id (uuid) from <img src="..."> response content."""
+    """Extract image file_id from <img src=\"...\"> response content.
+
+    Handles formats:
+    - <img src="file_id" />
+    - <img src="file_id" fuse="true"/>
+    - <img src='file_id' />
+    """
     if not message_content:
         return None
     m = IMG_SRC_RE.search(message_content)
@@ -132,7 +139,9 @@ class GigaChatClient:
             r.raise_for_status()
             return r.json()
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=0.5, min=0.5, max=3))
+    # Для скачивания изображений используем более длинный таймаут, но без повторных попыток,
+    # чтобы не затягивать прогон слишком сильно.
+    @retry(stop=stop_after_attempt(1), wait=wait_exponential(multiplier=0.5, min=0.5, max=3))
     async def download_file_content(self, *, file_id: str, x_client_id: str | None = None) -> bytes:
         token = await self._get_token()
 
@@ -143,7 +152,7 @@ class GigaChatClient:
             headers["X-Client-ID"] = x_client_id
 
         async with httpx.AsyncClient(
-            timeout=float(settings.gigachat_timeout_sec), verify=_ssl_verify_param()
+            timeout=float(settings.gigachat_image_timeout_sec), verify=_ssl_verify_param()
         ) as c:
             r = await c.get(url, headers=headers)
             if r.status_code == 405:

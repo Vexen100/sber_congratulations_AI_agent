@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.db.models import Client, Event, Holiday
 from app.services.dates import daterange_inclusive, next_occurrence
 
@@ -15,6 +16,7 @@ async def ensure_upcoming_events(
     *,
     today: dt.date,
     lookahead_days: int,
+    max_holiday_recipients: int | None = None,
 ) -> int:
     """Create missing Events in DB for upcoming birthdays and holidays.
 
@@ -26,6 +28,11 @@ async def ensure_upcoming_events(
     window_days = daterange_inclusive(today, end)
 
     created = 0
+    max_holiday_recipients = (
+        int(max_holiday_recipients)
+        if max_holiday_recipients is not None
+        else int(settings.max_holiday_recipients)
+    )
 
     # Birthdays (per client)
     client_rows = (await session.execute(select(Client.id, Client.birth_date))).all()
@@ -61,7 +68,7 @@ async def ensure_upcoming_events(
         )
     ).all()
     for h_date, h_title, h_tags in holiday_rows:
-        for client_id in client_ids:
+        for client_id in client_ids[:max_holiday_recipients]:
             title = h_title
             ev = Event(
                 client_id=client_id,

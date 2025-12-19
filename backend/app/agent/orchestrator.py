@@ -4,11 +4,11 @@ import datetime as dt
 import logging
 from pathlib import Path
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agent.generator import generate_subject_body
-from app.agent.gigachat_providers import GigaChatImageProvider, build_card_image_prompt
+from app.agent.gigachat_providers import GigaChatImageProvider, build_illustration_prompt
 from app.core.config import settings
 from app.db.models import AgentRun, Client, Event, Greeting
 from app.services.card_renderer import render_card
@@ -63,6 +63,7 @@ async def run_once(
     lookahead_days = int(lookahead_days or settings.lookahead_days)
 
     summary = AgentSummary()
+    gigachat_images_used = 0
 
     # Create AgentRun record early to have audit trail even on failures.
     run = AgentRun(
@@ -77,6 +78,19 @@ async def run_once(
     await session.commit()
     await session.refresh(run)
     run_id = run.id
+
+    async def _update_run_progress(*, status: str | None = None) -> None:
+        values: dict = {
+            "scanned_events": summary.scanned_events,
+            "generated_greetings": summary.generated_greetings,
+            "sent_deliveries": summary.sent_deliveries,
+            "skipped_existing": summary.skipped_existing,
+            "errors": summary.errors,
+        }
+        if status is not None:
+            values["status"] = status
+        await session.execute(update(AgentRun).where(AgentRun.id == run_id).values(**values))
+        await session.commit()
 
     # 1) Ensure events exist (idempotent)
     try:
@@ -103,6 +117,8 @@ async def run_once(
                 ).first()
                 if existing:
                     summary.skipped_existing += 1
+                    if summary.scanned_events % 5 == 0:
+                        await _update_run_progress()
                     continue
 
                 client = None
@@ -113,6 +129,8 @@ async def run_once(
                 if not client:
                     # For MVP we require a client to personalize and send.
                     summary.errors += 1
+                    if summary.scanned_events % 5 == 0:
+                        await _update_run_progress()
                     continue
 
                 choice = choose_template(
@@ -127,27 +145,49 @@ async def run_once(
                 recipient_line = f"{client.first_name} {client.last_name}".strip()
                 card_path = None
                 if (
-                    settings.image_mode or "pillow"
-                ).lower() == "gigachat" and settings.gigachat_credentials:
-                    try:
-                        style, prompt = build_card_image_prompt(
-                            event_title=ev.title,
-                            recipient_line=recipient_line,
-                            company=client.company_name,
-                        )
-                        provider = GigaChatImageProvider()
-                        file_id, jpg = await provider.generate_jpg(
-                            system_style=style,
-                            prompt=prompt,
-                            x_client_id=str(client.id),
-                        )
-                        cards_dir.mkdir(parents=True, exist_ok=True)
-                        filename = f"gigachat_{file_id}.jpg"
-                        card_path = cards_dir / filename
-                        card_path.write_bytes(jpg)
-                    except Exception:
-                        # Fallback to deterministic Pillow card
+                    settings.image_mode
+                    and settings.image_mode.lower() == "gigachat"
+                    and settings.gigachat_credentials
+                ):
+                    if gigachat_images_used >= int(settings.max_gigachat_images_per_run):
                         card_path = None
+                    else:
+                        try:
+                            style, prompt = build_illustration_prompt(
+                                event_type=ev.event_type,
+                                event_title=ev.title,
+                                recipient_line=recipient_line,
+                                company=client.company_name,
+                            )
+                            provider = GigaChatImageProvider()
+                            file_id, jpg = await provider.generate_jpg(
+                                system_style=style,
+                                prompt=prompt,
+                                x_client_id=str(client.id),
+                            )
+                            cards_dir.mkdir(parents=True, exist_ok=True)
+                            filename = f"gigachat_{file_id}.jpg"
+                            card_path = cards_dir / filename
+                            card_path.write_bytes(jpg)
+                            gigachat_images_used += 1
+                            log.info(
+                                "GigaChat image generated for event=%s client=%s file_id=%s "
+                                "(used %s/%s)",
+                                ev.id,
+                                client.id,
+                                file_id,
+                                gigachat_images_used,
+                                settings.max_gigachat_images_per_run,
+                            )
+                        except Exception as e:
+                            log.warning(
+                                "GigaChat image generation failed for event=%s client=%s: %s",
+                                getattr(ev, "id", None),
+                                getattr(client, "id", None),
+                                e,
+                            )
+                            # Fallback to deterministic Pillow card
+                            card_path = None
 
                 if card_path is None:
                     card_path = render_card(
@@ -158,19 +198,23 @@ async def run_once(
                         brand_line="Сбер",
                     )
 
+                rel_image_path = f"cards/{card_path.name}"
+
                 greeting = Greeting(
                     event_id=ev.id,
                     client_id=client.id,
                     tone=tone,
                     subject=subject,
                     body=body,
-                    image_path=str(card_path),
+                    image_path=rel_image_path,
                     status="needs_approval" if client.segment.lower() == "vip" else "generated",
                 )
                 session.add(greeting)
                 await session.commit()
                 await session.refresh(greeting)
                 summary.generated_greetings += 1
+                if summary.scanned_events % 3 == 0:
+                    await _update_run_progress()
 
                 # Send (MVP: file outbox) — only if not VIP approval-gated
                 if client.segment.lower() != "vip":
@@ -182,33 +226,41 @@ async def run_once(
                         greeting.status = "sent"
                         await session.commit()
                         summary.sent_deliveries += 1
+                        if summary.scanned_events % 3 == 0:
+                            await _update_run_progress()
 
             except Exception as e:
                 log.exception("agent error on event=%s: %s", getattr(ev, "id", None), e)
                 summary.errors += 1
                 await session.rollback()
+                if summary.scanned_events % 3 == 0:
+                    await _update_run_progress(status="running")
     except Exception as e:
         log.exception("agent fatal error: %s", e)
         summary.errors += 1
         await session.rollback()
     finally:
         # Finalize AgentRun
-        run2 = (
-            await session.execute(select(AgentRun).where(AgentRun.id == run_id))
-        ).scalar_one_or_none()
-        if run2:
-            run2.scanned_events = summary.scanned_events
-            run2.generated_greetings = summary.generated_greetings
-            run2.sent_deliveries = summary.sent_deliveries
-            run2.skipped_existing = summary.skipped_existing
-            run2.errors = summary.errors
-            run2.finished_at = dt.datetime.now(dt.timezone.utc)
-            if summary.errors == 0:
-                run2.status = "success"
-            elif summary.generated_greetings > 0:
-                run2.status = "partial"
-            else:
-                run2.status = "error"
-            await session.commit()
+        finished_at = dt.datetime.now(dt.timezone.utc)
+        if summary.errors == 0:
+            final_status = "success"
+        elif summary.generated_greetings > 0:
+            final_status = "partial"
+        else:
+            final_status = "error"
+        await session.execute(
+            update(AgentRun)
+            .where(AgentRun.id == run_id)
+            .values(
+                status=final_status,
+                finished_at=finished_at,
+                scanned_events=summary.scanned_events,
+                generated_greetings=summary.generated_greetings,
+                sent_deliveries=summary.sent_deliveries,
+                skipped_existing=summary.skipped_existing,
+                errors=summary.errors,
+            )
+        )
+        await session.commit()
 
     return summary

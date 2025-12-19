@@ -18,7 +18,7 @@ def _allowed_facts(client: Client) -> dict:
         "company_name": client.company_name,
         "position": client.position,
         "segment": client.segment,
-        "last_interaction_summary": client.last_interaction_summary,
+        # We intentionally do not pass last_interaction_summary to the model to avoid leaking topics/details.
         # Note: we deliberately do not pass email/phone to the LLM.
     }
 

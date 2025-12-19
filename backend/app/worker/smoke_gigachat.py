@@ -9,7 +9,7 @@ from pathlib import Path
 from app.agent.gigachat_providers import (
     GigaChatImageProvider,
     GigaChatTextProvider,
-    build_card_image_prompt,
+    build_illustration_prompt,
 )
 from app.agent.llm_provider import LLMProviderError, parse_llm_json
 from app.core.config import settings
@@ -115,7 +115,8 @@ async def main() -> None:
 
     # 2) IMAGE: ask for a card, download jpg, save
     recipient_line = f"{facts['first_name']} {facts['last_name']}"
-    style, prompt = build_card_image_prompt(
+    style, prompt = build_illustration_prompt(
+        event_type="birthday",
         event_title="День рождения",
         recipient_line=recipient_line,
         company=facts["company_name"],

@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     database_url: str = "sqlite+aiosqlite:///./data/app.db"
 
     lookahead_days: int = 7
+    max_holiday_recipients: int = 12  # prevents token blow-up on demo (per holiday)
+    max_gigachat_images_per_run: int = 5  # speed + token safety; rest uses Pillow fallback
 
     send_mode: str = "file"  # file|noop (extensible)
     outbox_dir: str = "./data/outbox"
@@ -43,7 +45,10 @@ class Settings(BaseSettings):
     gigachat_base_url: str = "https://gigachat.devices.sberbank.ru/api/v1"
     gigachat_model: str = "GigaChat"
     gigachat_temperature: float | None = None
+    # Base timeout для обычных запросов (чат, текст)
     gigachat_timeout_sec: float = 30.0
+    # Отдельный таймаут для скачивания изображений (обычно дольше, можно поднять для демо)
+    gigachat_image_timeout_sec: float = 60.0
 
     # TLS / certificates
     gigachat_verify_ssl_certs: bool = True

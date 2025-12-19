@@ -15,6 +15,8 @@
           <tr>
             <th>ID</th>
             <th>Greeting</th>
+            <th>Greeting status</th>
+            <th>Client segment</th>
             <th>Channel</th>
             <th>Recipient</th>
             <th>Status</th>
@@ -28,6 +30,12 @@
             <tr>
               <td>{{ d.id }}</td>
               <td>{{ d.greeting_id }}</td>
+              <td class="small">{{ d.greeting.status if d.greeting else "" }}</td>
+              <td class="small">
+                {% if d.greeting and d.greeting.client %}
+                  {{ d.greeting.client.segment }}
+                {% endif %}
+              </td>
               <td><span class="badge text-bg-light">{{ d.channel }}</span></td>
               <td class="small">{{ d.recipient }}</td>
               <td>

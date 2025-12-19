@@ -8,11 +8,13 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.agent.orchestrator import run_once
 from app.db.models import AgentRun, Client, Delivery, Event, Greeting
 from app.db.session import get_session
 from app.services.approval import approve_greeting, reject_greeting
+from app.services.reset_runtime import reset_runtime_data
 
 router = APIRouter()
 
@@ -60,6 +62,12 @@ async def action_seed_demo(session: AsyncSession = Depends(get_session)):
 
         await seed_demo(session)
     return RedirectResponse(url="/clients", status_code=303)
+
+
+@router.post("/actions/reset-runtime")
+async def action_reset_runtime(session: AsyncSession = Depends(get_session)):
+    await reset_runtime_data(session)
+    return RedirectResponse(url="/", status_code=303)
 
 
 @router.get("/clients", response_class=HTMLResponse)
@@ -138,7 +146,15 @@ async def action_reject_greeting(
 @router.get("/deliveries", response_class=HTMLResponse)
 async def deliveries_page(request: Request, session: AsyncSession = Depends(get_session)):
     deliveries = (
-        (await session.execute(select(Delivery).order_by(Delivery.id.desc()))).scalars().all()
+        (
+            await session.execute(
+                select(Delivery)
+                .options(selectinload(Delivery.greeting).selectinload(Greeting.client))
+                .order_by(Delivery.id.desc())
+            )
+        )
+        .scalars()
+        .all()
     )
     return templates.TemplateResponse(
         "deliveries.html", {"request": request, "deliveries": deliveries}

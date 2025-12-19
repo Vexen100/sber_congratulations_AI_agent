@@ -109,6 +109,8 @@ scripts\kill_port.cmd 8000
 
 См. `backend/env.example`. Важное:
 - **LOOKAHEAD_DAYS**: горизонт поиска событий.
+- **MAX_HOLIDAY_RECIPIENTS**: лимит получателей на один праздник (чтобы не сжигать токены на демо).
+- **MAX_GIGACHAT_IMAGES_PER_RUN**: лимит генераций изображений через GigaChat за один прогон (скорость/токены). Остальные картинки — Pillow fallback.
 - **SEND_MODE**: `file` (MVP) — пишет письма в outbox.
 - **OUTBOX_DIR**: куда «отправлять».
 - **LLM_MODE**: `template` (по умолчанию, офлайн) или `openai` (OpenAI-compatible HTTP API).

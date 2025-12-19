@@ -25,7 +25,8 @@
 
 - **Решение**: для картинок используем `function_call="auto"` и парсим `<img src="file_id">`.
 - **Причина**: соответствует официальной схеме из документации.
-- **Файлы**: `backend/app/agent/gigachat_client.py` (extract + download).
+- **Файлы**: `backend/app/agent/gigachat_client.py` (extract + download), `backend/app/agent/gigachat_providers.py`.
+- **Промпт**: используется прямая команда "Нарисуй ..." как в официальных примерах GigaChat, промпт максимально простой для надежной генерации.
 
 ## 5) Idempotency на доставку
 
@@ -63,5 +64,23 @@
 - **Решение**: каждый вызов `run_once()` создаёт запись `AgentRun` и заполняет счётчики/статус по завершению.
 - **Причина**: наблюдаемость конвейера, демо “регулярности”, диагностика ошибок и объёма работы.
 - **Файлы**: `backend/app/db/models.py` (AgentRun), `backend/app/agent/orchestrator.py`, UI: `backend/app/web/router.py` + `backend/app/web/templates/runs.html`.
+
+## 11) Лимит получателей на праздники (демо‑контроль токенов)
+
+- **Решение**: при генерации holiday‑ивентов ограничиваем число получателей (по умолчанию `MAX_HOLIDAY_RECIPIENTS=12`).
+- **Причина**: праздник *для каждого клиента* быстро сжигает токены/время на демо.
+- **Файлы**: `backend/app/services/event_detector.py`, `backend/app/core/config.py`, `backend/env.example`.
+
+## 12) Reset runtime data для чистых прогонов
+
+- **Решение**: кнопка в UI очищает runtime‑данные (Events/Greetings/Deliveries/AgentRuns) и outbox/cards/smoke артефакты, но сохраняет Clients/Holidays.
+- **Причина**: повторные прогоны по умолчанию идемпотентны → много `skipped` и “старые” статусы. Reset делает демо воспроизводимым.
+- **Файлы**: `backend/app/services/reset_runtime.py`, `backend/app/web/router.py`, `backend/app/web/templates/base.html`.
+
+## 13) Скорость: лимит GigaChat-изображений за прогон
+
+- **Решение**: ограничиваем количество генераций изображений через GigaChat за один `run_once()` (`MAX_GIGACHAT_IMAGES_PER_RUN`, по умолчанию 5). Остальные изображения — быстрый Pillow fallback.
+- **Причина**: генерация картинок самая медленная и “дорогая” по токенам/времени, особенно при нескольких событиях.
+- **Файлы**: `backend/app/core/config.py`, `backend/app/agent/orchestrator.py`, `backend/env.example`.
 
 
