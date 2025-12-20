@@ -17,9 +17,14 @@ class Client(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     first_name: Mapped[str] = mapped_column(String(100))
+    # Russian patronymic (отчество). Optional for backward compatibility with existing DBs,
+    # but demo seed + manual client creation enforce it to prevent LLM hallucinations.
+    middle_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     last_name: Mapped[str] = mapped_column(String(100))
     company_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
     position: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # Professional area for "professional holidays" (optional in DB, but demo/manual UI can require it).
+    profession: Mapped[str | None] = mapped_column(String(80), nullable=True)
     segment: Mapped[str] = mapped_column(String(50), default="standard")  # vip|new|loyal|standard
 
     email: Mapped[str | None] = mapped_column(String(320), nullable=True)
@@ -31,6 +36,9 @@ class Client(Base):
     birth_date: Mapped[dt.date | None] = mapped_column(Date, nullable=True)
     preferences: Mapped[dict] = mapped_column(JSON, default=dict)
     last_interaction_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Demo safety: demo clients must never receive real outbound messages.
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False)
 
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
@@ -94,6 +102,7 @@ class Greeting(Base):
     # - needs_approval: created by agent for VIP, must be approved in UI
     # - rejected: rejected in UI (no send)
     # - sent: delivered (at least once)
+    # - skipped: deliberately not sent (safety blocks like demo/test recipients, allowlist)
     # - error: processing failure
     status: Mapped[str] = mapped_column(String(50), default="generated")
 

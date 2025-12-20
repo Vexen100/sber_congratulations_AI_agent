@@ -12,8 +12,8 @@ from app.agent.gigachat_providers import GigaChatImageProvider, build_illustrati
 from app.core.config import settings
 from app.db.models import AgentRun, Client, Event, Greeting
 from app.services.card_renderer import render_card
+from app.services.due_sender import send_due_greetings
 from app.services.event_detector import ensure_upcoming_events
-from app.services.sender import send_greeting_file
 from app.services.template_selector import choose_template
 
 log = logging.getLogger(__name__)
@@ -40,9 +40,11 @@ class AgentSummary:
 def _client_context(c: Client) -> dict:
     return {
         "first_name": c.first_name,
+        "middle_name": getattr(c, "middle_name", None),
         "last_name": c.last_name,
         "company_name": c.company_name,
         "position": c.position,
+        "profession": getattr(c, "profession", None),
         "segment": c.segment,
         "preferred_channel": c.preferred_channel,
         "email": c.email,
@@ -142,7 +144,13 @@ async def run_once(
 
                 # Render card
                 cards_dir = Path(__file__).resolve().parents[2] / "data" / "cards"
-                recipient_line = f"{client.first_name} {client.last_name}".strip()
+                recipient_line = " ".join(
+                    [
+                        (client.first_name or "").strip(),
+                        (getattr(client, "middle_name", "") or "").strip(),
+                        (client.last_name or "").strip(),
+                    ]
+                ).strip()
                 card_path = None
                 if (
                     settings.image_mode
@@ -216,25 +224,19 @@ async def run_once(
                 if summary.scanned_events % 3 == 0:
                     await _update_run_progress()
 
-                # Send (MVP: file outbox) — only if not VIP approval-gated
-                if client.segment.lower() != "vip":
-                    recipient = client.email or client.phone or f"client:{client.id}"
-                    delivery = await send_greeting_file(
-                        session, greeting=greeting, recipient=recipient
-                    )
-                    if delivery.status == "sent":
-                        greeting.status = "sent"
-                        await session.commit()
-                        summary.sent_deliveries += 1
-                        if summary.scanned_events % 3 == 0:
-                            await _update_run_progress()
-
             except Exception as e:
                 log.exception("agent error on event=%s: %s", getattr(ev, "id", None), e)
                 summary.errors += 1
                 await session.rollback()
                 if summary.scanned_events % 3 == 0:
                     await _update_run_progress(status="running")
+
+        # 3) Send due greetings (ONLY for events happening today)
+        due = await send_due_greetings(session, today=today)
+        summary.sent_deliveries += int(due.get("sent", 0))
+        summary.errors += int(due.get("errors", 0))
+        if summary.scanned_events > 0:
+            await _update_run_progress()
     except Exception as e:
         log.exception("agent fatal error: %s", e)
         summary.errors += 1

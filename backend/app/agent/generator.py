@@ -17,9 +17,11 @@ def _allowed_facts(client: Client) -> dict:
     # Keep the set minimal to avoid leakage and hallucinations.
     return {
         "first_name": client.first_name,
+        "middle_name": (getattr(client, "middle_name", None) or ""),
         "last_name": client.last_name,
         "company_name": client.company_name,
         "position": client.position,
+        "profession": (getattr(client, "profession", None) or ""),
         "segment": client.segment,
         # We intentionally do not pass last_interaction_summary to the model to avoid leaking topics/details.
         # Note: we deliberately do not pass email/phone to the LLM.

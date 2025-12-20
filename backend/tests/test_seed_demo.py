@@ -22,6 +22,10 @@ async def test_seed_demo_creates_random_five_with_upcoming_birthdays(db_session)
     end = today + dt.timedelta(days=lookahead_days)
     for c in clients:
         assert c.birth_date is not None
+        assert c.is_demo is True
+        assert (c.email or "").endswith("@example.com")
+        assert (getattr(c, "middle_name", "") or "").strip() != ""
+        assert (getattr(c, "profession", "") or "").strip() != ""
         occ = next_occurrence(c.birth_date.month, c.birth_date.day, today=today)
         assert today <= occ <= end
 

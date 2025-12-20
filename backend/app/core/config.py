@@ -20,8 +20,23 @@ class Settings(BaseSettings):
     max_holiday_recipients: int = 12  # prevents token blow-up on demo (per holiday)
     max_gigachat_images_per_run: int = 5  # speed + token safety; rest uses Pillow fallback
 
-    send_mode: str = "file"  # file|noop (extensible)
+    send_mode: str = "file"  # file|smtp|noop
     outbox_dir: str = "./data/outbox"
+
+    # SMTP (optional, real email sending)
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_username: str | None = None
+    smtp_password: str | None = None
+    smtp_from_email: str | None = None
+    smtp_starttls: bool = True
+    smtp_ssl: bool = False
+    smtp_timeout_sec: float = 15.0
+
+    # Safety: never send to demo/test addresses by default.
+    # Allowlist is a comma-separated list of domains, e.g. "mycompany.com,gmail.com".
+    smtp_allowlist_domains: str = ""
+    smtp_allow_all_recipients: bool = False
 
     # LLM (optional). Keep "template" as default for offline demos.
     llm_mode: str = "template"  # template|openai|gigachat

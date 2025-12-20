@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import datetime as dt
+import re
 from pathlib import Path
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -71,15 +73,60 @@ async def action_reset_runtime(session: AsyncSession = Depends(get_session)):
 @router.get("/clients", response_class=HTMLResponse)
 async def clients_page(request: Request, session: AsyncSession = Depends(get_session)):
     clients = (await session.execute(select(Client).order_by(Client.id.desc()))).scalars().all()
-    return templates.TemplateResponse("clients.html", {"request": request, "clients": clients})
+    qp = request.query_params
+    return templates.TemplateResponse(
+        "clients.html",
+        {
+            "request": request,
+            "clients": clients,
+            "msg": qp.get("msg", ""),
+            "error": qp.get("error", ""),
+        },
+    )
+
+
+_NAME_RE = re.compile(r"^[A-Za-zА-Яа-яЁё][A-Za-zА-Яа-яЁё\s\-]{1,49}$")
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+_PROFESSIONS = {
+    "management",
+    "finance",
+    "accounting",
+    "it",
+    "hr",
+    "marketing",
+    "sales",
+    "logistics",
+    "construction",
+    "medicine",
+    "security",
+}
+
+
+def _validate_human_name(value: str, *, field: str) -> str:
+    v = (value or "").strip()
+    if not _NAME_RE.fullmatch(v):
+        raise ValueError(f"{field}: используйте 2-50 символов (буквы/пробел/дефис)")
+    return v
+
+
+def _validate_email(value: str) -> str:
+    v = (value or "").strip()
+    if not _EMAIL_RE.fullmatch(v):
+        raise ValueError("email: некорректный формат")
+    low = v.lower()
+    if low.endswith("@example.com") or low.endswith(".invalid") or low.endswith(".example"):
+        raise ValueError("email: используйте реальный адрес (example.com запрещён)")
+    return v
 
 
 @router.post("/clients")
 async def clients_create(
     first_name: str = Form(...),
+    middle_name: str = Form(...),
     last_name: str = Form(...),
     company_name: str = Form(""),
     position: str = Form(""),
+    profession: str = Form(...),
     segment: str = Form("standard"),
     email: str = Form(""),
     phone: str = Form(""),
@@ -87,24 +134,71 @@ async def clients_create(
     birth_date: str = Form(""),
     session: AsyncSession = Depends(get_session),
 ):
-    bd = None
-    if birth_date.strip():
-        bd = dt.date.fromisoformat(birth_date.strip())
-    c = Client(
-        first_name=first_name.strip(),
-        last_name=last_name.strip(),
-        company_name=company_name.strip() or None,
-        position=position.strip() or None,
-        segment=segment.strip() or "standard",
-        email=email.strip() or None,
-        phone=phone.strip() or None,
-        preferred_channel=preferred_channel.strip() or "email",
-        birth_date=bd,
-        preferences={},
-    )
-    session.add(c)
-    await session.commit()
-    return RedirectResponse(url="/clients", status_code=303)
+    try:
+        fn = _validate_human_name(first_name, field="first_name")
+        mn = _validate_human_name(middle_name, field="middle_name")
+        ln = _validate_human_name(last_name, field="last_name")
+        prof = (profession or "").strip().lower()
+        if prof not in _PROFESSIONS:
+            raise ValueError("profession: выберите значение из списка")
+        seg = (segment or "standard").strip().lower()
+        if seg not in {"standard", "vip", "loyal", "new"}:
+            raise ValueError("segment: недопустимое значение")
+
+        bd = None
+        if birth_date.strip():
+            bd = dt.date.fromisoformat(birth_date.strip())
+
+        pref = (preferred_channel or "email").strip().lower()
+        if pref not in {"email", "sms", "messenger"}:
+            raise ValueError("preferred_channel: недопустимое значение")
+
+        em = None
+        if email.strip():
+            em = _validate_email(email)
+        if pref == "email" and not em:
+            raise ValueError("email: обязателен для preferred_channel=email")
+
+        # Keep total clients at 5 to avoid hitting GigaChat image limits in demo.
+        clients = (
+            (await session.execute(select(Client).order_by(Client.created_at.asc())))
+            .scalars()
+            .all()
+        )
+        if len(clients) >= 5:
+            demo_clients = [c for c in clients if getattr(c, "is_demo", False)]
+            if demo_clients:
+                # Remove the oldest demo client to keep capacity.
+                await session.delete(demo_clients[0])
+                await session.commit()
+            else:
+                raise ValueError(
+                    "Лимит: уже 5 реальных клиентов. Удалите одного или используйте Seed demo data."
+                )
+
+        c = Client(
+            first_name=fn,
+            middle_name=mn,
+            last_name=ln,
+            company_name=company_name.strip() or None,
+            position=position.strip() or None,
+            profession=prof,
+            segment=seg,
+            email=em,
+            phone=phone.strip() or None,
+            preferred_channel=pref,
+            birth_date=bd,
+            preferences={},
+            is_demo=False,
+        )
+        session.add(c)
+        await session.commit()
+        return RedirectResponse(
+            url=f"/clients?msg={quote('Клиент добавлен. Реальные письма отправляются только на ручные email.')}",
+            status_code=303,
+        )
+    except Exception as e:
+        return RedirectResponse(url=f"/clients?error={quote(str(e))}", status_code=303)
 
 
 @router.get("/events", response_class=HTMLResponse)
@@ -116,7 +210,15 @@ async def events_page(request: Request, session: AsyncSession = Depends(get_sess
 @router.get("/greetings", response_class=HTMLResponse)
 async def greetings_page(request: Request, session: AsyncSession = Depends(get_session)):
     greetings = (
-        (await session.execute(select(Greeting).order_by(Greeting.id.desc()))).scalars().all()
+        (
+            await session.execute(
+                select(Greeting)
+                .options(selectinload(Greeting.event), selectinload(Greeting.client))
+                .order_by(Greeting.id.desc())
+            )
+        )
+        .scalars()
+        .all()
     )
     return templates.TemplateResponse(
         "greetings.html", {"request": request, "greetings": greetings}

@@ -26,8 +26,18 @@
           {% for g in greetings %}
             <tr>
               <td>{{ g.id }}</td>
-              <td>{{ g.event_id }}</td>
-              <td>{{ g.client_id }}</td>
+              <td class="small">
+                <div class="fw-semibold">{{ g.event.title if g.event else g.event_id }}</div>
+                <div class="text-muted">{{ g.event.event_date if g.event else "" }}</div>
+              </td>
+              <td class="small">
+                {% if g.client %}
+                  <div class="fw-semibold">{{ g.client.first_name }} {{ g.client.middle_name or "" }} {{ g.client.last_name }}</div>
+                  <div class="text-muted">segment: {{ g.client.segment }}</div>
+                {% else %}
+                  {{ g.client_id }}
+                {% endif %}
+              </td>
               <td>
                 {% if g.status == "sent" %}
                   <span class="badge text-bg-success">sent</span>
@@ -35,6 +45,8 @@
                   <span class="badge text-bg-warning">needs approval</span>
                 {% elif g.status == "approved" %}
                   <span class="badge text-bg-info">approved</span>
+                {% elif g.status == "skipped" %}
+                  <span class="badge text-bg-secondary">skipped</span>
                 {% elif g.status == "rejected" %}
                   <span class="badge text-bg-dark">rejected</span>
                 {% elif g.status == "error" %}
@@ -47,12 +59,13 @@
                 {% if g.status == "needs_approval" %}
                   <div class="d-flex gap-2">
                     <form method="post" action="/actions/greetings/{{ g.id }}/approve">
-                      <button class="btn btn-sm btn-success">Approve & send</button>
+                      <button class="btn btn-sm btn-success">Approve</button>
                     </form>
                     <form method="post" action="/actions/greetings/{{ g.id }}/reject">
                       <button class="btn btn-sm btn-outline-danger">Reject</button>
                     </form>
                   </div>
+                  <div class="text-muted small mt-1">Отправка произойдёт в день события (в регулярном режиме / при запуске агента в этот день).</div>
                 {% else %}
                   <span class="text-muted">—</span>
                 {% endif %}

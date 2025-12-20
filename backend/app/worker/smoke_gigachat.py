@@ -114,7 +114,13 @@ async def main() -> None:
     )
 
     # 2) IMAGE: ask for a card, download jpg, save
-    recipient_line = f"{facts['first_name']} {facts['last_name']}"
+    recipient_line = " ".join(
+        [
+            (facts.get("first_name") or "").strip(),
+            (facts.get("middle_name") or "").strip(),
+            (facts.get("last_name") or "").strip(),
+        ]
+    ).strip()
     style, prompt = build_illustration_prompt(
         event_type="birthday",
         event_title="День рождения",

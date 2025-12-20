@@ -3,10 +3,12 @@ from __future__ import annotations
 import asyncio
 import datetime as dt
 import logging
+from zoneinfo import ZoneInfo
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.agent.orchestrator import run_once
+from app.core.config import settings
 from app.core.logging import configure_logging
 from app.db.session import SessionLocal
 
@@ -19,10 +21,13 @@ async def _job() -> None:
 
 async def main() -> None:
     configure_logging()
-    scheduler = AsyncIOScheduler()
-    # MVP: every day at 09:00 local time (can be made configurable)
+    scheduler = AsyncIOScheduler(timezone=ZoneInfo(getattr(settings, "tz", "Europe/Moscow")))
+    # Regular mode: every day at 09:00 in configured timezone
     scheduler.add_job(_job, "cron", hour=9, minute=0)
     scheduler.start()
+
+    # Demo-friendly: run once on start (so you don't have to wait for 09:00).
+    await _job()
 
     logging.getLogger(__name__).info("scheduler started; press Ctrl+C to stop")
     while True:

@@ -3,19 +3,50 @@
   <div class="d-flex align-items-center justify-content-between mb-3">
     <div>
       <h2 class="mb-1">Clients</h2>
-      <div class="text-muted">CRM-минимум для персонализации</div>
+      <div class="text-muted">
+        CRM-минимум для персонализации. Для демо поддерживаем <b>ровно 5</b> клиентов.
+        Seed demo data пересоздаёт 5 демо-клиентов; при ручном добавлении демо-клиенты автоматически вытесняются.
+      </div>
     </div>
   </div>
 
+  {% if msg %}
+    <div class="alert alert-success">{{ msg }}</div>
+  {% endif %}
+  {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+  {% endif %}
+
   <div class="card mb-3">
-    <div class="card-header">Добавить клиента (ручной ввод для демо)</div>
+    <div class="card-header">Добавить клиента (ручной ввод)</div>
     <div class="card-body">
       <form method="post" action="/clients" class="row g-2">
         <div class="col-12 col-md-3">
-          <input class="form-control" name="first_name" placeholder="Имя" required>
+          <input class="form-control" name="first_name" placeholder="Имя" required minlength="2" maxlength="50">
         </div>
         <div class="col-12 col-md-3">
-          <input class="form-control" name="last_name" placeholder="Фамилия" required>
+          <input class="form-control" name="middle_name" placeholder="Отчество" required minlength="2" maxlength="50">
+          <div class="form-text">Используется для уважительного обращения; модель не будет «придумывать» отчество.</div>
+        </div>
+        <div class="col-12 col-md-3">
+          <input class="form-control" name="last_name" placeholder="Фамилия" required minlength="2" maxlength="50">
+        </div>
+        <div class="col-12 col-md-3">
+          <select class="form-select" name="profession" required>
+            <option value="" selected disabled>Профессия (для проф. праздников)</option>
+            <option value="management">management</option>
+            <option value="finance">finance</option>
+            <option value="accounting">accounting</option>
+            <option value="it">it</option>
+            <option value="hr">hr</option>
+            <option value="marketing">marketing</option>
+            <option value="sales">sales</option>
+            <option value="logistics">logistics</option>
+            <option value="construction">construction</option>
+            <option value="medicine">medicine</option>
+            <option value="security">security</option>
+          </select>
+          <div class="form-text">Используется для профессиональных праздников (например «День бухгалтера»).</div>
         </div>
         <div class="col-12 col-md-3">
           <input class="form-control" name="company_name" placeholder="Компания">
@@ -33,7 +64,8 @@
           </select>
         </div>
         <div class="col-12 col-md-3">
-          <input class="form-control" name="email" placeholder="Email">
+          <input class="form-control" name="email" placeholder="Email (для реальной отправки)" type="email">
+          <div class="form-text">Адреса вида <code>...@example.com</code> запрещены (демо-безопасность).</div>
         </div>
         <div class="col-12 col-md-3">
           <input class="form-control" name="phone" placeholder="Телефон">
@@ -46,7 +78,7 @@
           </select>
         </div>
         <div class="col-12 col-md-2">
-          <input class="form-control" name="birth_date" placeholder="Дата ДР (YYYY-MM-DD)">
+          <input class="form-control" name="birth_date" placeholder="Дата ДР" type="date">
         </div>
         <div class="col-12 col-md-12">
           <button class="btn btn-primary">Добавить</button>
@@ -56,7 +88,10 @@
   </div>
 
   <div class="card">
-    <div class="card-header">Список клиентов</div>
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span>Список клиентов</span>
+      <span class="badge text-bg-secondary">Всего: {{ clients | length }}</span>
+    </div>
     <div class="card-body table-responsive">
       <table class="table table-sm align-middle">
         <thead>
@@ -64,7 +99,9 @@
             <th>ID</th>
             <th>ФИО</th>
             <th>Компания / Должность</th>
+            <th>Profession</th>
             <th>Сегмент</th>
+            <th>Demo</th>
             <th>Контакт</th>
             <th>ДР</th>
           </tr>
@@ -73,12 +110,20 @@
           {% for c in clients %}
             <tr>
               <td>{{ c.id }}</td>
-              <td>{{ c.first_name }} {{ c.last_name }}</td>
+              <td>{{ c.first_name }} {{ c.middle_name or "" }} {{ c.last_name }}</td>
               <td>
                 <div class="fw-semibold">{{ c.company_name or "" }}</div>
                 <div class="text-muted small">{{ c.position or "" }}</div>
               </td>
+              <td class="small"><span class="badge text-bg-light">{{ c.profession or "" }}</span></td>
               <td><span class="badge text-bg-secondary">{{ c.segment }}</span></td>
+              <td>
+                {% if c.is_demo %}
+                  <span class="badge text-bg-warning">demo</span>
+                {% else %}
+                  <span class="badge text-bg-success">real</span>
+                {% endif %}
+              </td>
               <td class="small">
                 <div>{{ c.email or "" }}</div>
                 <div class="text-muted">{{ c.phone or "" }}</div>

@@ -44,108 +44,147 @@ def _demo_pool() -> list[dict]:
     """A diverse pool to sample from. We always seed only a small subset for token safety."""
     return [
         {
+            "first_name": "Наталья",
+            "middle_name": "Олеговна",
+            "last_name": "Морозова",
+            "company_name": "ООО Безопасность+",
+            "position": "Руководитель службы безопасности",
+            "profession": "security",
+            "segment": "vip",
+        },
+        {
             "first_name": "Алина",
+            "middle_name": "Сергеевна",
             "last_name": "Громова",
             "company_name": "ООО Логистика-Профи",
             "position": "Операционный директор",
+            "profession": "logistics",
             "segment": "loyal",
         },
         {
             "first_name": "Руслан",
+            "middle_name": "Андреевич",
             "last_name": "Мельников",
             "company_name": "АО ПромИнжиниринг",
             "position": "Технический директор",
+            "profession": "it",
             "segment": "standard",
         },
         {
             "first_name": "Ксения",
+            "middle_name": "Павловна",
             "last_name": "Воронова",
             "company_name": "ООО Ритейл-Плюс",
             "position": "Коммерческий директор",
+            "profession": "sales",
             "segment": "vip",
         },
         {
             "first_name": "Павел",
+            "middle_name": "Игоревич",
             "last_name": "Сафронов",
             "company_name": "ЗАО ТехСтрой",
             "position": "Финансовый директор",
+            "profession": "finance",
             "segment": "loyal",
         },
         {
             "first_name": "Мария",
+            "middle_name": "Алексеевна",
             "last_name": "Кузнецова",
             "company_name": "ИП Кузнецова М.А.",
             "position": "Владелец",
+            "profession": "management",
             "segment": "new",
         },
         {
             "first_name": "Екатерина",
+            "middle_name": "Олеговна",
             "last_name": "Николаева",
             "company_name": "АО МедТех",
             "position": "Руководитель проектов",
+            "profession": "medicine",
             "segment": "standard",
         },
         {
             "first_name": "Дмитрий",
+            "middle_name": "Викторович",
             "last_name": "Орлов",
             "company_name": "ООО АгроПром",
             "position": "Директор по развитию",
+            "profession": "marketing",
             "segment": "loyal",
         },
         {
             "first_name": "Анна",
+            "middle_name": "Михайловна",
             "last_name": "Романова",
             "company_name": "ООО Альфа-Логистика",
             "position": "Генеральный директор",
+            "profession": "management",
             "segment": "vip",
         },
         {
             "first_name": "Сергей",
+            "middle_name": "Николаевич",
             "last_name": "Волков",
             "company_name": "ООО СеверЭнерго",
             "position": "Коммерческий директор",
+            "profession": "sales",
             "segment": "standard",
         },
         {
             "first_name": "Ольга",
+            "middle_name": "Ивановна",
             "last_name": "Фёдорова",
             "company_name": "АО ТрансЛайн",
             "position": "Директор по персоналу",
+            "profession": "hr",
             "segment": "new",
         },
         {
             "first_name": "Илья",
+            "middle_name": "Денисович",
             "last_name": "Захаров",
             "company_name": "ООО ФинСервис",
             "position": "Главный бухгалтер",
+            "profession": "accounting",
             "segment": "standard",
         },
         {
             "first_name": "Никита",
+            "middle_name": "Сергеевич",
             "last_name": "Смирнов",
             "company_name": "ООО ДевСтудио",
             "position": "CTO",
+            "profession": "it",
             "segment": "standard",
         },
         {
             "first_name": "Людмила",
+            "middle_name": "Петровна",
             "last_name": "Сергеева",
             "company_name": "ООО ТурбоМаркет",
             "position": "Директор по маркетингу",
+            "profession": "marketing",
             "segment": "new",
         },
         {
             "first_name": "Артём",
+            "middle_name": "Евгеньевич",
             "last_name": "Поляков",
             "company_name": "ООО СтройПроект",
             "position": "Руководитель финансов",
+            "profession": "construction",
             "segment": "loyal",
         },
         {
             "first_name": "Ирина",
+            "middle_name": "Владимировна",
             "last_name": "Соколова",
             "company_name": "ООО Альфа-Логистика",
             "position": "Генеральный директор",
+            "profession": "logistics",
             "segment": "vip",
         },
     ]
@@ -186,6 +225,13 @@ async def seed_demo_clients(
     rng: random.Random = random.Random(rng_seed) if rng_seed is not None else random.SystemRandom()  # type: ignore[assignment]
     chosen = rng.sample(pool, k=n)
 
+    # Demo showpiece: ensure at least one client has a profession with a professional holiday today.
+    # (This helps demonstrate "не только день рождения".)
+    if not any((row.get("profession") == "security") for row in chosen):
+        spotlight = next((r for r in pool if r.get("profession") == "security"), None)
+        if spotlight is not None:
+            chosen[0] = spotlight
+
     # Put birthdays inside the lookahead window so generated Events are never in the past.
     lookahead_days = int(getattr(settings, "lookahead_days", 7))
     window = max(1, min(lookahead_days, 14))
@@ -201,14 +247,17 @@ async def seed_demo_clients(
         clients.append(
             Client(
                 first_name=row["first_name"],
+                middle_name=row.get("middle_name"),
                 last_name=row["last_name"],
                 company_name=row["company_name"],
                 position=row["position"],
+                profession=row.get("profession"),
                 segment=row["segment"],
                 email=email,
                 preferred_channel="email",
                 birth_date=birth_date,
                 last_interaction_summary="",
+                is_demo=True,
             )
         )
 

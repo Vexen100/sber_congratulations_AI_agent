@@ -34,6 +34,7 @@ async def _migrate_sqlite(conn) -> None:
     """
     try:
         # PRAGMA table_info returns: cid, name, type, notnull, dflt_value, pk
+        # 1) greetings table migrations
         res = await conn.exec_driver_sql("PRAGMA table_info(greetings)")
         rows = res.fetchall()
         existing = {r[1] for r in rows}
@@ -44,7 +45,20 @@ async def _migrate_sqlite(conn) -> None:
             alter_stmts.append("ALTER TABLE greetings ADD COLUMN approved_by VARCHAR(120)")
         if "review_comment" not in existing:
             alter_stmts.append("ALTER TABLE greetings ADD COLUMN review_comment TEXT")
+        for stmt in alter_stmts:
+            await conn.exec_driver_sql(stmt)
 
+        # 2) clients table migrations
+        res = await conn.exec_driver_sql("PRAGMA table_info(clients)")
+        rows = res.fetchall()
+        existing = {r[1] for r in rows}
+        alter_stmts = []
+        if "is_demo" not in existing:
+            alter_stmts.append("ALTER TABLE clients ADD COLUMN is_demo BOOLEAN DEFAULT 0")
+        if "middle_name" not in existing:
+            alter_stmts.append("ALTER TABLE clients ADD COLUMN middle_name VARCHAR(100)")
+        if "profession" not in existing:
+            alter_stmts.append("ALTER TABLE clients ADD COLUMN profession VARCHAR(80)")
         for stmt in alter_stmts:
             await conn.exec_driver_sql(stmt)
     except Exception:
