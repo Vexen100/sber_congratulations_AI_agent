@@ -56,6 +56,4 @@ CSV / demo seed / DaData
 
 - Установка и запуск: `SETUP.md`
 - Архитектурные решения: `docs/DECISIONS.md`
-- Командная работа: `docs/TEAM_WORKFLOW.md`
-- Стартовый backlog: `docs/ISSUES_BOOTSTRAP.md`
 - GigaChat: `docs/GIGACHAT_INTEGRATION.md`

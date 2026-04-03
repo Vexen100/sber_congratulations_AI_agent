@@ -1,5 +1,9 @@
 # Sber Congratulations AI Agent
 
+[![CI](https://github.com/Vexen100/sber_congratulations_AI_agent/actions/workflows/ci.yml/badge.svg)](https://github.com/Vexen100/sber_congratulations_AI_agent/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](backend/env.example)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 Проект: **автоматизированный конвейер подготовки и доставки персонализированных поздравлений** клиентам и организациям на основе событий, с веб-интерфейсом для контроля статусов, ручных действий и дальнейшего развития.
 
 ## Репозиторий

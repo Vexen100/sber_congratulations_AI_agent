@@ -12,7 +12,7 @@ and the repository follows a lightweight semantic versioning approach for releas
 - VIP approval gating (`needs_approval`) и аудит запусков через `AgentRun`.
 - Company enrichment layer: импорт CSV, поля `ИНН/ОКВЭД/руководитель`, провайдеры `demo`, `dadata`, `hybrid`.
 - Feedback loop для оценки качества поздравлений и ручные события для импортированной базы.
-- Командные документы `docs/TEAM_WORKFLOW.md` и `docs/ISSUES_BOOTSTRAP.md`.
+- Документы по проектной структуре, обзору и интеграции GigaChat.
 
 ### Changed
 - Публичная документация приведена к более профессиональной структуре: краткий `README`, отдельный `SETUP.md`, обзор проекта и краткая инструкция по GigaChat.
