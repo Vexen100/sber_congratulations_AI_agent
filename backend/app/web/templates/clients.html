@@ -3,10 +3,10 @@
   <div class="d-flex align-items-center justify-content-between mb-3">
     <div class="page-intro">
       <h2 class="mb-1">Клиенты</h2>
-      <div class="text-muted">
+      <!-- <div class="text-muted">
         CRM-слой для персонализации и enrichment. Для демо поддерживаем <b>ровно 5</b> клиентов.
         Кнопка загрузки демо-данных пересоздаёт 5 демо-клиентов; при ручном добавлении демо-клиенты автоматически вытесняются.
-      </div>
+      </div> -->
     </div>
     <div class="d-flex gap-2">
       <form method="post" action="/actions/import-company-base">
@@ -37,18 +37,17 @@
         <div class="card-body">
       <form method="post" action="/clients" class="row g-2">
         <div class="col-12 col-md-3">
-          <input class="form-control" name="first_name" placeholder="Имя" required minlength="2" maxlength="50">
+          <input class="form-control" name="first_name" placeholder="Имя" title="Имя клиента" required minlength="2" maxlength="50">
         </div>
         <div class="col-12 col-md-3">
-          <input class="form-control" name="middle_name" placeholder="Отчество" required minlength="2" maxlength="50">
-          <div class="form-text">Используется для уважительного обращения; модель не будет «придумывать» отчество.</div>
+          <input class="form-control" name="middle_name" placeholder="Отчество" title="Используется для уважительного обращения; модель не будет «придумывать» отчество." required minlength="2" maxlength="50">
         </div>
         <div class="col-12 col-md-3">
           <input class="form-control" name="last_name" placeholder="Фамилия" required minlength="2" maxlength="50">
         </div>
         <div class="col-12 col-md-3">
-          <select class="form-select" name="profession" required>
-            <option value="" selected disabled>Профессия (для проф. праздников)</option>
+          <select class="form-select" title="Используется для профессиональных праздников (например «День бухгалтера»)." name="profession" required>
+            <option value="" selected disabled>Профессия</option>
             <option value="management">управление</option>
             <option value="finance">финансы</option>
             <option value="accounting">бухгалтерия</option>
@@ -61,21 +60,20 @@
             <option value="medicine">медицина</option>
             <option value="security">безопасность</option>
           </select>
-          <div class="form-text">Используется для профессиональных праздников (например «День бухгалтера»).</div>
         </div>
         <div class="col-12 col-md-3">
           <input class="form-control" name="company_name" placeholder="Компания">
         </div>
         <div class="col-12 col-md-3">
-          <input class="form-control" name="inn" placeholder="ИНН организации" minlength="10" maxlength="12">
-          <div class="form-text">Нужен для автоматического обогащения профиля компании.</div>
+          <input class="form-control" name="inn" placeholder="ИНН организации" title="Нужен для автоматического обогащения профиля компании." minlength="10" maxlength="12">
         </div>
         <div class="col-12 col-md-3">
           <input class="form-control" name="position" placeholder="Должность">
         </div>
 
-        <div class="col-12 col-md-2">
+        <div class="col-12 col-md-3">
           <select class="form-select" name="segment">
+            <option value="" selected disabled>Сегмент</option>
             <option value="standard">стандарт</option>
             <option value="vip">VIP</option>
             <option value="loyal">лояльный</option>
@@ -83,21 +81,22 @@
           </select>
         </div>
         <div class="col-12 col-md-3">
-          <input class="form-control" name="email" placeholder="Email (для реальной отправки)" type="email">
-          <div class="form-text">Адреса вида <code>...@example.com</code> запрещены (демо-безопасность).</div>
+          <input class="form-control" name="email" title="Адреса вида '...@example.com' запрещены." placeholder="Email" type="email">
+          <div class="form-text"></div>
         </div>
         <div class="col-12 col-md-3">
           <input class="form-control" name="phone" placeholder="Телефон">
         </div>
-        <div class="col-12 col-md-2">
+        <div class="col-12 col-md-3">
           <select class="form-select" name="preferred_channel">
+            <option value="" selected disabled>Канал доставки</option>
             <option value="email">email</option>
             <option value="sms">sms</option>
             <option value="messenger">мессенджер</option>
           </select>
         </div>
-        <div class="col-12 col-md-2">
-          <input class="form-control" name="birth_date" placeholder="Дата ДР" type="date">
+        <div class="col-12 col-md-3">
+          <input class="form-control" name="birth_date" placeholder="Дата" type="date">
         </div>
         <div class="col-12 col-md-12">
           <button class="btn btn-success quick-action">Добавить клиента</button>
@@ -109,26 +108,26 @@
     <div class="col-12 col-xl-4">
       <div class="surface-panel h-100">
         <div class="section-title">Качество данных</div>
-        <div class="section-subtitle mb-3">Быстрая сводка по тому, насколько качественно подготовлены клиентские профили.</div>
-        <div class="kpi-strip mb-3">
+        <!-- <div class="section-subtitle mb-3">Быстрая сводка по тому, насколько качественно подготовлены клиентские профили.</div> -->
+        <div class="kpi-strip-container">
           <div class="kpi-pill">
-            <span class="text-muted small">всего клиентов</span>
+            <span class="text-muted small">Всего клиентов</span>
             <b>{{ clients | length }}</b>
           </div>
           <div class="kpi-pill">
-            <span class="text-muted small">обогащено</span>
+            <span class="text-muted small">Обогащено</span>
             <b>{{ clients | selectattr('enrichment_status', 'equalto', 'enriched') | list | length }}</b>
           </div>
           <div class="kpi-pill">
             <span class="text-muted small">VIP-клиенты</span>
             <b>{{ clients | selectattr('segment', 'equalto', 'vip') | list | length }}</b>
           </div>
-          <div class="kpi-pill">
+          <!-- <div class="kpi-pill">
             <span class="text-muted small">демо-записи</span>
             <b>{{ clients | selectattr('is_demo', 'equalto', True) | list | length }}</b>
-          </div>
+          </div> -->
         </div>
-        <div class="soft-note">
+        <!-- <div class="soft-note">
           <div class="fw-semibold mb-1">Рекомендуемый сценарий демо</div>
           <div class="section-subtitle">
             Сначала покажите, что у клиента есть только базовые поля. Затем запустите enrichment и продемонстрируйте,
@@ -148,7 +147,8 @@
             CSV-импорт создаёт локально обогащённую базу для демо. Если включён <b>DaData</b>, используйте актуализацию по ИНН для проверки,
             что внешний источник действительно работает и умеет обновлять уже загруженные профили.
           </div>
-        </div>
+        </div> -->
+        <!-- <img src="https://i.pinimg.com/736x/ee/cc/0d/eecc0dabc950626bd32c902f28c4e7fa.jpg" alt="eecc0dabc9.jpg" width="200"> -->
       </div>
     </div>
   </div>

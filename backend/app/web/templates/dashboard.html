@@ -8,10 +8,10 @@
       <div class="col-12 col-xl-8">
         <div class="hero-badge mb-3">Центр управления</div>
         <h1 class="h2 mb-3">Конвейер поздравлений Сбера</h1>
-        <p class="mb-0 text-soft">
+        <!-- <p class="mb-0 text-soft">
           Панель управления демонстрирует полный цикл: подготовку клиентских профилей, enrichment компаний,
           генерацию поздравлений, human-in-the-loop review и фиксацию доставок.
-        </p>
+        </p> -->
       </div>
       <div class="col-12 col-xl-4">
         <div class="kpi-strip justify-content-xl-end">
@@ -37,42 +37,42 @@
       <div class="surface-panel metric-card">
           <div class="metric-label">Клиенты</div>
           <div class="metric-value">{{ clients_count }}</div>
-          <div class="metric-hint">CRM-профили и демо-персоны, доступные для генерации.</div>
+          <!-- <div class="metric-hint">CRM-профили и демо-персоны, доступные для генерации.</div> -->
         </div>
     </div>
     <div class="col-12 col-md-2">
       <div class="surface-panel metric-card">
           <div class="metric-label">Обогащено</div>
           <div class="metric-value">{{ enriched_clients_count }}</div>
-          <div class="metric-hint">Профили с `ИНН`, `ОКВЭД`, руководителем и источником данных.</div>
+          <!-- <div class="metric-hint">Профили с&nbsp;'ИНН', 'ОКВЭД', руководителем и&nbsp;источником данных.</div> -->
         </div>
     </div>
     <div class="col-12 col-md-2">
       <div class="surface-panel metric-card">
           <div class="metric-label">События</div>
           <div class="metric-value">{{ events_count }}</div>
-          <div class="metric-hint">Найденные триггеры на дни рождения и праздники.</div>
+          <!-- <div class="metric-hint">Найденные триггеры на дни рождения и праздники.</div> -->
         </div>
     </div>
     <div class="col-12 col-md-2">
       <div class="surface-panel metric-card">
           <div class="metric-label">Поздравления</div>
           <div class="metric-value">{{ greetings_count }}</div>
-          <div class="metric-hint">Сгенерированные тексты и открытки, готовые к review и отправке.</div>
+          <!-- <div class="metric-hint">Сгенерированные тексты и открытки, готовые к review и отправке.</div> -->
         </div>
     </div>
     <div class="col-12 col-md-2">
       <div class="surface-panel metric-card">
           <div class="metric-label">Доставки</div>
           <div class="metric-value">{{ deliveries_count }}</div>
-          <div class="metric-hint">Журнал outbox и история идемпотентных отправок.</div>
+          <!-- <div class="metric-hint">Журнал outbox и история идемпотентных отправок.</div> -->
         </div>
     </div>
     <div class="col-12 col-md-2">
       <div class="surface-panel metric-card">
         <div class="metric-label">Обратная связь</div>
           <div class="metric-value">{{ feedback_count }}</div>
-          <div class="metric-hint">Сигналы качества от менеджеров для будущей настройки.</div>
+          <!-- <div class="metric-hint">Сигналы качества от менеджеров для будущей настройки.</div> -->
         </div>
     </div>
   </div>
@@ -81,7 +81,7 @@
     <div class="col-12 col-xl-8">
       <div class="surface-panel h-100">
         <div class="section-title">Воронка после запуска</div>
-        <div class="section-subtitle mb-4">Показывает, как сгенерированные поздравления проходят через approve, доставку и feedback.</div>
+        <div class="section-subtitle mb-4">Показывает, как сгенерированные поздравления проходят через валидацию, доставку и обратную связь.</div>
         <div class="row g-3">
           <div class="col-12 col-md-6 col-xl-3">
             <a href="/greetings" class="text-decoration-none text-reset">
@@ -89,7 +89,7 @@
                 <div class="card-body">
                   <div class="metric-label">Сгенерировано</div>
                   <div class="metric-value">{{ greetings_count }}</div>
-                  <div class="metric-hint">Все greeting-объекты, созданные агентом.</div>
+                  <div class="metric-hint">Все поздравления, созданные агентом.</div>
                 </div>
               </div>
             </a>
@@ -100,7 +100,7 @@
                 <div class="card-body">
                   <div class="metric-label">Ждут согласования</div>
                   <div class="metric-value">{{ greetings_needing_approval }}</div>
-                  <div class="metric-hint">VIP-поздравления, которые ещё не прошли ручной review.</div>
+                  <div class="metric-hint">VIP-поздравления, которые ещё не прошли ручную валидацию.</div>
                 </div>
               </div>
             </a>
@@ -111,7 +111,7 @@
                 <div class="card-body">
                   <div class="metric-label">Дошли до доставки</div>
                   <div class="metric-value">{{ sent_greetings_count }}</div>
-                  <div class="metric-hint">Поздравления, у которых уже есть успешная отправка.</div>
+                  <div class="metric-hint">Поздравления, которые были успешно отправлены.</div>
                 </div>
               </div>
             </a>
@@ -120,7 +120,7 @@
             <a href="/greetings" class="text-decoration-none text-reset">
               <div class="surface-card h-100">
                 <div class="card-body">
-                  <div class="metric-label">Есть feedback</div>
+                  <div class="metric-label">Есть обратная связь</div>
                   <div class="metric-value">{{ greetings_with_feedback_count }}</div>
                   <div class="metric-hint">Поздравления, по которым менеджер уже дал обратную связь.</div>
                 </div>
@@ -140,7 +140,7 @@
             <span class="fw-semibold">{{ delivery_success_rate }}%</span>
           </div>
           <div class="d-flex align-items-center justify-content-between">
-            <span class="metric-label mb-0">Покрытие feedback</span>
+            <span class="metric-label mb-0">Покрытие обратной связи</span>
             <span class="fw-semibold">{{ feedback_coverage_rate }}%</span>
           </div>
           <div class="d-flex align-items-center justify-content-between">
@@ -167,8 +167,8 @@
   </div>
 
   <div class="row g-4 mt-1">
-    <div class="col-12 col-xl-5">
-      <div class="surface-panel h-100">
+    <!-- <div class="col-12 col-xl-5"> -->
+      <!-- <div class="surface-panel h-100">
         <div class="section-title">Как показать демо</div>
         <div class="section-subtitle mb-4">Короткий сценарий, который показывает реальный прогресс проекта.</div>
         <div class="d-grid gap-3">
@@ -208,10 +208,10 @@
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </div> -->
+    <!-- </div> -->
     <div class="col-12 col-xl-7">
-      <div class="surface-card h-100">
+      <div class="surface-card ">
         <div class="card-header d-flex align-items-center justify-content-between">
           <span>Последние запуски агента</span>
           <a href="/runs" class="small">Все запуски</a>
@@ -256,7 +256,7 @@
                 </tr>
               {% else %}
                 <tr>
-                  <td colspan="9" class="empty-state">Запусков пока нет. Используйте кнопку `Запустить агента`, чтобы заполнить журнал.</td>
+                  <td colspan="9" class="empty-state">Запусков пока нет. Используйте кнопку 'Запустить агента', чтобы заполнить журнал.</td>
                 </tr>
               {% endfor %}
             </tbody>
