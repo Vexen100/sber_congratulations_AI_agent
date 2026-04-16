@@ -47,7 +47,7 @@
 
   <div class="row g-4 mb-4">
     <div class="col-12 col-xl-6">
-      <div class="surface-card h-100">
+      <div class="surface-card">
         <div class="card-header">Создать ручное событие</div>
         <div class="card-body">
           <form method="post" action="/actions/events/manual" class="row g-2">
@@ -72,25 +72,46 @@
         </div>
       </div>
     </div>
+    {% set total = events | length %}
+    {% set b = events | selectattr('event_type', 'equalto', 'birthday') | list | length %}
+    {% set h = events | selectattr('event_type', 'equalto', 'holiday') | list | length %}
+    {% set m = events | selectattr('event_type', 'equalto', 'manual') | list | length %}
     <div class="col-12 col-xl-6">
-      <div class="surface-card h-100">
-        <div class="card-header">Быстрая demo-кампания</div>
-        <div class="card-body">
-          <div class="text-muted mb-3">Создаёт ручные поводы для первых реальных клиентов из базы, чтобы агент мог сразу сгенерировать поздравления для импортированного сегмента.</div>
-          <form method="post" action="/actions/events/demo-campaign" class="row g-2">
-            <div class="col-12 col-md-7">
-              <input class="form-control" name="title" value="Персональное деловое поздравление" required>
+      <div class="surface-panel metric-card">
+        <div class="metric-label mb-3">Распределение событий</div>
+
+        <div class="css-pie-wrapper">
+          <div class="css-pie"
+              style="--val-birthday: {{ b }}; --val-holiday: {{ h }}; --val-manual: {{ m }}; --total: {{ total or 1 }};"
+              {% if total == 0 %}data-empty="true"{% endif %}>
+            <div class="css-pie-center">
+              <span class="pie-total">{{ total }}</span>
+              <span class="pie-label">всего</span>
             </div>
-            <div class="col-6 col-md-2">
-              <input class="form-control" type="number" min="1" max="20" name="count" value="5" required>
+          </div>
+
+          <div class="kpi-strip-container justify-content-center" style="gap: 0.5rem; margin-bottom: 0;">
+            <div class="kpi-pill" style="min-width: auto; padding: 0.4rem 0.6rem;">
+              <span style="width: 8px; height: 8px; background: var(--primary); border-radius: 50%; display: inline-block;"></span>
+              <span class="small ms-1">ДР: {{ b }}</span>
             </div>
-            <div class="col-6 col-md-3">
-              <input class="form-control" type="date" name="event_date">
+            <div class="kpi-pill" style="min-width: auto; padding: 0.4rem 0.6rem;">
+              <span style="width: 8px; height: 8px; background: var(--primary-dark); border-radius: 50%; display: inline-block;"></span>
+              <span class="small ms-1">Праздники: {{ h }}</span>
             </div>
-            <div class="col-12">
-              <button class="btn btn-outline-success quick-action">Подготовить события для реальной базы</button>
+            <div class="kpi-pill" style="min-width: auto; padding: 0.4rem 0.6rem;">
+              <span style="width: 8px; height: 8px; background: #41c77b; border-radius: 50%; display: inline-block;"></span>
+              <span class="small ms-1">Ручные: {{ m }}</span>
             </div>
-          </form>
+          </div>
+        </div>
+
+        <div class="metric-hint text-center mt-2">
+          {% if total > 0 %}
+            ДР: {{ (b/total*100)|round|int }}% | Праздники: {{ (h/total*100)|round|int }}% | Ручные: {{ (m/total*100)|round|int }}%
+          {% else %}
+            Нет данных для визуализации
+          {% endif %}
         </div>
       </div>
     </div>

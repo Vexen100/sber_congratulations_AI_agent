@@ -3,10 +3,6 @@
   <div class="d-flex align-items-center justify-content-between mb-3">
     <div class="page-intro">
       <h2 class="mb-1">Клиенты</h2>
-      <!-- <div class="text-muted">
-        CRM-слой для персонализации и enrichment. Для демо поддерживаем <b>ровно 5</b> клиентов.
-        Кнопка загрузки демо-данных пересоздаёт 5 демо-клиентов; при ручном добавлении демо-клиенты автоматически вытесняются.
-      </div> -->
     </div>
     <div class="d-flex gap-2">
       <form method="post" action="/actions/import-company-base">
@@ -108,7 +104,6 @@
     <div class="col-12 col-xl-4">
       <div class="surface-panel h-100">
         <div class="section-title">Качество данных</div>
-        <!-- <div class="section-subtitle mb-3">Быстрая сводка по тому, насколько качественно подготовлены клиентские профили.</div> -->
         <div class="kpi-strip-container">
           <div class="kpi-pill">
             <span class="text-muted small">Всего клиентов</span>
@@ -122,33 +117,7 @@
             <span class="text-muted small">VIP-клиенты</span>
             <b>{{ clients | selectattr('segment', 'equalto', 'vip') | list | length }}</b>
           </div>
-          <!-- <div class="kpi-pill">
-            <span class="text-muted small">демо-записи</span>
-            <b>{{ clients | selectattr('is_demo', 'equalto', True) | list | length }}</b>
-          </div> -->
         </div>
-        <!-- <div class="soft-note">
-          <div class="fw-semibold mb-1">Рекомендуемый сценарий демо</div>
-          <div class="section-subtitle">
-            Сначала покажите, что у клиента есть только базовые поля. Затем запустите enrichment и продемонстрируйте,
-            как профиль становится пригодным для более умной генерации поздравлений.
-          </div>
-        </div>
-        <div class="soft-note mt-3">
-          <div class="fw-semibold mb-1">Текущие режимы</div>
-          <div class="section-subtitle">
-            Провайдер enrichment: <b>{{ company_enrichment_provider }}</b>.<br>
-            Отправка поздравлений: <b>{% if delivery_schedule_mode == "immediate" %}сразу после генерации/аппрува{% else %}в дату события{% endif %}</b>.
-          </div>
-        </div>
-        <div class="soft-note mt-3">
-          <div class="fw-semibold mb-1">Как использовать CSV и DaData вместе</div>
-          <div class="section-subtitle">
-            CSV-импорт создаёт локально обогащённую базу для демо. Если включён <b>DaData</b>, используйте актуализацию по ИНН для проверки,
-            что внешний источник действительно работает и умеет обновлять уже загруженные профили.
-          </div>
-        </div> -->
-        <!-- <img src="https://i.pinimg.com/736x/ee/cc/0d/eecc0dabc950626bd32c902f28c4e7fa.jpg" alt="eecc0dabc9.jpg" width="200"> -->
       </div>
     </div>
   </div>
@@ -284,5 +253,3 @@
     </div>
   </div>
 {% endblock %}
-
-

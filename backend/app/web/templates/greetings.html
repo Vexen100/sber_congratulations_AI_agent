@@ -3,7 +3,7 @@
   <div class="d-flex align-items-center justify-content-between mb-3">
     <div class="page-intro">
       <h2 class="mb-1">Поздравления</h2>
-      <div class="text-muted">Сгенерированные поздравления, review-flow для VIP и обратная связь от менеджеров.</div>
+      <div class="text-muted">Сгенерированные поздравления, статистика для согласования VIP и наличие обратной связи.</div>
     </div>
   </div>
 
@@ -37,7 +37,42 @@
       </div>
     </div>
   </div>
+  {% set total = greetings | length %}
+  {% set b = greetings | selectattr('status', 'equalto', 'needs_approval') | list | length %}
+  {% set h = greetings | selectattr('feedback_entries') | list | length %}
+  <div class="surface-panel" style="width: 70%; text-align: center; margin: 15px auto;">
+    <div class="metric-label mb-3">Распределение поздравлений</div>
 
+    <div class="css-pie-wrapper">
+      <div class="css-pie"
+          style="--val-birthday: {{ b }}; --val-holiday: {{ h }}; --total: {{ total or 1 }}; width: 300px; height: 300px;"
+          {% if total == 0 %}data-empty="true"{% endif %}>
+        <div class="css-pie-center">
+          <span class="pie-total">{{ total }}</span>
+          <span class="pie-label">всего</span>
+        </div>
+      </div>
+
+      <div class="kpi-strip-container justify-content-center" style="gap: 0.5rem; margin-bottom: 0;">
+        <div class="kpi-pill" style="min-width: auto; padding: 0.4rem 0.6rem;">
+          <span style="width: 8px; height: 8px; background: var(--primary); border-radius: 50%; display: inline-block;"></span>
+          <span class="small ms-1">Нужно согласование: {{ b }}</span>
+        </div>
+        <div class="kpi-pill" style="min-width: auto; padding: 0.4rem 0.6rem;">
+          <span style="width: 8px; height: 8px; background: var(--primary-dark); border-radius: 50%; display: inline-block;"></span>
+          <span class="small ms-1">С обратной связью: {{ h }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="metric-hint text-center mt-2">
+      {% if total > 0 %}
+        Нужно согласование: {{ (b/total*100)|round|int }}% | С обратной связью: {{ (h/total*100)|round|int }}%
+      {% else %}
+        Нет данных для визуализации
+      {% endif %}
+    </div>
+  </div>
   <div class="surface-card">
     <div class="card-header">Список поздравлений</div>
     <div class="card-body table-responsive">

@@ -7,26 +7,28 @@
     <div class="row g-4 align-items-center">
       <div class="col-12 col-xl-8">
         <div class="hero-badge mb-3">Центр управления</div>
-        <h1 class="h2 mb-3">Конвейер поздравлений Сбера</h1>
-        <!-- <p class="mb-0 text-soft">
-          Панель управления демонстрирует полный цикл: подготовку клиентских профилей, enrichment компаний,
-          генерацию поздравлений, human-in-the-loop review и фиксацию доставок.
-        </p> -->
+        <h1 class="h2 mb-3">Быстрый просмотр данных</h1>
       </div>
       <div class="col-12 col-xl-4">
         <div class="kpi-strip justify-content-xl-end">
           <div class="kpi-pill">
-            <span class="text-muted small">клиенты</span>
+            <span class="text-muted small">Клиенты</span>
             <b>{{ clients_count }}</b>
           </div>
           <div class="kpi-pill">
-            <span class="text-muted small">обогащено</span>
-            <b>{{ enriched_clients_count }}</b>
+            <span class="text-muted small">Отправлено&nbsp;/&nbsp;Ошибка</span>
+            <div>
+              {% if delivery_errors_count == 0 %}
+                  {{ sent_greetings_count }}/{{ delivery_errors_count }}
+              {% else %}
+                  {{ sent_greetings_count / delivery_errors_count }}%
+              {% endif %} 
+            </div>
           </div>
-          <div class="kpi-pill">
+          <!-- <div class="kpi-pill">
             <span class="text-muted small">обратная связь</span>
             <b>{{ feedback_count }}</b>
-          </div>
+          </div> -->
         </div>
       </div>
     </div>
@@ -37,42 +39,36 @@
       <div class="surface-panel metric-card">
           <div class="metric-label">Клиенты</div>
           <div class="metric-value">{{ clients_count }}</div>
-          <!-- <div class="metric-hint">CRM-профили и демо-персоны, доступные для генерации.</div> -->
         </div>
     </div>
     <div class="col-12 col-md-2">
       <div class="surface-panel metric-card">
           <div class="metric-label">Обогащено</div>
           <div class="metric-value">{{ enriched_clients_count }}</div>
-          <!-- <div class="metric-hint">Профили с&nbsp;'ИНН', 'ОКВЭД', руководителем и&nbsp;источником данных.</div> -->
         </div>
     </div>
     <div class="col-12 col-md-2">
       <div class="surface-panel metric-card">
           <div class="metric-label">События</div>
           <div class="metric-value">{{ events_count }}</div>
-          <!-- <div class="metric-hint">Найденные триггеры на дни рождения и праздники.</div> -->
         </div>
     </div>
     <div class="col-12 col-md-2">
       <div class="surface-panel metric-card">
           <div class="metric-label">Поздравления</div>
           <div class="metric-value">{{ greetings_count }}</div>
-          <!-- <div class="metric-hint">Сгенерированные тексты и открытки, готовые к review и отправке.</div> -->
         </div>
     </div>
     <div class="col-12 col-md-2">
       <div class="surface-panel metric-card">
           <div class="metric-label">Доставки</div>
           <div class="metric-value">{{ deliveries_count }}</div>
-          <!-- <div class="metric-hint">Журнал outbox и история идемпотентных отправок.</div> -->
         </div>
     </div>
     <div class="col-12 col-md-2">
       <div class="surface-panel metric-card">
         <div class="metric-label">Обратная связь</div>
           <div class="metric-value">{{ feedback_count }}</div>
-          <!-- <div class="metric-hint">Сигналы качества от менеджеров для будущей настройки.</div> -->
         </div>
     </div>
   </div>
@@ -167,49 +163,6 @@
   </div>
 
   <div class="row g-4 mt-1">
-    <!-- <div class="col-12 col-xl-5"> -->
-      <!-- <div class="surface-panel h-100">
-        <div class="section-title">Как показать демо</div>
-        <div class="section-subtitle mb-4">Короткий сценарий, который показывает реальный прогресс проекта.</div>
-        <div class="d-grid gap-3">
-          <div class="workflow-step">
-            <div class="workflow-index">1</div>
-            <div>
-              <div class="fw-semibold">Загрузить демо-данные</div>
-              <div class="section-subtitle">Создаёт 5 клиентов с событиями на сегодня для убедительного сценария показа.</div>
-            </div>
-          </div>
-          <div class="workflow-step">
-            <div class="workflow-index">2</div>
-            <div>
-              <div class="fw-semibold">Обогатить профили компаний</div>
-              <div class="section-subtitle">Заполняет `ИНН`, `ОКВЭД`, руководителя и источник данных.</div>
-            </div>
-          </div>
-          <div class="workflow-step">
-            <div class="workflow-index">3</div>
-            <div>
-              <div class="fw-semibold">Запустить агента</div>
-              <div class="section-subtitle">Генерирует поздравления и открытки на основе enriched-профилей.</div>
-            </div>
-          </div>
-          <div class="workflow-step">
-            <div class="workflow-index">4</div>
-            <div>
-              <div class="fw-semibold">Проверка и обратная связь</div>
-              <div class="section-subtitle">Сохраните feedback менеджера и покажите живой human-in-the-loop.</div>
-            </div>
-          </div>
-          <div class="workflow-step">
-            <div class="workflow-index">5</div>
-            <div>
-              <div class="fw-semibold">Доставки и артефакты</div>
-              <div class="section-subtitle">Продемонстрируйте outbox и generated cards как итог конвейера.</div>
-            </div>
-          </div>
-        </div>
-      </div> -->
-    <!-- </div> -->
     <div class="col-12 col-xl-7">
       <div class="surface-card ">
         <div class="card-header d-flex align-items-center justify-content-between">
