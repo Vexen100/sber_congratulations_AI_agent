@@ -39,16 +39,7 @@ def build_user_prompt(
     tone_hint: str | None = None,
     event_details: dict | None = None,
 ) -> str:
-    """Build user prompt for greeting generation.
-
-    Args:
-        event_type: birthday|holiday|manual
-        event_title: название события
-        event_date: дата события
-        segment: сегмент клиента (VIP, standard, etc.)
-        facts: словарь с фактами о клиенте
-        tone_hint: подсказка тона из holiday_tags (official|warm), если есть
-    """
+    """Build user prompt for greeting generation."""
     semantics = build_event_semantics(
         event_type=event_type,
         event_title=event_title,
@@ -56,7 +47,7 @@ def build_user_prompt(
         segment=segment,
         profession=(facts or {}).get("profession"),
     )
-    # Определяем рекомендацию по тону
+    
     tone_guidance = ""
     if tone_hint:
         if tone_hint.lower() == "official":
@@ -70,7 +61,6 @@ def build_user_prompt(
     else:
         tone_guidance = "Используй тёплый тон (warm), но оставайся профессиональным."
 
-    # Персонализация в зависимости от типа события
     personalization_guidance = ""
     if event_type.lower() == "birthday":
         personalization_guidance = (
@@ -84,7 +74,6 @@ def build_user_prompt(
             "- Добавь пожелания, которые подходят именно этому человеку (здоровье, успех в делах, гармония).\n"
         )
     else:
-        # holiday или manual
         personalization_guidance = (
             "ПЕРСОНАЛИЗАЦИЯ для праздника:\n"
             "- Адаптируй поздравление под конкретный праздник, учитывая его суть и значение.\n"
@@ -133,7 +122,6 @@ def build_user_prompt(
             )
             personalization_guidance += "".join(manual_lines)
 
-    # Строим промпт
     prompt_parts = [
         "Сгенерируй персональное поздравление от Сбербанка.\n\n",
         "FACTS о клиенте (используй ТОЛЬКО эти данные, не выдумывай ничего):\n",
@@ -175,3 +163,31 @@ def build_user_prompt(
     ]
 
     return "".join(prompt_parts)
+
+
+def build_user_prompt_with_examples(
+    *,
+    event_type: str,
+    event_title: str,
+    event_date: dt.date,
+    segment: str,
+    facts: dict,
+    examples: str = "",
+    tone_hint: str | None = None,
+    event_details: dict | None = None,
+) -> str:
+
+    base_prompt = build_user_prompt(
+        event_type=event_type,
+        event_title=event_title,
+        event_date=event_date,
+        segment=segment,
+        facts=facts,
+        tone_hint=tone_hint,
+        event_details=event_details,
+    )
+    
+    if examples:
+        return examples + "\n\n" + base_prompt
+    
+    return base_prompt
