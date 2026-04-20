@@ -48,6 +48,7 @@
             <th>Событие</th>
             <th>Клиент</th>
             <th>Статус</th>
+            <th>Источник</th>
             <th>Действия</th>
             <th>Тема</th>
             <th>Обратная связь</th>
@@ -66,12 +67,7 @@
                 {% if g.client %}
                   <div class="fw-semibold">{{ g.client.first_name }} {{ g.client.middle_name or "" }} {{ g.client.last_name }}</div>
                   <div class="text-muted">сегмент: {{ g.client.segment }}</div>
-                  {% if g.client.official_company_name or g.client.company_name %}
-                    <div class="text-muted">{{ g.client.official_company_name or g.client.company_name }}</div>
-                  {% endif %}
-                  {% if g.client.okved_name %}
-                    <div class="text-muted small">ОКВЭД: {{ g.client.okved_name }}</div>
-                  {% endif %}
+                  <div class="text-muted small">{{ g.client.profession or "профессия не указана" }}</div>
                 {% else %}
                   {{ g.client_id }}
                 {% endif %}
@@ -93,27 +89,57 @@
                   <span class="badge text-bg-secondary">{{ g.status }}</span>
                 {% endif %}
               </td>
+              
+              <!-- КОЛОНКА: ИСТОЧНИК ГЕНЕРАЦИИ -->
+              <td class="small">
+                {% if g.generation_source %}
+                  {% if 'fewshot' in g.generation_source %}
+                    <span class="badge text-bg-info" title="Сгенерировано с использованием примеров из векторной БД">
+                      🔍 few-shot
+                    </span>
+                    <div class="small text-muted mt-1">{{ g.generation_source }}</div>
+                  {% elif g.generation_source == 'template' %}
+                    <span class="badge text-bg-secondary">📝 шаблон</span>
+                  {% elif g.generation_source == 'llm_no_examples' %}
+                    <span class="badge text-bg-light">🤖 LLM</span>
+                  {% else %}
+                    <span class="badge text-bg-light">{{ g.generation_source }}</span>
+                  {% endif %}
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              
+              <!-- УНИВЕРСАЛЬНАЯ ФОРМА ДЛЯ APPROVE/REJECT -->
               <td class="small">
                 {% if g.status == "needs_approval" %}
                   <div class="d-flex gap-2 flex-wrap">
-                    <form method="post" action="/actions/greetings/{{ g.id }}/approve">
-                      <button class="btn btn-sm btn-success">Согласовать</button>
-                    </form>
-                    <form method="post" action="/actions/greetings/{{ g.id }}/reject">
-                      <button class="btn btn-sm btn-outline-danger">Отклонить</button>
+                    <form method="post" action="/actions/greetings/{{ g.id }}/review" class="d-flex gap-1 align-items-center">
+                      <select name="rating" class="form-select form-select-sm" style="width: 80px;" required>
+                        <option value="">Оценка</option>
+                        <option value="5">5 ★ (отлично)</option>
+                        <option value="4">4 ★ (хорошо)</option>
+                        <option value="3">3 ★ (средне)</option>
+                        <option value="2">2 ★ (плохо)</option>
+                        <option value="1">1 ★ (ужасно)</option>
+                      </select>
+                      <input type="text" name="comment" placeholder="Комментарий" class="form-control form-control-sm" style="width: 150px;" required>
+                      <button type="submit" name="action" value="approve" class="btn btn-sm btn-success">✅ Одобрить</button>
+                      <button type="submit" name="action" value="reject" class="btn btn-sm btn-outline-danger">❌ Отклонить</button>
                     </form>
                   </div>
                   <div class="text-muted small mt-1">
                     {% if delivery_schedule_mode == "immediate" %}
-                      После согласования поздравление будет отправлено сразу.
+                      После одобрения поздравление будет отправлено сразу.
                     {% else %}
-                      Отправка произойдёт в день события при регулярном режиме или при запуске агента в этот день.
+                      Отправка произойдёт в день события.
                     {% endif %}
                   </div>
                 {% else %}
                   <span class="text-muted">—</span>
                 {% endif %}
               </td>
+              
               <td class="small">
                 <div class="fw-semibold">{{ g.subject }}</div>
                 <details class="mt-2">
@@ -121,6 +147,7 @@
                   <pre class="small mb-0 mt-2 p-3 rounded-4 border bg-light" style="white-space: pre-wrap;">{{ g.body }}</pre>
                 </details>
               </td>
+              
               <td class="small" style="min-width: 260px;">
                 {% if g.feedback_entries %}
                   {% set latest = g.feedback_entries[-1] %}
@@ -132,33 +159,8 @@
                     <div class="text-muted mb-2">{{ latest.notes }}</div>
                   {% endif %}
                 {% endif %}
-                <form method="post" action="/actions/greetings/{{ g.id }}/feedback" class="row g-1">
-                  <div class="col-4">
-                    <select class="form-select form-select-sm" name="score">
-                      <option value="">оценка</option>
-                      <option value="5">5</option>
-                      <option value="4">4</option>
-                      <option value="3">3</option>
-                      <option value="2">2</option>
-                      <option value="1">1</option>
-                    </select>
-                  </div>
-                  <div class="col-8">
-                    <select class="form-select form-select-sm" name="outcome">
-                      <option value="unknown">неизвестно</option>
-                      <option value="opened">открыто</option>
-                      <option value="replied">есть ответ</option>
-                      <option value="ignored">без реакции</option>
-                    </select>
-                  </div>
-                  <div class="col-12">
-                    <input class="form-control form-control-sm" name="notes" placeholder="Комментарий менеджера">
-                  </div>
-                  <div class="col-12">
-                    <button class="btn btn-sm btn-outline-primary">Сохранить отзыв</button>
-                  </div>
-                </form>
               </td>
+              
               <td class="small">
                 {% if g.image_path %}
                   <img src="/data/{{ g.image_path }}" alt="card" class="card-preview" />
@@ -166,10 +168,11 @@
                   <div class="soft-note">Открытка появится после генерации.</div>
                 {% endif %}
               </td>
+              
             </tr>
           {% else %}
             <tr>
-              <td colspan="8" class="empty-state">Поздравлений пока нет. Запустите агента, чтобы заполнить эту страницу.</td>
+              <td colspan="9" class="empty-state">Поздравлений пока нет. Запустите агента, чтобы заполнить эту страницу.</td>
             </tr>
           {% endfor %}
         </tbody>
@@ -177,5 +180,3 @@
     </div>
   </div>
 {% endblock %}
-
-
