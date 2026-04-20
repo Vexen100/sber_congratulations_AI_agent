@@ -65,7 +65,7 @@ class FeedbackVectorDB:
                 "client_profession": client_profession,
                 "holiday_title": holiday_title,
                 "rating": rating,
-                "created_at": datetime.now().isoformat()
+                "comment": comment
             }],
             documents=[greeting_text]
         )
@@ -113,7 +113,7 @@ class FeedbackVectorDB:
                 meta = results['metadatas'][0][i] if results.get('metadatas') else {}
                 
                 examples.append({
-                    'id': doc_id,
+                    'comment': meta.get('comment', ''),
                     'text': doc_text,
                     'rating': meta.get('rating', 0),
                     'holiday': meta.get('holiday_title', ''),
