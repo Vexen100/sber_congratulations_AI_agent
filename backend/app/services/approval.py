@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.db.models import Client, Event, Greeting
 from app.services.sender import send_greeting
+from app.services.feedback import save_feedback
 
 
 async def approve_greeting(
@@ -16,15 +17,24 @@ async def approve_greeting(
     greeting_id: int,
     approved_by: str = "operator",
     review_comment: str | None = None,
+    rating: int | None = None,
+    comment: str = "",
     today: dt.date | None = None,
 ) -> dict:
-    """Approve a greeting and send it (MVP sender).
-
-    Returns a small summary dict for UI.
-    """
+    """Одобрение поздравления с оценкой"""
     g = (await session.execute(select(Greeting).where(Greeting.id == greeting_id))).scalar_one()
     if g.status not in {"needs_approval", "generated"}:
         return {"status": "ignored", "reason": f"cannot approve from status={g.status}"}
+
+    # Сохраняем обратную связь с оценкой
+    if rating is not None:
+        await save_feedback(
+            session=session,
+            greeting_id=greeting_id,
+            score=rating,
+            outcome="approve",
+            notes=comment or review_comment
+        )
 
     g.status = "approved"
     g.approved_at = dt.datetime.now(dt.timezone.utc)
@@ -39,7 +49,6 @@ async def approve_greeting(
         settings.delivery_schedule_mode or "event_date"
     ).strip().lower() == "immediate"
 
-    # Find client/recipient
     c = None
     recipient = "unknown"
     if g.client_id is not None:
@@ -49,7 +58,6 @@ async def approve_greeting(
         if c:
             recipient = c.email or c.phone or f"client:{c.id}"
 
-    # In regular mode we do not send earlier than the event date.
     ev = (await session.execute(select(Event).where(Event.id == g.event_id))).scalar_one_or_none()
     if ev is not None and not immediate_mode and ev.event_date != today:
         return {
@@ -66,8 +74,6 @@ async def approve_greeting(
         await session.commit()
         return {"status": "sent", "delivery_id": delivery.id}
 
-    # "skipped" is a deliberate safety outcome (demo client, allowlist, test recipient, etc).
-    # Do NOT mark the greeting as "error" in this case.
     if delivery.status == "skipped":
         g.status = "skipped"
         await session.commit()
@@ -88,10 +94,21 @@ async def reject_greeting(
     greeting_id: int,
     rejected_by: str = "operator",
     review_comment: str | None = None,
+    rating: int | None = None,
+    comment: str = "",
 ) -> dict:
     g = (await session.execute(select(Greeting).where(Greeting.id == greeting_id))).scalar_one()
     if g.status not in {"needs_approval", "generated"}:
         return {"status": "ignored", "reason": f"cannot reject from status={g.status}"}
+
+    # Сохраняем обратную связь (обязательно с rating и comment)
+    await save_feedback(
+        session=session,
+        greeting_id=greeting_id,
+        score=rating,
+        outcome="reject",
+        notes=comment or review_comment
+    )
 
     g.status = "rejected"
     g.approved_at = dt.datetime.now(dt.timezone.utc)
