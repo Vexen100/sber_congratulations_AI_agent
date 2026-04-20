@@ -114,6 +114,10 @@ class Greeting(Base):
     subject: Mapped[str] = mapped_column(String(250))
     body: Mapped[str] = mapped_column(Text)
     image_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    
+    # НОВОЕ ПОЛЕ:
+    generation_source: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    
     # Status lifecycle:
     # - generated: created by agent (non-VIP default)
     # - needs_approval: created by agent for VIP, must be approved in UI
