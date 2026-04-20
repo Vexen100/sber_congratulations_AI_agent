@@ -152,7 +152,9 @@ async def run_once(
                 choice = choose_template(
                     segment=client.segment, event_type=ev.event_type, title=ev.title
                 )
-                tone, subject, body = await generate_subject_body(
+                
+                # Генерация текста (возвращает 4 значения)
+                tone, subject, body, generation_source = await generate_subject_body(
                     event=ev, client=client, template_choice=choice, today=today
                 )
 
@@ -229,6 +231,7 @@ async def run_once(
                     body=body,
                     image_path=rel_image_path,
                     status="needs_approval" if client.segment.lower() == "vip" else "generated",
+                    generation_source=generation_source,
                 )
                 session.add(greeting)
                 await session.commit()
