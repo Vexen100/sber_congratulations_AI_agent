@@ -125,7 +125,6 @@ async def action_run_agent(session: AsyncSession = Depends(get_session)):
 
 @router.post("/actions/seed-demo")
 async def action_seed_demo(session: AsyncSession = Depends(get_session)):
-    # Reseed demo data every time: random 5 clients with upcoming birthdays (good for demos).
     from app.api.routes.clients import seed_demo_clients
 
     await seed_demo_clients(session, n=5, replace=True)
@@ -290,7 +289,6 @@ async def clients_create(
         if pref == "email" and not em:
             raise ValueError("email: обязателен для preferred_channel=email")
 
-        # Keep total clients at 5 to avoid hitting GigaChat image limits in demo.
         clients = (
             (await session.execute(select(Client).order_by(Client.created_at.asc())))
             .scalars()
@@ -299,7 +297,6 @@ async def clients_create(
         if len(clients) >= 5:
             demo_clients = [c for c in clients if getattr(c, "is_demo", False)]
             if demo_clients:
-                # Remove the oldest demo client to keep capacity.
                 await session.delete(demo_clients[0])
                 await session.commit()
             else:
@@ -452,46 +449,46 @@ async def greetings_page(request: Request, session: AsyncSession = Depends(get_s
     )
 
 
-@router.post("/actions/greetings/{greeting_id}/feedback")
-async def action_feedback_greeting(
+@router.post("/actions/greetings/{greeting_id}/review")
+async def action_review_greeting(
     greeting_id: int,
-    score: int | None = Form(None),
-    outcome: str = Form("unknown"),
-    notes: str = Form(""),
+    rating: int = Form(...),
+    comment: str = Form(...),
+    action: str = Form(...),
     session: AsyncSession = Depends(get_session),
 ):
+    """Универсальный обработчик для одобрения/отклонения"""
     try:
-        await save_feedback(
-            session,
-            greeting_id=greeting_id,
-            score=score,
-            outcome=outcome,
-            notes=notes,
-        )
+        if action == "approve":
+            await approve_greeting(
+                session, 
+                greeting_id=greeting_id, 
+                approved_by="web-ui",
+                rating=rating,
+                comment=comment
+            )
+            msg = f"Поздравление одобрено с оценкой {rating}"
+        elif action == "reject":
+            await reject_greeting(
+                session, 
+                greeting_id=greeting_id, 
+                rejected_by="web-ui",
+                rating=rating,
+                comment=comment
+            )
+            msg = "Поздравление отклонено"
+        else:
+            raise ValueError(f"Неизвестное действие: {action}")
+        
         return RedirectResponse(
-            url=f"/greetings?msg={quote('Отзыв сохранён')}",
-            status_code=303,
+            url=f"/greetings?msg={quote(msg)}", 
+            status_code=303
         )
     except Exception as e:
-        return RedirectResponse(url=f"/greetings?error={quote(str(e))}", status_code=303)
-
-
-@router.post("/actions/greetings/{greeting_id}/approve")
-async def action_approve_greeting(
-    greeting_id: int,
-    session: AsyncSession = Depends(get_session),
-):
-    await approve_greeting(session, greeting_id=greeting_id, approved_by="web-ui")
-    return RedirectResponse(url="/greetings", status_code=303)
-
-
-@router.post("/actions/greetings/{greeting_id}/reject")
-async def action_reject_greeting(
-    greeting_id: int,
-    session: AsyncSession = Depends(get_session),
-):
-    await reject_greeting(session, greeting_id=greeting_id, rejected_by="web-ui")
-    return RedirectResponse(url="/greetings", status_code=303)
+        return RedirectResponse(
+            url=f"/greetings?error={quote(str(e))}", 
+            status_code=303
+        )
 
 
 @router.get("/deliveries", response_class=HTMLResponse)
