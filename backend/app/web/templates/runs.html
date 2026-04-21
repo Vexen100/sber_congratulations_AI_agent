@@ -19,21 +19,21 @@
       <div class="surface-panel metric-card">
         <div class="metric-label">Успешно</div>
         <div class="metric-value">{{ status_totals.success }}</div>
-        <div class="metric-hint">Полностью успешные прогоны без ошибок.</div>
+        <div class="metric-hint">Полностью успешные запуски без ошибок.</div>
       </div>
     </div>
     <div class="col-12 col-md-3">
       <div class="surface-panel metric-card">
         <div class="metric-label">Частично</div>
         <div class="metric-value">{{ status_totals.partial }}</div>
-        <div class="metric-hint">Прогоны с результатом и частичными ошибками.</div>
+        <div class="metric-hint">Запуски с частичными ошибками.</div>
       </div>
     </div>
     <div class="col-12 col-md-3">
       <div class="surface-panel metric-card">
         <div class="metric-label">Ошибки</div>
         <div class="metric-value">{{ status_totals.error }}</div>
-        <div class="metric-hint">Фатальные прогоны, требующие внимания.</div>
+        <div class="metric-hint">Фатальные ошибки, требующие внимания.</div>
       </div>
     </div>
   </div>
@@ -42,8 +42,8 @@
     <div class="card-header">Последние 100 запусков</div>
     <div class="card-body table-responsive">
       <div class="soft-note small text-muted mb-3">
-        <b>Sent (auto)</b> — отправки, выполненные автоматически внутри агента. Отправки VIP после ручного
-        <b>Согласовать и отправить</b> отображается в Deliveries, но не увеличивает этот счётчик.
+        <b>Авто-отправки</b> — отправки, выполненные автоматически внутри агента. Отправки VIP после ручного
+        <b>"Согласовать и отправить"</b> отображается в <a href="/deliveries">доставках</a>, но не увеличивает этот счётчик.
       </div>
       <table class="table table-sm align-middle table-clean">
         <thead>

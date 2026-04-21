@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{{ title or "Sber Congratulations (MVP)" }}</title>
+    <title>{{title or "Агент поздравлений"}}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
       :root {
@@ -68,6 +68,10 @@
         box-shadow: 0 8px 20px rgba(18, 161, 80, 0.12);
       }
 
+      .btn-outline-primary {
+        background: none;
+        
+      }
       .quick-action.btn-success {
         background: linear-gradient(135deg, var(--primary) 0%, #26b060 100%);
         border-color: transparent;
@@ -467,7 +471,7 @@
     <div class="container-fluid layout-shell">
       <div class="row g-0">
         <aside class="col-12 col-lg-3 col-xl-2 p-3 p-lg-4 min-vh-100 sidebar-shell">
-          <!-- <div class="d-grid gap-2 mb-4">
+          <div class="d-grid gap-2 mb-4">
             <form action="/actions/run-agent" method="post">
               <button class="btn btn-success quick-action w-100">Запустить агента</button>
             </form>
@@ -477,7 +481,7 @@
             <form action="/actions/reset-runtime" method="post">
               <button class="btn btn-outline-danger quick-action w-100">Очистить среду</button>
             </form>
-          </div> -->
+          </div>
           <div class="section-title">Placeholder</div>
           <!-- <div class="section-subtitle mb-3">Навигация по конвейеру и контролю качества.</div> -->
           <div class="nav-stack">
@@ -500,9 +504,9 @@
             <a class="nav-chip {% if current_path.startswith('/runs') %}active{% endif %}" href="/runs">
               <span>Запуски агента</span>
             </a>
-            <a class="nav-chip" href="/docs">
+            <!-- <a class="nav-chip" href="/docs">
               <span>Документация API</span>
-            </a>
+            </a> -->
           </div>
           <div class="mt-4">
             <div class="delivery-pill">Режим доставки: файловый outbox</div>
