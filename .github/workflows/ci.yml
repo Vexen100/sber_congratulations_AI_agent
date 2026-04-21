@@ -2,10 +2,38 @@ name: CI
 
 on:
   push:
+    branches: ["main"]
+    tags: ["v*"]
   pull_request:
+  workflow_dispatch:
 
 jobs:
-  test:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt -r backend/requirements-dev.txt
+      - name: Lint (ruff)
+        run: |
+          cd backend
+          python -m ruff check .
+      - name: Format check (black)
+        run: |
+          cd backend
+          python -m black --check .
+
+  unit-tests:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -24,17 +52,82 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt -r backend/requirements-dev.txt
-      - name: Lint (ruff)
+      - name: Unit tests (pytest)
         run: |
           cd backend
-          python -m ruff check .
-      - name: Format check (black)
+          python -m pytest -q -m "not integration"
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    needs: [quality, unit-tests]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt -r backend/requirements-dev.txt
+      - name: Integration tests (pytest)
         run: |
           cd backend
-          python -m black --check .
-      - name: Tests (pytest)
+          python -m pytest -q -m integration
+
+  build-release-bundle:
+    runs-on: ubuntu-latest
+    needs: [quality, unit-tests, integration-tests]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build backend bytecode
+        run: python -m compileall -q backend/app
+      - name: Create release bundle
         run: |
-          cd backend
-          python -m pytest -q
+          mkdir -p dist
+          tar -czf dist/sber_congratulations_backend.tgz backend scripts README.md SETUP.md
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sber-congratulations-release-bundle
+          path: dist/sber_congratulations_backend.tgz
+          if-no-files-found: error
+
+  publish-release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    needs: [build-release-bundle]
+    permissions:
+      contents: write
+    steps:
+      - name: Download release bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: sber-congratulations-release-bundle
+          path: dist
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/sber_congratulations_backend.tgz
+
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    needs: [build-release-bundle]
+    environment: production
+    steps:
+      - name: Trigger deployment webhook
+        env:
+          DEPLOY_WEBHOOK_URL: ${{ secrets.DEPLOY_WEBHOOK_URL }}
+        run: |
+          if [ -z "$DEPLOY_WEBHOOK_URL" ]; then
+            echo "DEPLOY_WEBHOOK_URL is not configured; skipping deployment trigger."
+            exit 0
+          fi
+          curl -fsS -X POST "$DEPLOY_WEBHOOK_URL"
 
 
