@@ -2,8 +2,12 @@ from __future__ import annotations
 
 import datetime as dt
 
+import pytest
+
 from app.agent.orchestrator import run_once
 from app.api.routes.clients import seed_demo_clients
+
+pytestmark = pytest.mark.integration
 
 
 async def test_demo_seed_creates_presentation_ready_run(db_session):

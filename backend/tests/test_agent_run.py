@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import datetime as dt
 
+import pytest
 from sqlalchemy import select
 
 from app.agent.orchestrator import run_once
 from app.db.models import Client, Delivery, Greeting
+
+pytestmark = pytest.mark.integration
 
 
 async def test_agent_generates_and_sends_for_birthday(db_session):

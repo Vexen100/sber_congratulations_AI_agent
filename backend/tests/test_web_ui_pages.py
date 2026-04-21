@@ -3,12 +3,15 @@ from __future__ import annotations
 import datetime as dt
 
 import httpx
+import pytest
 from sqlalchemy import select
 
 from app.agent.orchestrator import run_once
 from app.db.models import AgentRun, Client, Delivery, Event, Feedback, Greeting
 from app.db.session import get_session
 from app.main import create_app
+
+pytestmark = pytest.mark.integration
 
 
 async def test_dashboard_page_renders_new_presentation_layout(db_session):
