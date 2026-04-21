@@ -36,7 +36,7 @@ def create_app() -> FastAPI:
     # NOTE: With uvicorn --reload on Windows, the app can be imported before startup hooks run.
     # StaticFiles by default checks directory existence at mount time, so we disable the check
     # and create the directory in the startup event.
-    app.mount("/static", StaticFiles(directory="static"), name="static")
+    app.mount("/data", StaticFiles(directory="data", check_dir=False), name="data")
 
     return app
 
