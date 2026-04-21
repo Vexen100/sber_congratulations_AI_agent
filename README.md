@@ -8,7 +8,7 @@
 
 ## Репозиторий
 
-- **CI**: GitHub Actions workflow в `.github/workflows/ci.yml` (ruff/black/pytest)
+- **CI/CD**: GitHub Actions workflow в `.github/workflows/ci.yml` (quality gate, unit + integration tests, release bundle, deploy trigger)
 - **Ключевые проектные документы**: начните с `docs/PROJECT_OVERVIEW.md` и `docs/DECISIONS.md`
 
 ## Возможности проекта
@@ -211,6 +211,18 @@ scripts\run_scheduler.cmd
 cd backend
 .venv\Scripts\activate
 pytest -q
+```
+
+Запуск только unit-тестов:
+
+```bat
+pytest -q -m "not integration"
+```
+
+Запуск только integration-тестов:
+
+```bat
+pytest -q -m integration
 ```
 
 ## Как расширять после MVP
