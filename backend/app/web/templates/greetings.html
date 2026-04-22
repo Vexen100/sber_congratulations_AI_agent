@@ -112,32 +112,18 @@
               
               <!-- УНИВЕРСАЛЬНАЯ ФОРМА ДЛЯ APPROVE/REJECT -->
               <td class="small">
-                {% if g.status == "needs_approval" %}
-                  <div class="d-flex gap-2 flex-wrap">
-                    <form method="post" action="/actions/greetings/{{ g.id }}/review" class="d-flex gap-1 align-items-center">
-                      <select name="rating" class="form-select form-select-sm" style="width: 80px;" required>
-                        <option value="">Оценка</option>
-                        <option value="5">5 ★ (отлично)</option>
-                        <option value="4">4 ★ (хорошо)</option>
-                        <option value="3">3 ★ (средне)</option>
-                        <option value="2">2 ★ (плохо)</option>
-                        <option value="1">1 ★ (ужасно)</option>
+                  <form method="post" action="/actions/greetings/{{ g.id }}/feedback" class="d-flex gap-1 align-items-center">
+                      <select name="score" class="form-select form-select-sm" style="width: 80px;" required>
+                          <option value="">Оценка</option>
+                          <option value="5">5 ★ (отлично)</option>
+                          <option value="4">4 ★ (хорошо)</option>
+                          <option value="3">3 ★ (средне)</option>
+                          <option value="2">2 ★ (плохо)</option>
+                          <option value="1">1 ★ (ужасно)</option>
                       </select>
-                      <input type="text" name="comment" placeholder="Комментарий" class="form-control form-control-sm" style="width: 150px;" required>
-                      <button type="submit" name="action" value="approve" class="btn btn-sm btn-success">✅ Одобрить</button>
-                      <button type="submit" name="action" value="reject" class="btn btn-sm btn-outline-danger">❌ Отклонить</button>
-                    </form>
-                  </div>
-                  <div class="text-muted small mt-1">
-                    {% if delivery_schedule_mode == "immediate" %}
-                      После одобрения поздравление будет отправлено сразу.
-                    {% else %}
-                      Отправка произойдёт в день события.
-                    {% endif %}
-                  </div>
-                {% else %}
-                  <span class="text-muted">—</span>
-                {% endif %}
+                      <input type="text" name="notes" placeholder="Комментарий" class="form-control form-control-sm" style="width: 200px;">
+                      <button class="btn btn-sm btn-primary">💾 Сохранить оценку</button>
+                  </form>
               </td>
               
               <td class="small">
