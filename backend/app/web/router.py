@@ -449,39 +449,23 @@ async def greetings_page(request: Request, session: AsyncSession = Depends(get_s
     )
 
 
-@router.post("/actions/greetings/{greeting_id}/review")
-async def action_review_greeting(
+@router.post("/actions/greetings/{greeting_id}/feedback")
+async def action_feedback_greeting(
     greeting_id: int,
-    rating: int = Form(...),
-    comment: str = Form(...),
-    action: str = Form(...),
+    score: int = Form(..., description="Оценка от 1 до 5"),
+    notes: str = Form("", description="Комментарий менеджера"),
     session: AsyncSession = Depends(get_session),
 ):
-    """Универсальный обработчик для одобрения/отклонения"""
+    """Сохранение оценки (без approve/reject)"""
     try:
-        if action == "approve":
-            await approve_greeting(
-                session, 
-                greeting_id=greeting_id, 
-                approved_by="web-ui",
-                rating=rating,
-                comment=comment
-            )
-            msg = f"Поздравление одобрено с оценкой {rating}"
-        elif action == "reject":
-            await reject_greeting(
-                session, 
-                greeting_id=greeting_id, 
-                rejected_by="web-ui",
-                rating=rating,
-                comment=comment
-            )
-            msg = "Поздравление отклонено"
-        else:
-            raise ValueError(f"Неизвестное действие: {action}")
-        
+        await save_feedback(
+            session,
+            greeting_id=greeting_id,
+            score=score,
+            notes=notes,
+        )
         return RedirectResponse(
-            url=f"/greetings?msg={quote(msg)}", 
+            url=f"/greetings?msg={quote('Оценка сохранена')}", 
             status_code=303
         )
     except Exception as e:
