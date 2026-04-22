@@ -136,8 +136,8 @@ async def action_seed_demo(session: AsyncSession = Depends(get_session)):
 async def action_reset_runtime(session: AsyncSession = Depends(get_session)):
     result = await reset_runtime_data(session, clear_clients=True)
     msg = (
-        f"Демо-среда очищена: clients={result['cleared_clients']}, "
-        f"files={result['cleared_files']}"
+        f"Данные очищены. кол-во очищенных клиентов: {result['cleared_clients']}, "
+        f"кол-во очищенных файлов: {result['cleared_files']}"
     )
     return RedirectResponse(url=f"/?msg={quote(msg)}", status_code=303)
 
@@ -147,8 +147,8 @@ async def action_enrich_clients(session: AsyncSession = Depends(get_session)):
     result = await enrich_missing_clients(session)
     provider = (settings.company_enrichment_provider or "demo").strip().lower()
     msg = (
-        f"Обогащение ({provider}) завершено: enriched={result['enriched']}, "
-        f"errors={result['errors']}, processed={result['processed']}"
+        f"Обогащение завершено. Обогащено: {result['enriched']}, "
+        f"ошибки: {result['errors']}, успешно: {result['processed']}"
     )
     return RedirectResponse(url=f"/clients?msg={quote(msg)}", status_code=303)
 
@@ -158,8 +158,8 @@ async def action_refresh_clients_external(session: AsyncSession = Depends(get_se
     provider = (settings.company_enrichment_provider or "demo").strip().lower()
     result = await enrich_missing_clients(session, force=True)
     msg = (
-        f"Актуализация ({provider}) завершена: enriched={result['enriched']}, "
-        f"errors={result['errors']}, processed={result['processed']}"
+        f"Актуализация ({provider}) завершена. Актуализировано: {result['enriched']}, "
+        f"ошибки: {result['errors']}, успешно: {result['processed']}"
     )
     return RedirectResponse(url=f"/clients?msg={quote(msg)}", status_code=303)
 
@@ -168,8 +168,8 @@ async def action_refresh_clients_external(session: AsyncSession = Depends(get_se
 async def action_import_company_base(session: AsyncSession = Depends(get_session)):
     result = await import_clients_from_company_csv(session)
     msg = (
-        f"Импорт базы компаний завершён: added={result['added']}, "
-        f"updated={result['updated']}, skipped={result['skipped']}"
+        f"Импорт базы компаний завершён. Добавлено: {result['added']}, "
+        f"обновлено: {result['updated']}, пропущено: {result['skipped']}"
     )
     return RedirectResponse(url=f"/clients?msg={quote(msg)}", status_code=303)
 

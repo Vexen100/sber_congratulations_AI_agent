@@ -184,8 +184,8 @@
                     <button class="btn btn-sm btn-outline-primary">Сохранить отзыв</button>
                   </div>
                 </form>
-                {% if g.status == "needs_approval" %}
-                  <div class="row g-1" style="margin: .25rem 0;">
+                <!-- {% if g.status == "needs_approval" %} -->
+                  <!-- <div class="row g-1" style="margin: .25rem 0;">
                     <div class="col-6">
                       <form method="post" action="/actions/greetings/{{ g.id }}/approve">
                         <button class="btn btn-sm btn-success">Согласовать</button>
@@ -196,7 +196,7 @@
                         <button class="btn btn-sm btn-outline-danger">Отклонить</button>
                       </form>
                     </div>
-                  </div>
+                  </div> -->
                   <!-- <div class="text-muted small mt-1">
                     {% if delivery_schedule_mode == "immediate" %}
                       После согласования поздравление будет отправлено сразу.
@@ -204,9 +204,9 @@
                       Отправка произойдёт при запуске агента в этот день.
                     {% endif %}
                   </div> -->
-                {% else %}
+                <!-- {% else %}
                   <span class="text-muted">—</span>
-                {% endif %}
+                {% endif %} -->
               </td>
               <td class="small">
                 <div class="fw-semibold">{{ g.subject }}</div>
