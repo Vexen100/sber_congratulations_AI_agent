@@ -1,0 +1,468 @@
+{
+  "version": "3.0",
+  "year": 2026,
+  "created_at": "2026-01-01",
+  "description": "Полный календарь праздников для AI-агента Сбер",
+  "holidays": [
+    {
+      "date": "2026-01-01",
+      "title": "Новый год",
+      "category": "seasonal",
+      "priority": 8,
+      "tags": {
+        "type": "holiday",
+        "tone_hint": "warm",
+        "audience": "all",
+        "focus_hint": "renewal",
+        "requires_approval": false
+      }
+    },
+    {
+      "date": "2026-01-26",
+      "title": "Международный день таможенника",
+      "category": "professional",
+      "priority": 4,
+      "tags": {
+        "type": "professional",
+        "tone_hint": "official",
+        "audience": "role_based",
+        "profession": "customs",
+        "okved_tags": ["52.29", "46"],
+        "requires_approval": false
+      }
+    },
+    {
+      "date": "2026-02-08",
+      "title": "День российской науки",
+      "category": "professional",
+      "priority": 5,
+      "tags": {
+        "type": "professional",
+        "tone_hint": "official",
+        "audience": "role_based",
+        "profession": "science",
+        "okved_tags": ["72", "85"],
+        "requires_approval": false
+      }
+    },
+    {
+      "date": "2026-02-23",
+      "title": "День защитника Отечества",
+      "category": "national",
+      "priority": 7,
+      "gender": "male",
+      "tags": {
+        "type": "holiday",
+        "tone_hint": "official",
+        "audience": "gender_based",
+        "focus_hint": "respect",
+        "requires_approval": false
+      }
+    },
+    {
+      "date": "2026-03-08",
+      "title": "Международный женский день",
+      "category": "national",
+      "priority": 7,
+      "gender": "female",
+      "tags": {
+        "type": "holiday",
+        "tone_hint": "warm",
+        "audience": "gender_based",
+        "focus_hint": "care",
+        "requires_approval": false
+      }
+    },
+    {
+      "date": "2026-05-01",
+      "title": "Праздник Весны и Труда",
+      "category": "national",
+      "priority": 7,
+      "tags": {
+        "type": "holiday",
+        "tone_hint": "warm",
+        "audience": "all",
+        "focus_hint": "team",
+        "requires_approval": false
+      }
+    },
+    {
+      "date": "2026-05-09",
+      "title": "День Победы",
+      "category": "national",
+      "priority": 8,
+      "tags": {
+        "type": "holiday",
+        "tone_hint": "official",
+        "audience": "all",
+        "focus_hint": "gratitude",
+        "requires_approval": false
+      }
+    },
+    {
+      "date": "2026-05-24",
+      "title": "День кадровика",
+      "category": "professional",
+      "priority": 4,
+      "tags": {
+        "type": "professional",
+        "tone_hint": "official",
+        "audience": "role_based",
+        "profession": "hr",
+        "okved_tags": ["78.10", "78.30"],
+        "requires_approval": false
+      }
+    },
+    {
+      "date": "2026-05-26",
+      "title": "День российского предпринимательства",
+      "category": "professional",
+      "priority": 6,
+      "tags": {
+        "type": "professional",
+        "tone_hint": "warm",
+        "audience": "role_based",
+        "profession": "entrepreneur",
+        "okved_tags": ["all"],
+        "requires_approval": false
+      }
+    },
+    {
+      "date": "2026-06-12",
+      "title": "День России",
+      "category": "national",
+      "priority": 7,
+      "tags": {
+        "type": "holiday",
+        "tone_hint": "official",
+        "audience": "all",
+        "focus_hint": "stability",
+        "requires_approval": false
+      }
+    },
+    {
+      "date": "2026-06-16",
+      "title": "День медицинского работника",
+      "category": "professional",
+      "priority": 5,
+      "tags": {
+        "type": "professional",
+        "tone_hint": "warm",
+        "audience": "role_based",
+        "profession": "medicine",
+        "okved_tags": ["86", "87", "88", "32.50"],
+        "requires_approval": false
+      }
+    },
+    {
+      "date": "2026-07-19",
+      "title": "День металлурга",
+      "category": "professional",
+      "priority": 5,
+      "tags": {
+        "type": "professional",
+        "tone_hint": "official",
+        "audience": "role_based",
+        "profession": "metallurgy",
+        "okved_tags": ["24"],
+        "requires_approval": false
+      }
+    },
+    {
+      "date": "2026-07-25",
+      "title": "День работника торговли",
+      "category": "professional",
+      "priority": 5,
+      "tags": {
+        "type": "professional",
+        "tone_hint": "warm",
+        "audience": "role_based",
+        "profession": "sales",
+        "okved_tags": ["46", "47", "45"],
+        "requires_approval": false
+      }
+    },
+    {
+      "date": "2026-08-09",
+      "title": "День строителя",
+      "category": "professional",
+      "priority": 5,
+      "tags": {
+        "type": "professional",
+        "tone_hint": "official",
+        "audience": "role_based",
+        "profession": "construction",
+        "okved_tags": ["41", "42", "43", "71.12"],
+        "is_floating": true,
+        "calculation": "second_sunday_of_august",
+        "requires_approval": false
+      }
+    },
+    {
+      "date": "2026-08-30",
+      "title": "День шахтера",
+      "category": "professional",
+      "priority": 5,
+      "tags": {
+        "type": "professional",
+        "tone_hint": "official",
+        "audience": "role_based",
+        "profession": "mining",
+        "okved_tags": ["05", "07", "08", "09"],
+        "requires_approval": false
+      }
+    },
+    {
+      "date": "2026-09-01",
+      "title": "День знаний",
+      "category": "professional",
+      "priority": 6,
+      "tags": {
+        "type": "professional",
+        "tone_hint": "warm",
+        "audience": "role_based",
+        "profession": "education",
+        "okved_tags": ["85"],
+        "requires_approval": false
+      }
+    },
+    {
+      "date": "2026-09-06",
+      "title": "День работников нефтяной и газовой промышленности",
+      "category": "professional",
+      "priority": 5,
+      "tags": {
+        "type": "professional",
+        "tone_hint": "official",
+        "audience": "role_based",
+        "profession": "oil_gas",
+        "okved_tags": ["06", "09", "19.20", "35"],
+        "requires_approval": false
+      }
+    },
+    {
+      "date": "2026-09-08",
+      "title": "День финансиста",
+      "category": "professional",
+      "priority": 5,
+      "tags": {
+        "type": "professional",
+        "tone_hint": "official",
+        "audience": "role_based",
+        "profession": "finance",
+        "okved_tags": ["64", "65", "66", "69.20"],
+        "requires_approval": false
+      }
+    },
+    {
+      "date": "2026-09-13",
+      "title": "День программиста",
+      "category": "professional",
+      "priority": 5,
+      "tags": {
+        "type": "professional",
+        "tone_hint": "warm",
+        "audience": "role_based",
+        "profession": "it",
+        "okved_tags": ["62.01", "62.02", "62.09", "63.11"],
+        "is_floating": true,
+        "calculation": "256th_day",
+        "requires_approval": false
+      }
+    },
+    {
+      "date": "2026-09-27",
+      "title": "День руководителя",
+      "category": "professional",
+      "priority": 5,
+      "tags": {
+        "type": "professional",
+        "tone_hint": "official",
+        "audience": "role_based",
+        "profession": "management",
+        "okved_tags": ["70.22", "70.10"],
+        "requires_approval": false
+      }
+    },
+    {
+      "date": "2026-09-27",
+      "title": "День машиностроителя",
+      "category": "professional",
+      "priority": 5,
+      "tags": {
+        "type": "professional",
+        "tone_hint": "official",
+        "audience": "role_based",
+        "profession": "engineering",
+        "okved_tags": ["28"],
+        "requires_approval": false
+      }
+    },
+    {
+      "date": "2026-10-11",
+      "title": "День работника сельского хозяйства",
+      "category": "professional",
+      "priority": 5,
+      "tags": {
+        "type": "professional",
+        "tone_hint": "warm",
+        "audience": "role_based",
+        "profession": "agriculture",
+        "okved_tags": ["01", "02", "03", "10", "11"],
+        "requires_approval": false
+      }
+    },
+    {
+      "date": "2026-10-18",
+      "title": "День работников пищевой промышленности",
+      "category": "professional",
+      "priority": 5,
+      "tags": {
+        "type": "professional",
+        "tone_hint": "warm",
+        "audience": "role_based",
+        "profession": "food_industry",
+        "okved_tags": ["10", "11", "12"],
+        "requires_approval": false
+      }
+    },
+    {
+      "date": "2026-10-25",
+      "title": "День маркетолога",
+      "category": "professional",
+      "priority": 4,
+      "tags": {
+        "type": "professional",
+        "tone_hint": "warm",
+        "audience": "role_based",
+        "profession": "marketing",
+        "okved_tags": ["73.11"],
+        "requires_approval": false
+      }
+    },
+    {
+      "date": "2026-10-25",
+      "title": "День работников автомобильного транспорта",
+      "category": "professional",
+      "priority": 4,
+      "tags": {
+        "type": "professional",
+        "tone_hint": "official",
+        "audience": "role_based",
+        "profession": "transport",
+        "okved_tags": ["49", "50", "51", "52"],
+        "requires_approval": false
+      }
+    },
+    {
+      "date": "2026-11-04",
+      "title": "День народного единства",
+      "category": "national",
+      "priority": 7,
+      "tags": {
+        "type": "holiday",
+        "tone_hint": "official",
+        "audience": "all",
+        "focus_hint": "team",
+        "requires_approval": false
+      }
+    },
+    {
+      "date": "2026-11-16",
+      "title": "Всероссийский день проектировщика",
+      "category": "professional",
+      "priority": 4,
+      "tags": {
+        "type": "professional",
+        "tone_hint": "official",
+        "audience": "role_based",
+        "profession": "construction",
+        "okved_tags": ["71.12"],
+        "requires_approval": false
+      }
+    },
+    {
+      "date": "2026-11-21",
+      "title": "День бухгалтера",
+      "category": "professional",
+      "priority": 5,
+      "tags": {
+        "type": "professional",
+        "tone_hint": "official",
+        "audience": "role_based",
+        "profession": "accounting",
+        "okved_tags": ["69.20"],
+        "requires_approval": false
+      }
+    },
+    {
+      "date": "2026-11-28",
+      "title": "День логиста",
+      "category": "professional",
+      "priority": 4,
+      "tags": {
+        "type": "professional",
+        "tone_hint": "official",
+        "audience": "role_based",
+        "profession": "logistics",
+        "okved_tags": ["52.29", "49.41", "52.10", "49.4"],
+        "requires_approval": false
+      }
+    },
+    {
+      "date": "2026-12-07",
+      "title": "Международный день гражданской авиации",
+      "category": "professional",
+      "priority": 4,
+      "tags": {
+        "type": "professional",
+        "tone_hint": "official",
+        "audience": "role_based",
+        "profession": "aviation",
+        "okved_tags": ["51.10", "51.21"],
+        "requires_approval": false
+      }
+    },
+    {
+      "date": "2026-12-20",
+      "title": "День специалиста по безопасности",
+      "category": "professional",
+      "priority": 4,
+      "tags": {
+        "type": "professional",
+        "tone_hint": "official",
+        "audience": "role_based",
+        "profession": "security",
+        "okved_tags": ["80.10", "80.20"],
+        "requires_approval": false
+      }
+    },
+    {
+      "date": "2026-12-22",
+      "title": "День энергетика",
+      "category": "professional",
+      "priority": 5,
+      "tags": {
+        "type": "professional",
+        "tone_hint": "official",
+        "audience": "role_based",
+        "profession": "energy",
+        "okved_tags": ["35", "36", "37"],
+        "requires_approval": false
+      }
+    },
+    {
+      "date": "2026-12-31",
+      "title": "С наступающим Новым годом!",
+      "category": "seasonal",
+      "priority": 8,
+      "tags": {
+        "type": "holiday",
+        "tone_hint": "warm",
+        "audience": "all",
+        "focus_hint": "renewal",
+        "requires_approval": false
+      }
+    }
+  ]
+}
