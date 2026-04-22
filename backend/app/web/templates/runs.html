@@ -9,37 +9,79 @@
 
   <div class="row g-1 mb-4">
     <div class="col-12 col-md-3">
-      <div class="surface-panel metric-card">
-        <div class="metric-label">Запуск таймера</div>
-        <form method="post" action="/docs">
-          <button btn btn-sm btn-success>Запустить</button>
-        </form>
+      <div class="surface-panel metric-card metric-card--action" style="padding-top: .7rem;">
+        <div class="agent-control-widget" style="margin-top: 0;">
+          <div class="countdown-wrapper">
+            <div class="countdown-display" id="countdown-timer">
+              04:59:23
+            </div>
+            <div class="countdown-label">До следующего запуска</div>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Блок 2: Кнопки управления -->
+          <div class="actions-wrapper">
+            <!-- Кнопка Автономного режима (выглядит как переключатель) -->
+            <button class="btn-control btn-auto" id="btn-autonomous" onclick="toggleAutoMode(this)">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" color="currentColor" fill="none" stroke="#141B34" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 4V2" />
+                <path d="M20 22C20 17.5817 16.4183 14 12 14C7.58172 14 4 17.5817 4 22" />
+                <path d="M9.375 8.25H9.25M9.5 8.25C9.5 8.38807 9.38807 8.5 9.25 8.5C9.11193 8.5 9 8.38807 9 8.25C9 8.11193 9.11193 8 9.25 8C9.38807 8 9.5 8.11193 9.5 8.25Z" />
+                <path d="M14.875 8.25H14.75M15 8.25C15 8.38807 14.8881 8.5 14.75 8.5C14.6119 8.5 14.5 8.38807 14.5 8.25C14.5 8.11193 14.6119 8 14.75 8C14.8881 8 15 8.11193 15 8.25Z" />
+                <path d="M15.1538 4H8.84615C7.59095 4 6.96334 4 6.47397 4.22025C5.91693 4.47095 5.47095 4.91693 5.22025 5.47397C5 5.96334 5 6.59095 5 7.84615C5 9.85448 5 10.8586 5.3524 11.6417C5.75353 12.5329 6.46709 13.2465 7.35835 13.6476C8.14135 14 9.14552 14 11.1538 14H12.8462C14.8545 14 15.8586 14 16.6417 13.6476C17.5329 13.2465 18.2465 12.5329 18.6476 11.6417C19 10.8586 19 9.85448 19 7.84615C19 6.59095 19 5.96334 18.7797 5.47397C18.529 4.91693 18.0831 4.47095 17.526 4.22025C17.0367 4 16.4091 4 15.1538 4Z" />
+            </svg>
+              <span class="text">Автономный</span>
+            </button>
+
+            <!-- Кнопка Ручного запуска (Основное действие) -->
+            <button class="btn-control btn-manual" onclick="triggerManualRun()">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" color="currentColor" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">
+                <path d="M8.62814 12.6736H8.16918C6.68545 12.6736 5.94358 12.6736 5.62736 12.1844C5.31114 11.6953 5.61244 11.0138 6.21504 9.65083L8.02668 5.55323C8.57457 4.314 8.84852 3.69438 9.37997 3.34719C9.91142 3 10.5859 3 11.935 3H14.0244C15.6632 3 16.4826 3 16.7916 3.53535C17.1007 4.0707 16.6942 4.78588 15.8811 6.21623L14.8092 8.10188C14.405 8.81295 14.2029 9.16849 14.2057 9.45952C14.2094 9.83775 14.4105 10.1862 14.7354 10.377C14.9854 10.5239 15.3927 10.5239 16.2074 10.5239C17.2373 10.5239 17.7523 10.5239 18.0205 10.7022C18.3689 10.9338 18.5513 11.3482 18.4874 11.7632C18.4382 12.0826 18.0918 12.4656 17.399 13.2317L11.8639 19.3523C10.7767 20.5545 10.2331 21.1556 9.86807 20.9654C9.50303 20.7751 9.67833 19.9822 10.0289 18.3962L10.7157 15.2896C10.9826 14.082 11.1161 13.4782 10.7951 13.0759C10.4741 12.6736 9.85877 12.6736 8.62814 12.6736Z" />
+              </svg>
+              <span class="text">Запустить</span>
+            </button>
+          </div>
+
+        </div>
       </div>
     </div>
     <div class="col-12 col-md-3">
-      <div class="surface-panel metric-card">
-        <div class="metric-label">Всего запусков</div>
+      <div class="surface-panel metric-card metric-card--info">
+        <div class="metric-label">
+          <span class="metric-card__status"></span>
+          Всего запусков
+        </div>
         <div class="metric-value">{{ total_runs }}</div>
         <div class="metric-hint">Запуски, записанные в AgentRun.</div>
       </div>
     </div>
     <div class="col-12 col-md-3">
-      <div class="surface-panel metric-card">
-        <div class="metric-label">Успешно</div>
+      <div class="surface-panel metric-card metric-card--success">
+        <div class="metric-label">
+          <span class="metric-card__status"></span>
+          Успешно
+        </div>
         <div class="metric-value">{{ status_totals.success }}</div>
         <div class="metric-hint">Полностью успешные запуски без ошибок.</div>
       </div>
     </div>
     <div class="col-12 col-md-3">
-      <div class="surface-panel metric-card">
-        <div class="metric-label">Частично</div>
+      <div class="surface-panel metric-card metric-card--warning">
+        <div class="metric-label">
+          <span class="metric-card__status"></span>
+          Частично
+        </div>
         <div class="metric-value">{{ status_totals.partial }}</div>
         <div class="metric-hint">Запуски с частичными ошибками.</div>
       </div>
     </div>
     <div class="col-12 col-md-3">
-      <div class="surface-panel metric-card">
-        <div class="metric-label">Ошибки</div>
+      <div class="surface-panel metric-card metric-card--error">
+        <div class="metric-label">
+          <span class="metric-card__status"></span>
+          Ошибки
+        </div>
         <div class="metric-value">{{ status_totals.error }}</div>
         <div class="metric-hint">Фатальные ошибки, требующие внимания.</div>
       </div>
@@ -107,6 +149,68 @@
       </table>
     </div>
   </div>
+  <script>
+    // --- 1. ЛОГИКА ТАЙМЕРА (Отсчет до планового запуска) ---
+    // Допустим, агент должен запуститься через 4 часа 59 минут
+    let totalSeconds = 4 * 3600 + 59 * 60 + 23; 
+
+    function updateCountdown() {
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+
+      const display = document.getElementById('countdown-timer');
+      
+      // Форматируем в HH:MM:SS
+      display.innerText = 
+        `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+      if (totalSeconds > 0) {
+        totalSeconds--;
+      } else {
+        // Когда таймер дошел до нуля - запускаем агент
+        resetTimer(); // В реальности тут нужно обновлять время до следующего запуска
+      }
+    }
+
+    setInterval(updateCountdown, 1000);
+    updateCountdown(); // Запуск сразу
+
+    // --- 2. ЛОГИКА КНОПОК ---
+
+    // Тогл Автономного режима
+    function toggleAutoMode(btn) {
+      btn.classList.toggle('active');
+      
+      const isActive = btn.classList.contains('active');
+      const textSpan = btn.querySelector('.text');
+      
+      if (isActive) {
+        textSpan.innerText = "Включено";
+        console.log("Автономный режим: ВКЛЮЧЕН. Агент работает по расписанию.");
+      } else {
+        textSpan.innerText = "Автономный";
+        console.log("Автономный режим: ВЫКЛЮЧЕН. Агент ожидает команды.");
+      }
+    }
+
+    // Ручной запуск
+    function triggerManualRun() {
+      const btn = document.querySelector('.btn-manual');
+      const originalText = btn.querySelector('.text').innerText;
+      
+      // Визуальная реакция на нажатие
+      btn.style.opacity = '0.7';
+      btn.querySelector('.text').innerText = "Запуск...";
+      
+      console.log("Команда: Ручной запуск агента!");
+      
+      // Имитация запроса к серверу
+      setTimeout(() => {
+        btn.style.opacity = '1';
+        btn.querySelector('.text').innerText = originalText;
+        // Здесь можно обновить счетчик "Успешно" в соседней карточке
+      }, 1500);
+    }
+  </script>
 {% endblock %}
-
-

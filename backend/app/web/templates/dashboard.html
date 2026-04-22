@@ -34,20 +34,93 @@
     </div>
   </div>
 
-  <div class="row g-3">
-    <div class="col-12 col-md-2">
-      <div class="surface-panel metric-card">
-          <div class="metric-label">Клиенты</div>
-          <div class="metric-value">{{ clients_count }}</div>
+  <div class="row g-2" style="display: flex; flex-wrap: nowrap;">
+    <div class="col-12 col-md-3">
+      <div class="surface-panel metric-card combined-card">
+        <!-- Верхние метрики -->
+        <div style="display: flex; justify-content: space-between; margin-bottom: 16px;">
+          <div>
+            <div class="metric-label">Клиенты</div>
+            <div class="metric-value">{{ clients_count }}</div>
+          </div>
+          <div style="text-align: right;">
+            <div class="metric-label">Обогащено</div>
+            <div class="metric-value">{{ enriched_clients_count }}</div>
+          </div>
         </div>
-    </div>
-    <div class="col-12 col-md-2">
-      <div class="surface-panel metric-card">
-          <div class="metric-label">Обогащено</div>
-          <div class="metric-value">{{ enriched_clients_count }}</div>
+
+        <!-- Прогресс-бар -->
+        <div class="enrichment-progress">
+          <div class="progress-track">
+            <div class="progress-fill" style="--progress: {{ (enriched_clients_count / clients_count * 100) if clients_count > 0 else 0 }}%;"></div>
+          </div>
+          <span class="progress-value">
+            {{ "%.0f"|format((enriched_clients_count / clients_count * 100) if clients_count > 0 else 0) }}%
+          </span>
         </div>
+
+        <!-- Круговая диаграмма -->
+        <div class="css-gauge-wrapper">
+          <div class="css-gauge-svg-container">
+            <svg viewBox="0 0 200 110" class="css-gauge-svg">
+              <!-- Фон дуги (серый) -->
+              <path 
+                d="M 20 100 A 80 80 0 0 1 180 100" 
+                fill="none" 
+                stroke="var(--primary-soft)" 
+                stroke-width="20" 
+                stroke-linecap="round"
+              />
+              
+              <!-- Заполненная дуга (зеленая) -->
+              <path 
+                d="M 20 100 A 80 80 0 0 1 180 100" 
+                fill="none" 
+                stroke="var(--primary)" 
+                stroke-width="20" 
+                stroke-linecap="round"
+                stroke-dasharray="251.2"
+                stroke-dashoffset="{{ (251.2 - (251.2 * enriched_clients_count / clients_count))|int if clients_count > 0 else 251.2 }}"
+                class="css-gauge-path"
+              />
+            </svg>
+            
+            <div class="css-gauge-center">
+              <span class="gauge-value">
+                {{ "%.0f"|format((enriched_clients_count / clients_count * 100) if clients_count > 0 else 0) }}%
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="col-12 col-md-2">
+    <div class="metrics-flow-container">
+      {% set metrics = [
+          {'label': 'События', 'value': events_count, 'key': 'events'},
+          {'label': 'Поздравления', 'value': greetings_count, 'key': 'greetings'},
+          {'label': 'Доставки', 'value': deliveries_count, 'key': 'deliveries'},
+          {'label': 'Обратная связь', 'value': feedback_count, 'key': 'feedback'}
+      ] %}
+      
+      {% set max_value = metrics | map(attribute='value') | max %}
+      {% set sorted_metrics = metrics | sort(attribute='value', reverse=true) %}
+      
+      {% for metric in sorted_metrics %}
+      <div class="flow-metric-card" data-metric="{{ metric.key }}">
+          <div class="flow-header">
+              <span class="flow-label">{{ metric.label }}</span>
+              <span class="flow-value">{{ metric.value }}</span>
+          </div>
+          <div class="flow-bar-container">
+              <div 
+                  class="flow-bar" 
+                  style="--bar-width: {{ (metric.value / max_value * 100) if max_value > 0 else 0 }}%;"
+              ></div>
+          </div>
+      </div>
+      {% endfor %}
+    </div>
+    <!-- <div class="col-12 col-md-2">
       <div class="surface-panel metric-card">
           <div class="metric-label">События</div>
           <div class="metric-value">{{ events_count }}</div>
@@ -70,7 +143,7 @@
         <div class="metric-label">Обратная связь</div>
           <div class="metric-value">{{ feedback_count }}</div>
         </div>
-    </div>
+    </div> -->
   </div>
 
   <div class="row g-4 mt-1">

@@ -15,63 +15,82 @@
   {% endif %}
 
   <div class="row g-4 mb-4">
-    <div class="col-12 col-md-4">
-      <div class="surface-panel metric-card">
-        <div class="metric-label">Сгенерировано</div>
-        <div class="metric-value">{{ greetings | length }}</div>
-        <div class="metric-hint">Всего поздравлений в системе.</div>
-      </div>
-    </div>
-    <div class="col-12 col-md-4">
-      <div class="surface-panel metric-card">
-        <div class="metric-label">Нужно согласование</div>
-        <div class="metric-value">{{ greetings | selectattr('status', 'equalto', 'needs_approval') | list | length }}</div>
-        <div class="metric-hint">VIP-поздравления, ожидающие решения менеджера.</div>
-      </div>
-    </div>
-    <div class="col-12 col-md-4">
-      <div class="surface-panel metric-card">
-        <div class="metric-label">С обратной связью</div>
-        <div class="metric-value">{{ greetings | selectattr('feedback_entries') | list | length }}</div>
-        <div class="metric-hint">Поздравления, для которых уже сохранена операторская обратная связь.</div>
-      </div>
-    </div>
-  </div>
-  {% set total = greetings | length %}
-  {% set b = greetings | selectattr('status', 'equalto', 'needs_approval') | list | length %}
-  {% set h = greetings | selectattr('feedback_entries') | list | length %}
-  <div class="surface-panel" style="width: 70%; text-align: center; margin: 15px auto;">
-    <div class="metric-label mb-3">Распределение поздравлений</div>
-
-    <div class="css-pie-wrapper">
-      <div class="css-pie"
-          style="--val-birthday: {{ b }}; --val-holiday: {{ h }}; --total: {{ total or 1 }}; width: 300px; height: 300px;"
-          {% if total == 0 %}data-empty="true"{% endif %}>
-        <div class="css-pie-center">
-          <span class="pie-total">{{ total }}</span>
-          <span class="pie-label">всего</span>
+    
+    <!-- ЛЕВАЯ КОЛОНКА: Метрики (занимает ~60% ширины) -->
+    <div class="col-12 col-xl-6">
+      
+      <!-- ВЕРХНИЙ РЯД: Одна карточка на всю ширину -->
+      <div class="row g-4 mb-4">
+        <div class="col-12">
+          <div class="surface-panel metric-card">
+            <div class="metric-label">Сгенерировано</div>
+            <div class="metric-value">{{ greetings | length }}</div>
+            <div class="metric-hint">Всего поздравлений в системе.</div>
+          </div>
         </div>
       </div>
 
-      <div class="kpi-strip-container justify-content-center" style="gap: 0.5rem; margin-bottom: 0;">
-        <div class="kpi-pill" style="min-width: auto; padding: 0.4rem 0.6rem;">
-          <span style="width: 8px; height: 8px; background: var(--primary); border-radius: 50%; display: inline-block;"></span>
-          <span class="small ms-1">Нужно согласование: {{ b }}</span>
+      <!-- НИЖНИЙ РЯД: Две карточки по 50% -->
+      <div class="row g-4">
+        <div class="col-12 col-md-6">
+          <div class="surface-panel metric-card h-100">
+            <div class="metric-label">Нужно согласование</div>
+            <div class="metric-value">{{ greetings | selectattr('status', 'equalto', 'needs_approval') | list | length }}</div>
+            <div class="metric-hint">VIP-поздравления, ожидающие решения менеджера.</div>
+          </div>
         </div>
-        <div class="kpi-pill" style="min-width: auto; padding: 0.4rem 0.6rem;">
-          <span style="width: 8px; height: 8px; background: var(--primary-dark); border-radius: 50%; display: inline-block;"></span>
-          <span class="small ms-1">С обратной связью: {{ h }}</span>
+        <div class="col-12 col-md-6">
+          <div class="surface-panel metric-card h-100">
+            <div class="metric-label">С обратной связью</div>
+            <div class="metric-value">{{ greetings | selectattr('feedback_entries') | list | length }}</div>
+            <div class="metric-hint">Поздравления, для которых уже сохранена операторская обратная связь.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ПРАВАЯ КОЛОНКА: Диаграмма (занимает ~40% ширины) -->
+    <div class="col-12 col-xl-6">
+      <div class="surface-panel metric-card h-100">
+        <div class="metric-label mb-3">Статус согласования</div>
+        
+        {% set total = greetings | length %}
+        {% set b = greetings | selectattr('status', 'equalto', 'needs_approval') | list | length %}
+        {% set h = greetings | selectattr('feedback_entries') | list | length %}
+
+        <div class="approval-pie-wrapper">
+          <div class="approval-pie"
+              style="--val-approve: {{ b }}; --val-feedback: {{ h }}; --total: {{ total or 1 }};"
+              {% if total == 0 %}data-empty="true"{% endif %}>
+            <div class="approval-pie-center">
+              <span class="approval-pie-total">{{ total }}</span>
+              <span class="approval-pie-label">всего</span>
+            </div>
+          </div>
+
+          <div class="approval-legend">
+            <div class="approval-legend-item">
+              <span class="approval-legend-dot" style="background: var(--primary);"></span>
+              <span class="approval-legend-text">Нужно согласование: <strong>{{ b }}</strong></span>
+            </div>
+            <div class="approval-legend-item">
+              <span class="approval-legend-dot" style="background: var(--primary-dark);"></span>
+              <span class="approval-legend-text">С обратной связью: <strong>{{ h }}</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="approval-hint text-center mt-2">
+          {% if total > 0 %}
+            Нужно согласование: {{ (b/total*100)|round|int }}% | С обратной связью: {{ (h/total*100)|round|int }}%
+          {% else %}
+            Нет данных для визуализации
+          {% endif %}
         </div>
       </div>
     </div>
 
-    <div class="metric-hint text-center mt-2">
-      {% if total > 0 %}
-        Нужно согласование: {{ (b/total*100)|round|int }}% | С обратной связью: {{ (h/total*100)|round|int }}%
-      {% else %}
-        Нет данных для визуализации
-      {% endif %}
-    </div>
   </div>
   <div class="surface-card">
     <div class="card-header">Список поздравлений</div>
