@@ -16,7 +16,6 @@ async def test_reset_runtime_keeps_clients_and_holidays(db_session, tmp_path, mo
         Client(
             first_name="A",
             last_name="B",
-            segment="standard",
             email="ab@example.com",
             preferred_channel="email",
             birth_date=dt.date(1990, today.month, today.day),
@@ -45,7 +44,6 @@ async def test_reset_runtime_clears_feedback_and_can_remove_clients(db_session):
         first_name="Ирина",
         middle_name="Ивановна",
         last_name="Петрова",
-        segment="standard",
         email="irina@company.test",
         preferred_channel="email",
         birth_date=dt.date(1990, today.month, today.day),

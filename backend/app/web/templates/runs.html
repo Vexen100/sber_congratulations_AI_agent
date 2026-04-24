@@ -7,33 +7,78 @@
     </div>
   </div>
 
-  <div class="row g-4 mb-4">
+  <div class="row g-1 mb-4">
     <div class="col-12 col-md-3">
-      <div class="surface-panel metric-card">
-        <div class="metric-label">Всего запусков</div>
+      <div class="surface-panel metric-card metric-card--action" style="padding-top: .7rem;">
+        <div class="agent-control-widget" style="margin-top: 0;">
+          <div class="countdown-wrapper">
+            <div class="countdown-display" id="countdown-timer">--:--:--</div>
+            <div class="countdown-label">До следующего автозапуска (09:00)</div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="actions-wrapper">
+            <div class="small text-muted mb-2" id="autonomy-status-line">
+              {% if autonomy_enabled %}
+                <span class="badge text-bg-success">Автономный режим: включён</span>
+              {% else %}
+                <span class="badge text-bg-secondary">Автономный режим: выключен</span>
+              {% endif %}
+            </div>
+
+            {% if autonomy_enabled %}
+              <button class="btn-control btn-manual" id="btn-autonomy-toggle" type="button" onclick="disableAutonomy()">
+                <span class="text">Остановить автономный режим</span>
+              </button>
+            {% else %}
+              <button class="btn-control btn-manual" id="btn-autonomy-toggle" type="button" onclick="enableAutonomy()">
+                <span class="text">Запустить автономный режим</span>
+              </button>
+            {% endif %}
+          </div>
+
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-md-3">
+      <div class="surface-panel metric-card metric-card--info">
+        <div class="metric-label">
+          <span class="metric-card__status"></span>
+          Всего запусков
+        </div>
         <div class="metric-value">{{ total_runs }}</div>
         <div class="metric-hint">Запуски, записанные в AgentRun.</div>
       </div>
     </div>
     <div class="col-12 col-md-3">
-      <div class="surface-panel metric-card">
-        <div class="metric-label">Успешно</div>
+      <div class="surface-panel metric-card metric-card--success">
+        <div class="metric-label">
+          <span class="metric-card__status"></span>
+          Успешно
+        </div>
         <div class="metric-value">{{ status_totals.success }}</div>
-        <div class="metric-hint">Полностью успешные прогоны без ошибок.</div>
+        <div class="metric-hint">Полностью успешные запуски без ошибок.</div>
       </div>
     </div>
     <div class="col-12 col-md-3">
-      <div class="surface-panel metric-card">
-        <div class="metric-label">Частично</div>
+      <div class="surface-panel metric-card metric-card--warning">
+        <div class="metric-label">
+          <span class="metric-card__status"></span>
+          Частично
+        </div>
         <div class="metric-value">{{ status_totals.partial }}</div>
-        <div class="metric-hint">Прогоны с результатом и частичными ошибками.</div>
+        <div class="metric-hint">Запуски с частичными ошибками.</div>
       </div>
     </div>
     <div class="col-12 col-md-3">
-      <div class="surface-panel metric-card">
-        <div class="metric-label">Ошибки</div>
+      <div class="surface-panel metric-card metric-card--error">
+        <div class="metric-label">
+          <span class="metric-card__status"></span>
+          Ошибки
+        </div>
         <div class="metric-value">{{ status_totals.error }}</div>
-        <div class="metric-hint">Фатальные прогоны, требующие внимания.</div>
+        <div class="metric-hint">Фатальные ошибки, требующие внимания.</div>
       </div>
     </div>
   </div>
@@ -42,8 +87,8 @@
     <div class="card-header">Последние 100 запусков</div>
     <div class="card-body table-responsive">
       <div class="soft-note small text-muted mb-3">
-        <b>Sent (auto)</b> — отправки, выполненные автоматически внутри агента. Отправки VIP после ручного
-        <b>Согласовать и отправить</b> отображается в Deliveries, но не увеличивает этот счётчик.
+        <b>Авто-отправки</b> — отправки, которые успели выполниться в конце этого же запуска агента (по расписанию «в день события»).
+        Доставки, созданные позже или другим сценарием, отображаются в <a href="/deliveries">доставках</a>, но не увеличивают счётчик этого запуска.
       </div>
       <table class="table table-sm align-middle table-clean">
         <thead>
@@ -54,8 +99,8 @@
             <th>Горизонт</th>
             <th>LLM</th>
             <th>Картинки</th>
-            <th>Старт</th>
-            <th>Финиш</th>
+            <th>Старт (МСК)</th>
+            <th>Финиш (МСК)</th>
             <th>События</th>
             <th>Поздравления</th>
             <th>Авто-отправка</th>
@@ -82,8 +127,8 @@
               <td>{{ r.lookahead_days }}</td>
               <td class="small">{{ r.llm_mode }}</td>
               <td class="small">{{ r.image_mode }}</td>
-              <td class="small">{{ r.started_at }}</td>
-              <td class="small">{{ r.finished_at or "" }}</td>
+              <td class="small">{% if r.started_at %}{{ r.started_at | format_time_msk }}{% endif %}</td>
+              <td class="small">{% if r.finished_at %}{{ r.finished_at | format_time_msk }}{% endif %}</td>
               <td>{{ r.scanned_events }}</td>
               <td>{{ r.generated_greetings }}</td>
               <td>{{ r.sent_deliveries }}</td>
@@ -99,6 +144,86 @@
       </table>
     </div>
   </div>
+  <script>
+    let nextRunAtMs = {% if autonomy_next_run_iso %}Date.parse("{{ autonomy_next_run_iso }}"){% else %}null{% endif %};
+    let autonomyEnabled = {{ autonomy_enabled | tojson }};
+
+    function pad2(n) {
+      return String(n).padStart(2, "0");
+    }
+
+    function renderCountdown() {
+      const display = document.getElementById("countdown-timer");
+      if (!autonomyEnabled || !nextRunAtMs) {
+        display.innerText = "--:--:--";
+        return;
+      }
+      const now = Date.now();
+      let diffSec = Math.floor((nextRunAtMs - now) / 1000);
+      if (diffSec < 0) diffSec = 0;
+      const hours = Math.floor(diffSec / 3600);
+      const minutes = Math.floor((diffSec % 3600) / 60);
+      const seconds = diffSec % 60;
+      display.innerText = `${pad2(hours)}:${pad2(minutes)}:${pad2(seconds)}`;
+    }
+
+    async function refreshAutonomy() {
+      const resp = await fetch("/api/autonomy/status", { headers: { "Accept": "application/json" } });
+      if (!resp.ok) return;
+      const data = await resp.json();
+      autonomyEnabled = !!data.enabled;
+      nextRunAtMs = data.next_run_at ? Date.parse(data.next_run_at) : null;
+
+      const line = document.getElementById("autonomy-status-line");
+      if (line) {
+        line.innerHTML = autonomyEnabled
+          ? '<span class="badge text-bg-success">Автономный режим: включён</span>'
+          : '<span class="badge text-bg-secondary">Автономный режим: выключен</span>';
+      }
+
+      const btn = document.getElementById("btn-autonomy-toggle");
+      if (btn) {
+        btn.onclick = autonomyEnabled ? disableAutonomy : enableAutonomy;
+        const text = btn.querySelector(".text");
+        if (text) {
+          text.innerText = autonomyEnabled ? "Остановить автономный режим" : "Запустить автономный режим";
+        }
+      }
+
+      renderCountdown();
+    }
+
+    async function enableAutonomy() {
+      const btn = document.getElementById("btn-autonomy-toggle");
+      if (btn) btn.disabled = true;
+      try {
+        const resp = await fetch("/api/autonomy/enable", { method: "POST", headers: { "Accept": "application/json" } });
+        if (!resp.ok) throw new Error("enable failed");
+        await refreshAutonomy();
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function disableAutonomy() {
+      const btn = document.getElementById("btn-autonomy-toggle");
+      if (btn) btn.disabled = true;
+      try {
+        const resp = await fetch("/api/autonomy/disable", { method: "POST", headers: { "Accept": "application/json" } });
+        if (!resp.ok) throw new Error("disable failed");
+        await refreshAutonomy();
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    setInterval(() => {
+      renderCountdown();
+      if (autonomyEnabled && nextRunAtMs && Date.now() >= nextRunAtMs) {
+        refreshAutonomy();
+      }
+    }, 1000);
+
+    refreshAutonomy();
+  </script>
 {% endblock %}
-
-

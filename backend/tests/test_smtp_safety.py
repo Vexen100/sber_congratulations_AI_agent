@@ -19,7 +19,6 @@ async def test_smtp_blocks_demo_client_even_if_email_looks_real(db_session, monk
     c = Client(
         first_name="Демо",
         last_name="Клиент",
-        segment="standard",
         email="real.user@real-domain.test",
         preferred_channel="email",
         birth_date=dt.date(1990, 1, 1),
@@ -64,7 +63,6 @@ async def test_smtp_blocks_example_dot_com_recipients(db_session, monkeypatch, t
     c = Client(
         first_name="Тест",
         last_name="Клиент",
-        segment="standard",
         email="demo_client_1@example.com",
         preferred_channel="email",
         birth_date=dt.date(1990, 1, 1),
@@ -108,7 +106,6 @@ async def test_smtp_blocks_when_allowlist_empty_by_default(db_session, monkeypat
     c = Client(
         first_name="Реальный",
         last_name="Клиент",
-        segment="standard",
         email="real.user@mycompany.test",
         preferred_channel="email",
         birth_date=dt.date(1990, 1, 1),
@@ -152,7 +149,6 @@ async def test_smtp_without_email_falls_back_to_file_outbox(db_session, monkeypa
     c = Client(
         first_name="Импорт",
         last_name="Клиент",
-        segment="standard",
         email=None,
         phone=None,
         preferred_channel="email",

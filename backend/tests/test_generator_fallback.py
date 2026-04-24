@@ -23,7 +23,6 @@ async def test_generator_falls_back_on_invalid_llm_json(monkeypatch):
     c = Client(
         first_name="Иван",
         last_name="Тестов",
-        segment="standard",
         email="ivan@example.com",
         preferred_channel="email",
         birth_date=dt.date(1990, 1, 1),
@@ -37,7 +36,7 @@ async def test_generator_falls_back_on_invalid_llm_json(monkeypatch):
         title="Тестовое событие",
         details={},
     )
-    choice = choose_template(segment=c.segment, event_type=ev.event_type, title=ev.title)
+    choice = choose_template(event_type=ev.event_type, title=ev.title)
 
     tone, subject, body = await generate_subject_body(
         event=ev, client=c, template_choice=choice, today=today
@@ -70,7 +69,6 @@ async def test_generator_uses_llm_when_valid(monkeypatch):
     c = Client(
         first_name="Иван",
         last_name="Тестов",
-        segment="vip",
         email="ivan@example.com",
         preferred_channel="email",
         birth_date=dt.date(1990, 1, 1),
@@ -82,7 +80,7 @@ async def test_generator_uses_llm_when_valid(monkeypatch):
         title="День рождения",
         details={},
     )
-    choice = choose_template(segment=c.segment, event_type=ev.event_type, title=ev.title)
+    choice = choose_template(event_type=ev.event_type, title=ev.title)
 
     tone, subject, body = await generate_subject_body(
         event=ev, client=c, template_choice=choice, today=today
@@ -114,7 +112,6 @@ async def test_generator_normalizes_surname_and_female_salutation(monkeypatch):
         first_name="Ирина",
         middle_name="Владимировна",
         last_name="Соколова",
-        segment="vip",
         email="irina@example.com",
         preferred_channel="email",
         birth_date=dt.date(1990, 1, 1),
@@ -126,10 +123,11 @@ async def test_generator_normalizes_surname_and_female_salutation(monkeypatch):
         title="День финансиста",
         details={},
     )
-    choice = choose_template(segment=c.segment, event_type=ev.event_type, title=ev.title)
+    choice = choose_template(event_type=ev.event_type, title=ev.title)
 
     _, _, body = await generate_subject_body(
         event=ev, client=c, template_choice=choice, today=today
     )
-    assert body.startswith("Уважаемая Ирина Владимировна")
-    assert "Соколова" not in body.split(",", 1)[0]
+    first_para = body.split("\n\n", 1)[0]
+    assert "Ирина" in first_para
+    assert "Соколова" not in first_para

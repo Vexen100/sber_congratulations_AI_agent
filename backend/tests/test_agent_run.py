@@ -13,7 +13,6 @@ async def test_agent_generates_and_sends_for_birthday(db_session):
     c = Client(
         first_name="Тест",
         last_name="Клиент",
-        segment="standard",
         email="test@example.com",
         preferred_channel="email",
         birth_date=dt.date(1990, today.month, today.day),

@@ -27,7 +27,6 @@ def hermetic_settings(monkeypatch, tmp_path):
 
     # Offline, deterministic defaults for the test suite.
     monkeypatch.setattr(settings, "send_mode", "file", raising=False)
-    monkeypatch.setattr(settings, "delivery_schedule_mode", "event_date", raising=False)
     monkeypatch.setattr(settings, "llm_mode", "template", raising=False)
     monkeypatch.setattr(settings, "image_mode", "pillow", raising=False)
     monkeypatch.setattr(settings, "outbox_dir", str(outbox), raising=False)

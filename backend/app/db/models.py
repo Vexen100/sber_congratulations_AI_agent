@@ -26,7 +26,6 @@ class Client(Base):
     position: Mapped[str | None] = mapped_column(String(200), nullable=True)
     # Professional area for "professional holidays" (optional in DB, but demo/manual UI can require it).
     profession: Mapped[str | None] = mapped_column(String(80), nullable=True)
-    segment: Mapped[str] = mapped_column(String(50), default="standard")  # vip|new|loyal|standard
     inn: Mapped[str | None] = mapped_column(String(12), nullable=True)
     ogrn: Mapped[str | None] = mapped_column(String(15), nullable=True)
     kpp: Mapped[str | None] = mapped_column(String(9), nullable=True)
@@ -115,9 +114,9 @@ class Greeting(Base):
     body: Mapped[str] = mapped_column(Text)
     image_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
     # Status lifecycle:
-    # - generated: created by agent (non-VIP default)
-    # - needs_approval: created by agent for VIP, must be approved in UI
-    # - rejected: rejected in UI (no send)
+    # - generated: created by agent, eligible for scheduled send on event day
+    # - approved: legacy intermediate (older DBs); treated like generated for sending
+    # - needs_approval / rejected: legacy UI states; may still appear on old rows
     # - sent: delivered (at least once)
     # - skipped: deliberately not sent (safety blocks like demo/test recipients, allowlist)
     # - error: processing failure
@@ -162,6 +161,8 @@ class Feedback(Base):
     )  # opened|replied|ignored|unknown
     score: Mapped[int | None] = mapped_column(nullable=True)  # 1..5 (manager's rating)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # accepted|rejected — формальный вердикт для будущего дообучения (не влияет на отправку).
+    training_verdict: Mapped[str | None] = mapped_column(String(20), nullable=True)
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     greeting: Mapped[Greeting] = relationship(back_populates="feedback_entries")
@@ -192,3 +193,12 @@ class AgentRun(Base):
 
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     greetings: Mapped[list[Greeting]] = relationship(back_populates="agent_run")
+
+
+class AutonomyState(Base):
+    __tablename__ = "autonomy_state"
+
+    # Singleton row (id=1). This keeps state persistent in SQLite without needing migrations.
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=False, default=1)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    updated_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

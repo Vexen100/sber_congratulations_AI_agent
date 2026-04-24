@@ -13,8 +13,6 @@ async def test_seed_demo_creates_random_five_with_upcoming_birthdays(db_session)
     today = dt.date(2025, 12, 19)
     res = await seed_demo_clients(db_session, n=5, replace=True, today=today, rng_seed=123)
     assert res["added"] == 5
-    assert res["vip_count"] == 1
-    assert res["auto_send_ready"] == 4
 
     clients = (await db_session.execute(select(Client))).scalars().all()
     assert len(clients) == 5

@@ -12,7 +12,6 @@ async def test_file_sender_is_idempotent(db_session, tmp_path):
     c = Client(
         first_name="А",
         last_name="Б",
-        segment="standard",
         email="ab@example.com",
         preferred_channel="email",
         birth_date=dt.date(1990, 1, 1),

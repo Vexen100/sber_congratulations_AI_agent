@@ -10,9 +10,8 @@ from app.db.models import Client, Event
 
 
 def _campaign_payload_for_client(client: Client, *, fallback_title: str) -> tuple[str, dict]:
-    seg = (client.segment or "standard").strip().lower()
     prof = (client.profession or "management").strip().lower()
-    tone_hint = "official" if seg == "vip" else "warm"
+    tone_hint = "warm"
 
     focus_map: dict[str, tuple[str, str]] = {
         "finance": ("finance", "Желаем финансовой устойчивости и уверенного роста"),
@@ -41,7 +40,6 @@ def _campaign_payload_for_client(client: Client, *, fallback_title: str) -> tupl
         "focus_hint": focus_hint,
         "tone_hint": tone_hint,
         "profession_snapshot": prof,
-        "segment_snapshot": seg,
     }
     return title, metadata
 

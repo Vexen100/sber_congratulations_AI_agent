@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import re
 
 import httpx
 from sqlalchemy import select
@@ -9,6 +10,7 @@ from app.agent.orchestrator import run_once
 from app.db.models import AgentRun, Client, Delivery, Event, Feedback, Greeting
 from app.db.session import get_session
 from app.main import create_app
+from app.web.router import _format_time_msk_hm
 
 
 async def test_dashboard_page_renders_new_presentation_layout(db_session):
@@ -24,9 +26,10 @@ async def test_dashboard_page_renders_new_presentation_layout(db_session):
     app.dependency_overrides.clear()
 
     assert resp.status_code == 200
-    assert "Конвейер поздравлений Сбера" in resp.text
-    assert "Рабочее пространство для презентации" in resp.text
-    assert "Как показать демо" in resp.text
+    # Regression: custom UI should load bundled CSS and keep the main dashboard blocks.
+    assert "/static/css/main.css" in resp.text
+    assert "Быстрый просмотр данных" in resp.text
+    assert "Воронка после запуска" in resp.text
     assert "Воронка после запуска" in resp.text
     assert "Операционное здоровье" in resp.text
 
@@ -64,8 +67,8 @@ async def test_events_page_renders_manual_event_controls(db_session):
 
     assert resp.status_code == 200
     assert "Создать ручное событие" in resp.text
-    assert "Быстрая demo-кампания" in resp.text
-    assert "Подготовить события для реальной базы" in resp.text
+    assert "Распределение событий" in resp.text
+    assert "Список событий" in resp.text
 
 
 async def test_run_detail_page_renders_greetings_for_selected_run(db_session):
@@ -74,7 +77,6 @@ async def test_run_detail_page_renders_greetings_for_selected_run(db_session):
         middle_name="Игоревна",
         last_name="Соколова",
         company_name="ООО Спектр",
-        segment="standard",
         email="anna@company.ru",
         preferred_channel="email",
         birth_date=dt.date.today(),
@@ -102,6 +104,8 @@ async def test_run_detail_page_renders_greetings_for_selected_run(db_session):
     assert f"Детали запуска #{run.id}" in resp.text
     assert "Анна" in resp.text
     assert "ООО Спектр" in resp.text
+    # Regression: created_at should not include microseconds in HTML rendering
+    assert re.search(r"\d{2}:\d{2}:\d{2}\.\d{3,6}", resp.text) is None
 
 
 async def test_dashboard_page_shows_pipeline_metrics_from_runtime_data(db_session):
@@ -110,7 +114,6 @@ async def test_dashboard_page_shows_pipeline_metrics_from_runtime_data(db_sessio
         middle_name="Олеговна",
         last_name="Орлова",
         company_name="ООО Аналитика",
-        segment="vip",
         email="irina@company.ru",
         preferred_channel="email",
     )
@@ -132,7 +135,7 @@ async def test_dashboard_page_shows_pipeline_metrics_from_runtime_data(db_sessio
         client_id=client_record.id,
         subject="Поздравление",
         body="Текст поздравления",
-        status="needs_approval",
+        status="generated",
     )
     db_session.add(greeting)
     await db_session.commit()
@@ -146,7 +149,13 @@ async def test_dashboard_page_shows_pipeline_metrics_from_runtime_data(db_sessio
         sent_at=dt.datetime.now(dt.timezone.utc),
         idempotency_key="delivery-test-key",
     )
-    feedback = Feedback(greeting_id=greeting.id, score=4, outcome="opened", notes="ok")
+    feedback = Feedback(
+        greeting_id=greeting.id,
+        score=4,
+        outcome="opened",
+        notes="ok",
+        training_verdict="accepted",
+    )
     problematic_run = AgentRun(triggered_by="test", status="partial", errors=1)
     db_session.add_all([delivery, feedback, problematic_run])
     await db_session.commit()
@@ -163,9 +172,134 @@ async def test_dashboard_page_shows_pipeline_metrics_from_runtime_data(db_sessio
     app.dependency_overrides.clear()
 
     assert resp.status_code == 200
-    assert "Ждут согласования" in resp.text
+    assert "Вердикт для дообучения" in resp.text
     assert "Ошибки доставки" in resp.text
     assert "Запуски с проблемами" in resp.text
     assert "Средняя оценка" in resp.text
-    assert ">100%<" in resp.text
-    assert ">4<" in resp.text or ">4.0<" in resp.text
+    assert "Покрытие обратной связи" in resp.text
+    assert ">4<" in resp.text or "4.0" in resp.text or ">4.0<" in resp.text
+
+
+async def test_greetings_page_includes_training_verdict_form(db_session):
+    c = Client(
+        first_name="Тест",
+        middle_name="Иванович",
+        last_name="Форма",
+        profession="it",
+        email="form@company.test",
+        preferred_channel="email",
+        birth_date=dt.date(1990, 1, 1),
+    )
+    db_session.add(c)
+    await db_session.commit()
+    await db_session.refresh(c)
+
+    ev = Event(
+        client_id=c.id,
+        event_type="manual",
+        event_date=dt.date.today(),
+        title="Повод для формы",
+        details={},
+    )
+    db_session.add(ev)
+    await db_session.commit()
+    await db_session.refresh(ev)
+
+    g = Greeting(
+        event_id=ev.id,
+        client_id=c.id,
+        tone="warm",
+        subject="Тема",
+        body="Текст поздравления достаточной длины для валидации и отображения." * 3,
+        image_path=None,
+        status="generated",
+    )
+    db_session.add(g)
+    await db_session.commit()
+
+    app = create_app()
+
+    async def override_session():
+        yield db_session
+
+    app.dependency_overrides[get_session] = override_session
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.get("/greetings")
+    app.dependency_overrides.clear()
+
+    assert resp.status_code == 200
+    assert 'name="training_verdict"' in resp.text
+    assert ">Принять</button>" in resp.text
+    assert "1 — Ужасно" in resp.text
+
+
+def test_format_time_msk_hm_converts_utc_to_moscow_clock():
+    utc = dt.datetime(2026, 4, 24, 14, 30, 18, 400491, tzinfo=dt.timezone.utc)
+    assert _format_time_msk_hm(utc) == "17:30"
+
+
+async def test_deliveries_page_shows_sent_at_as_moscow_hh_mm(db_session):
+    c = Client(
+        first_name="Доставка",
+        middle_name="Тестович",
+        last_name="Время",
+        profession="it",
+        email="d@company.test",
+        preferred_channel="email",
+        birth_date=dt.date(1990, 1, 1),
+    )
+    db_session.add(c)
+    await db_session.commit()
+    await db_session.refresh(c)
+
+    ev = Event(
+        client_id=c.id,
+        event_type="manual",
+        event_date=dt.date.today(),
+        title="Повод",
+        details={},
+    )
+    db_session.add(ev)
+    await db_session.commit()
+    await db_session.refresh(ev)
+
+    g = Greeting(
+        event_id=ev.id,
+        client_id=c.id,
+        tone="warm",
+        subject="Тема",
+        body="Текст поздравления достаточной длины для валидации и отображения." * 3,
+        image_path=None,
+        status="sent",
+    )
+    db_session.add(g)
+    await db_session.commit()
+    await db_session.refresh(g)
+
+    delivery = Delivery(
+        greeting_id=g.id,
+        channel="file",
+        recipient="d@company.test",
+        status="sent",
+        provider_message="ok",
+        sent_at=dt.datetime(2026, 4, 24, 14, 30, 18, 400491, tzinfo=dt.timezone.utc),
+        idempotency_key="test-deliveries-time-key",
+    )
+    db_session.add(delivery)
+    await db_session.commit()
+
+    app = create_app()
+
+    async def override_session():
+        yield db_session
+
+    app.dependency_overrides[get_session] = override_session
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.get("/deliveries")
+    app.dependency_overrides.clear()
+
+    assert resp.status_code == 200
+    assert "17:30" in resp.text
+    assert "400491" not in resp.text

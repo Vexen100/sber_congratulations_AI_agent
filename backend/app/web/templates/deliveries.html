@@ -3,7 +3,7 @@
   <div class="d-flex align-items-center justify-content-between mb-3">
     <div class="page-intro">
       <h2 class="mb-1">Доставки</h2>
-      <div class="text-muted">Лог отправок и безопасных блокировок. В текущем MVP доставка идёт через файловый outbox.</div>
+      <div class="text-muted">Лог отправок и безопасных блокировок.</div>
     </div>
   </div>
 
@@ -40,11 +40,11 @@
             <th>ID</th>
             <th>Поздравление</th>
             <th>Статус поздравления</th>
-            <th>Сегмент клиента</th>
+            <th>Компания</th>
             <th>Канал</th>
             <th>Получатель</th>
             <th>Статус</th>
-            <th>Время отправки</th>
+            <th>Время отправки (МСК)</th>
             <th>Сообщение провайдера</th>
             <th>Идемпотентность</th>
           </tr>
@@ -57,7 +57,7 @@
               <td class="small">{{ d.greeting.status if d.greeting else "" }}</td>
               <td class="small">
                 {% if d.greeting and d.greeting.client %}
-                  {{ d.greeting.client.segment }}
+                  {{ d.greeting.client.company_name or "—" }}
                 {% endif %}
               </td>
               <td><span class="badge text-bg-light">{{ d.channel }}</span></td>
@@ -71,7 +71,7 @@
                   <span class="badge text-bg-secondary">{{ d.status }}</span>
                 {% endif %}
               </td>
-              <td class="small">{{ d.sent_at or "" }}</td>
+              <td class="small">{% if d.sent_at %}{{ d.sent_at | format_time_msk }}{% endif %}</td>
               <td class="small">{{ d.provider_message or "" }}</td>
               <td class="small"><code class="small">{{ d.idempotency_key }}</code></td>
             </tr>

@@ -17,7 +17,6 @@ async def test_greeting_image_path_is_relative(db_session, tmp_path, monkeypatch
     c = Client(
         first_name="Test",
         last_name="User",
-        segment="standard",
         email="test@example.com",
         preferred_channel="email",
         birth_date=dt.date(1990, today.month, today.day),

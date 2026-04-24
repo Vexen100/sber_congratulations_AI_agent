@@ -84,7 +84,6 @@ async def test_send_greeting_via_smtp_uses_html_message(db_session, monkeypatch)
     client = Client(
         first_name="Ирина",
         last_name="Соколова",
-        segment="standard",
         email="irina@company.test",
         preferred_channel="email",
         birth_date=dt.date(1990, 1, 1),

@@ -77,7 +77,6 @@ def _demo_pool() -> list[dict]:
             "inn": "7701122334",
             "position": "Руководитель службы безопасности",
             "profession": "security",
-            "segment": "vip",
         },
         {
             "first_name": "Алина",
@@ -87,7 +86,6 @@ def _demo_pool() -> list[dict]:
             "inn": "7802456789",
             "position": "Операционный директор",
             "profession": "logistics",
-            "segment": "loyal",
         },
         {
             "first_name": "Руслан",
@@ -97,7 +95,6 @@ def _demo_pool() -> list[dict]:
             "inn": "7723456781",
             "position": "Технический директор",
             "profession": "it",
-            "segment": "standard",
         },
         {
             "first_name": "Ксения",
@@ -107,7 +104,6 @@ def _demo_pool() -> list[dict]:
             "inn": "7712450099",
             "position": "Коммерческий директор",
             "profession": "sales",
-            "segment": "vip",
         },
         {
             "first_name": "Павел",
@@ -117,7 +113,6 @@ def _demo_pool() -> list[dict]:
             "inn": "7812001122",
             "position": "Финансовый директор",
             "profession": "finance",
-            "segment": "loyal",
         },
         {
             "first_name": "Мария",
@@ -127,7 +122,6 @@ def _demo_pool() -> list[dict]:
             "inn": "7701987654",
             "position": "Владелец",
             "profession": "management",
-            "segment": "new",
         },
         {
             "first_name": "Екатерина",
@@ -137,7 +131,6 @@ def _demo_pool() -> list[dict]:
             "inn": "7733557799",
             "position": "Руководитель проектов",
             "profession": "medicine",
-            "segment": "standard",
         },
         {
             "first_name": "Дмитрий",
@@ -147,7 +140,6 @@ def _demo_pool() -> list[dict]:
             "inn": "7722884400",
             "position": "Директор по развитию",
             "profession": "marketing",
-            "segment": "loyal",
         },
         {
             "first_name": "Анна",
@@ -157,7 +149,6 @@ def _demo_pool() -> list[dict]:
             "inn": "7811882201",
             "position": "Генеральный директор",
             "profession": "management",
-            "segment": "vip",
         },
         {
             "first_name": "Сергей",
@@ -167,7 +158,6 @@ def _demo_pool() -> list[dict]:
             "inn": "7701228899",
             "position": "Коммерческий директор",
             "profession": "sales",
-            "segment": "standard",
         },
         {
             "first_name": "Ольга",
@@ -177,7 +167,6 @@ def _demo_pool() -> list[dict]:
             "inn": "7813445500",
             "position": "Директор по персоналу",
             "profession": "hr",
-            "segment": "new",
         },
         {
             "first_name": "Илья",
@@ -187,7 +176,6 @@ def _demo_pool() -> list[dict]:
             "inn": "7701664400",
             "position": "Главный бухгалтер",
             "profession": "accounting",
-            "segment": "standard",
         },
         {
             "first_name": "Никита",
@@ -197,7 +185,6 @@ def _demo_pool() -> list[dict]:
             "inn": "7801223300",
             "position": "CTO",
             "profession": "it",
-            "segment": "standard",
         },
         {
             "first_name": "Людмила",
@@ -207,7 +194,6 @@ def _demo_pool() -> list[dict]:
             "inn": "7712334401",
             "position": "Директор по маркетингу",
             "profession": "marketing",
-            "segment": "new",
         },
         {
             "first_name": "Артём",
@@ -217,7 +203,6 @@ def _demo_pool() -> list[dict]:
             "inn": "7714556677",
             "position": "Руководитель финансов",
             "profession": "construction",
-            "segment": "loyal",
         },
         {
             "first_name": "Ирина",
@@ -227,7 +212,6 @@ def _demo_pool() -> list[dict]:
             "inn": "7811882201",
             "position": "Генеральный директор",
             "profession": "logistics",
-            "segment": "vip",
         },
     ]
 
@@ -243,9 +227,8 @@ async def seed_demo_clients(
     """Seed demo Clients.
 
     Presentation-oriented behavior:
-    - Picks a demo-friendly mix with mostly non-VIP clients plus one VIP.
+    - Randomly samples n clients from a fixed pool (diverse professions).
     - Sets birthdays to *today* so one agent run immediately demonstrates deliveries.
-    - Keeps one VIP client to preserve the approval scenario in the same dataset.
     - If replace=True, clears runtime data and replaces all clients with a new random set.
     """
     today = today or dt.date.today()
@@ -264,18 +247,7 @@ async def seed_demo_clients(
         return {"added": 0, "reason": f"n too large (max {len(pool)})"}
 
     rng: random.Random = random.Random(rng_seed) if rng_seed is not None else random.SystemRandom()  # type: ignore[assignment]
-    vip_candidates = [row for row in pool if (row.get("segment") or "").lower() == "vip"]
-    non_vip_candidates = [row for row in pool if (row.get("segment") or "").lower() != "vip"]
-    if n >= 2 and vip_candidates and len(non_vip_candidates) >= (n - 1):
-        safe_vip_candidates = [
-            row for row in vip_candidates if (row.get("profession") or "").lower() != "security"
-        ]
-        vip_choice = rng.choice(safe_vip_candidates or vip_candidates)
-        others = rng.sample(non_vip_candidates, k=n - 1)
-        chosen = [vip_choice, *others]
-        rng.shuffle(chosen)
-    else:
-        chosen = rng.sample(pool, k=n)
+    chosen = rng.sample(pool, k=n)
 
     # Put birthdays on today so one demo run immediately sends a visible batch.
     lookahead_days = int(getattr(settings, "lookahead_days", 7))
@@ -287,7 +259,7 @@ async def seed_demo_clients(
         upcoming = today + dt.timedelta(days=int(offset))
         year = int(rng.choice(list(range(1980, 2002))))
         birth_date = dt.date(year, upcoming.month, upcoming.day)
-        email = f"demo_client_{i+1}@example.com"
+        email = f"demo_client_{i + 1}@example.com"
         clients.append(
             Client(
                 first_name=row["first_name"],
@@ -297,7 +269,6 @@ async def seed_demo_clients(
                 official_company_name=None,
                 position=row["position"],
                 profession=row.get("profession"),
-                segment=row["segment"],
                 inn=row.get("inn"),
                 email=email,
                 preferred_channel="email",
@@ -310,12 +281,8 @@ async def seed_demo_clients(
 
     session.add_all(clients)
     await session.commit()
-    vip_count = sum(1 for row in chosen if (row.get("segment") or "").lower() == "vip")
-    auto_send_ready = max(0, len(chosen) - vip_count)
     return {
         "added": len(clients),
         "replaced": replace,
         "lookahead_days": lookahead_days,
-        "vip_count": vip_count,
-        "auto_send_ready": auto_send_ready,
     }

@@ -16,7 +16,6 @@ async def test_birthday_has_priority_over_professional_holiday_same_day(db_sessi
         middle_name="Тестович",
         last_name="Клиент",
         profession="security",
-        segment="standard",
         email="demo_client_1@example.com",
         preferred_channel="email",
         birth_date=dt.date(1990, today.month, today.day),
