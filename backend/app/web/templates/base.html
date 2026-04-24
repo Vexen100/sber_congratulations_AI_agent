@@ -5,7 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{{title or "Агент поздравлений"}}</title>
-    <link rel="stylesheet" href="{{ url_for('data', path='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='css/main.css') }}">
   </head>
   <body>
     {% set current_path = request.url.path if request is defined else "/" %}
@@ -23,8 +23,8 @@
               <button class="btn btn-outline-danger quick-action w-100">Очистить среду</button>
             </form>
           </div>
-          <div class="section-title" style="text-align: center; margin: 1rem 0;">
-            <img src="../../../data/css/vibe-team-logo.svg" alt="vibe-team-logo" width="180">
+          <div class="sidebar-brand-wrap">
+            <span class="sidebar-brand-text" lang="en">Vibe Team</span>
           </div>
           <!-- <div class="section-subtitle mb-3">Навигация по конвейеру и контролю качества.</div> -->
           <div class="nav-stack">

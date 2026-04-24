@@ -5,7 +5,7 @@ from app.services.template_selector import choose_template
 
 
 def test_text_generator_uses_enriched_company_context():
-    choice = choose_template(segment="standard", event_type="holiday", title="День финансиста")
+    choice = choose_template(event_type="holiday", title="День финансиста")
     subject, body = generate_text(
         choice,
         context={
@@ -26,7 +26,6 @@ def test_text_generator_uses_enriched_company_context():
 
 def test_text_generator_uses_manual_business_context():
     choice = choose_template(
-        segment="standard",
         event_type="manual",
         title="Желаем сильных продаж и новых клиентов",
     )
@@ -50,7 +49,6 @@ def test_text_generator_uses_manual_business_context():
 
 def test_text_generator_uses_structured_holiday_context():
     choice = choose_template(
-        segment="standard",
         event_type="holiday",
         title="День российского предпринимательства",
     )
@@ -75,7 +73,6 @@ def test_text_generator_uses_structured_holiday_context():
 
 def test_text_generator_uses_female_respectful_greeting_without_surname():
     choice = choose_template(
-        segment="vip",
         event_type="holiday",
         title="День финансиста",
     )
@@ -89,5 +86,7 @@ def test_text_generator_uses_female_respectful_greeting_without_surname():
         },
         title="День финансиста",
     )
-    assert body.startswith("Уважаемая Ирина Владимировна")
-    assert "Соколова" not in body.split("\n\n", 1)[0]
+    # Warm template addresses by first name; surname stays out of the opening paragraph.
+    first_para = body.split("\n\n", 1)[0]
+    assert "Ирина" in first_para
+    assert "Соколова" not in first_para

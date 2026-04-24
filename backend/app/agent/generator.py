@@ -30,7 +30,6 @@ def _allowed_facts(client: Client) -> dict:
         "official_company_name": getattr(client, "official_company_name", None),
         "position": client.position,
         "profession": (getattr(client, "profession", None) or ""),
-        "segment": client.segment,
         "inn": getattr(client, "inn", None),
         "ceo_name": getattr(client, "ceo_name", None),
         "okved_code": getattr(client, "okved_code", None),
@@ -59,7 +58,6 @@ def _generation_context(client: Client, event: Event) -> dict:
         event_type=event.event_type,
         event_title=event.title,
         event_details=event.details or {},
-        segment=client.segment,
         profession=getattr(client, "profession", None),
     )
     context.update(
@@ -124,7 +122,6 @@ async def generate_subject_body(
                 event_type=event.event_type,
                 event_title=event.title,
                 event_date=event.event_date,
-                segment=client.segment,
                 facts=facts,
                 tone_hint=tone_hint,
                 event_details=event.details or {},

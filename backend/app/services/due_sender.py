@@ -6,18 +6,13 @@ import logging
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
 from app.db.models import Client, Event, Greeting
 from app.services.sender import send_greeting
 
 log = logging.getLogger(__name__)
 
 _SENDABLE_STATUSES = {"generated", "approved"}
-_CONSIDER_STATUSES = {"generated", "approved", "needs_approval"}
-
-
-def _is_immediate_delivery_mode() -> bool:
-    return (settings.delivery_schedule_mode or "event_date").strip().lower() == "immediate"
+_CONSIDER_STATUSES = {"generated", "approved"}
 
 
 def _event_priority(ev: Event) -> int:
@@ -35,11 +30,8 @@ def _event_priority(ev: Event) -> int:
     return 9
 
 
-def _is_sendable_today(*, g: Greeting, c: Client) -> bool:
+def _is_sendable_today(*, g: Greeting, c: Client) -> bool:  # noqa: ARG001
     """Whether greeting is eligible to be sent (ignoring date, which is handled by query)."""
-    is_vip = (c.segment or "").lower() == "vip"
-    if is_vip:
-        return g.status == "approved"
     return g.status in _SENDABLE_STATUSES
 
 
@@ -48,13 +40,12 @@ async def send_due_greetings(
     *,
     today: dt.date,
 ) -> dict:
-    """Send greetings that are due today or immediately.
+    """Send greetings that are due today.
 
     Principles:
-    - We MAY generate greetings ahead of time (lookahead window).
-    - In `event_date` mode we send ONLY on the day of the event.
-    - In `immediate` mode we send as soon as the greeting is ready.
-    - VIP greetings are sent ONLY if they were approved before/at today.
+    - Greetings may be generated ahead of time (lookahead window).
+    - Sends ONLY on the day of the event (Event.event_date == today).
+    - One sendable greeting per client per day (priority: birthday > manual > holiday).
 
     Returns counts for reporting/UI.
     """
@@ -63,15 +54,14 @@ async def send_due_greetings(
     errors = 0
     suppressed = 0
 
-    # Select due greetings with their event + client (including needs_approval to enforce priority).
+    # Select due greetings with their event + client.
     stmt = (
         select(Greeting, Event, Client)
         .join(Event, Event.id == Greeting.event_id)
         .join(Client, Client.id == Greeting.client_id)
         .where(Greeting.status.in_(_CONSIDER_STATUSES))
     )
-    if not _is_immediate_delivery_mode():
-        stmt = stmt.where(Event.event_date == today)
+    stmt = stmt.where(Event.event_date == today)
     rows = (await session.execute(stmt)).all()
 
     # Group by client so we can enforce "1 message per client per day" with priority.
@@ -84,13 +74,13 @@ async def send_due_greetings(
         c = items[0][2]
         birthday_items = [t for t in items if (t[1].event_type or "").lower() == "birthday"]
 
-        # Choose the winner:
-        # - If birthday exists on this day: birthday is the ONLY candidate (even if not approved yet for VIP).
-        # - Else: choose the best sendable item by priority.
+        # Choose the winner: prefer sendable birthday; else best sendable by priority.
         winner: tuple[Greeting, Event, Client] | None = None
         if birthday_items:
-            winner = sorted(birthday_items, key=lambda t: _event_priority(t[1]))[0]
-        else:
+            candidate = sorted(birthday_items, key=lambda t: _event_priority(t[1]))[0]
+            if _is_sendable_today(g=candidate[0], c=c):
+                winner = candidate
+        if winner is None:
             sendable = [t for t in items if _is_sendable_today(g=t[0], c=c)]
             if sendable:
                 winner = sorted(sendable, key=lambda t: (_event_priority(t[1]), t[0].id))[0]
@@ -109,9 +99,6 @@ async def send_due_greetings(
             continue
 
         g, ev, _c = winner
-        # If birthday exists but is not eligible (VIP not approved), we do NOT send anything.
-        if birthday_items and not _is_sendable_today(g=g, c=c):
-            continue
 
         try:
             recipient = c.email or c.phone or ""

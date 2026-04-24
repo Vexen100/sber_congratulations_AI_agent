@@ -3,7 +3,7 @@
   <div class="d-flex align-items-center justify-content-between mb-3">
     <div class="page-intro">
       <h2 class="mb-1">Поздравления</h2>
-      <div class="text-muted">Сгенерированные поздравления, статистика для согласования VIP и наличие обратной связи.</div>
+      <div class="text-muted">Сгенерированные поздравления, отправка по расписанию в день события и сбор отзывов с вердиктом для дообучения.</div>
     </div>
   </div>
 
@@ -15,11 +15,9 @@
   {% endif %}
 
   <div class="row g-4 mb-4">
-    
-    <!-- ЛЕВАЯ КОЛОНКА: Метрики (занимает ~60% ширины) -->
+
     <div class="col-12 col-xl-6">
-      
-      <!-- ВЕРХНИЙ РЯД: Одна карточка на всю ширину -->
+
       <div class="row g-4 mb-4">
         <div class="col-12">
           <div class="surface-panel metric-card">
@@ -30,38 +28,34 @@
         </div>
       </div>
 
-      <!-- НИЖНИЙ РЯД: Две карточки по 50% -->
       <div class="row g-4">
         <div class="col-12 col-md-6">
           <div class="surface-panel metric-card h-100">
-            <div class="metric-label">Нужно согласование</div>
-            <div class="metric-value">{{ greetings | selectattr('status', 'equalto', 'needs_approval') | list | length }}</div>
-            <div class="metric-hint">VIP-поздравления, ожидающие решения менеджера.</div>
+            <div class="metric-label">Отправлено</div>
+            <div class="metric-value">{{ metric_sent }}</div>
+            <div class="metric-hint">Статус «Отправлено» (хотя бы одна доставка).</div>
           </div>
         </div>
         <div class="col-12 col-md-6">
           <div class="surface-panel metric-card h-100">
-            <div class="metric-label">С обратной связью</div>
-            <div class="metric-value">{{ greetings | selectattr('feedback_entries') | list | length }}</div>
-            <div class="metric-hint">Поздравления, для которых уже сохранена операторская обратная связь.</div>
+            <div class="metric-label">С отзывом / вердиктом</div>
+            <div class="metric-value">{{ metric_with_feedback }} / {{ metric_with_verdict }}</div>
+            <div class="metric-hint">Отзыв оператора и отдельно — записи с вердиктом «принять/отклонить» для дообучения.</div>
           </div>
         </div>
       </div>
 
     </div>
 
-    <!-- ПРАВАЯ КОЛОНКА: Диаграмма (занимает ~40% ширины) -->
     <div class="col-12 col-xl-6">
       <div class="surface-panel metric-card h-100">
-        <div class="metric-label mb-3">Статус согласования</div>
-        
+        <div class="metric-label mb-3">Распределение по статусам отправки</div>
+
         {% set total = greetings | length %}
-        {% set b = greetings | selectattr('status', 'equalto', 'needs_approval') | list | length %}
-        {% set h = greetings | selectattr('feedback_entries') | list | length %}
 
         <div class="approval-pie-wrapper">
           <div class="approval-pie"
-              style="--val-approve: {{ b }}; --val-feedback: {{ h }}; --total: {{ total or 1 }};"
+              style="--val-new: {{ metric_ready }}; --val-sent: {{ metric_sent }}; --val-other: {{ metric_rest }}; --total: {{ total or 1 }};"
               {% if total == 0 %}data-empty="true"{% endif %}>
             <div class="approval-pie-center">
               <span class="approval-pie-total">{{ total }}</span>
@@ -72,18 +66,22 @@
           <div class="approval-legend">
             <div class="approval-legend-item">
               <span class="approval-legend-dot" style="background: var(--primary);"></span>
-              <span class="approval-legend-text">Нужно согласование: <strong>{{ b }}</strong></span>
+              <span class="approval-legend-text">В очереди на отправку: <strong>{{ metric_ready }}</strong></span>
             </div>
             <div class="approval-legend-item">
               <span class="approval-legend-dot" style="background: var(--primary-dark);"></span>
-              <span class="approval-legend-text">С обратной связью: <strong>{{ h }}</strong></span>
+              <span class="approval-legend-text">Отправлено: <strong>{{ metric_sent }}</strong></span>
+            </div>
+            <div class="approval-legend-item">
+              <span class="approval-legend-dot" style="background: #9aa99e;"></span>
+              <span class="approval-legend-text">Прочие статусы: <strong>{{ metric_rest }}</strong></span>
             </div>
           </div>
         </div>
 
         <div class="approval-hint text-center mt-2">
           {% if total > 0 %}
-            Нужно согласование: {{ (b/total*100)|round|int }}% | С обратной связью: {{ (h/total*100)|round|int }}%
+            Вердикт для дообучения: {{ metric_with_verdict }} из {{ total }} ({{ (metric_with_verdict/total*100)|round|int }}%)
           {% else %}
             Нет данных для визуализации
           {% endif %}
@@ -118,7 +116,6 @@
               <td class="small">
                 {% if g.client %}
                   <div class="fw-semibold">{{ g.client.first_name }} {{ g.client.middle_name or "" }} {{ g.client.last_name }}</div>
-                  <div class="text-muted">сегмент: {{ g.client.segment }}</div>
                   {% if g.client.official_company_name or g.client.company_name %}
                     <div class="text-muted">{{ g.client.official_company_name or g.client.company_name }}</div>
                   {% endif %}
@@ -133,13 +130,13 @@
                 {% if g.status == "sent" %}
                   <span class="badge text-bg-success">Отправлено</span>
                 {% elif g.status == "needs_approval" %}
-                  <span class="badge text-bg-warning">Согласование</span>
+                  <span class="badge text-bg-warning">Очередь (legacy)</span>
                 {% elif g.status == "approved" %}
-                  <span class="badge text-bg-info">Согласовано</span>
+                  <span class="badge text-bg-info">Согласовано (legacy)</span>
                 {% elif g.status == "skipped" %}
                   <span class="badge text-bg-secondary">Пропущено</span>
                 {% elif g.status == "rejected" %}
-                  <span class="badge text-bg-dark">Отклонено</span>
+                  <span class="badge text-bg-dark">Отклонено (legacy)</span>
                 {% elif g.status == "error" %}
                   <span class="badge text-bg-danger">Ошибка</span>
                 {% else %}
@@ -150,8 +147,12 @@
                 {% if g.feedback_entries %}
                   {% set latest = g.feedback_entries[-1] %}
                   <div class="mb-2">
-                    <span class="badge text-bg-success">оценка: {{ latest.score or "нет" }}</span>
-                    <span class="badge text-bg-light">{{ latest.outcome }}</span>
+                    <span class="badge text-bg-success">оценка: {{ latest.score or "—" }}</span>
+                    {% if latest.training_verdict == "accepted" %}
+                      <span class="badge text-bg-primary">дообучение: принято</span>
+                    {% elif latest.training_verdict == "rejected" %}
+                      <span class="badge text-bg-warning text-dark">дообучение: отклонено</span>
+                    {% endif %}
                   </div>
                   {% if latest.notes %}
                     <div class="text-muted mb-2">{{ latest.notes }}</div>
@@ -160,53 +161,22 @@
                 <form method="post" action="/actions/greetings/{{ g.id }}/feedback" class="row g-1">
                   <div class="col-12">
                     <select class="form-select form-select-sm" name="score">
-                      <option value="" selected="" disabled="">Оценка</option>
-                      <option value="5">Отлично</option>
-                      <option value="4">Хорошо</option>
-                      <option value="3">Удовлетворительно</option>
-                      <option value="2">Плохо</option>
-                      <option value="1">Ужасно</option>
+                      <option value="" selected>Оценка</option>
+                      <option value="1">1 — Ужасно</option>
+                      <option value="2">2 — Плохо</option>
+                      <option value="3">3 — Удовлетворительно</option>
+                      <option value="4">4 — Хорошо</option>
+                      <option value="5">5 — Отлично</option>
                     </select>
                   </div>
-                  <!-- <div class="col-8">
-                    <select class="form-select form-select-sm" name="outcome">
-                      <option value="" selected="" disabled="">Отклик клиента</option>
-                      <option value="unknown">Неизвестно</option>
-                      <option value="opened">Открыто</option>
-                      <option value="replied">Есть ответ</option>
-                      <option value="ignored">Без реакции</option>
-                    </select>
-                  </div> -->
                   <div class="col-12">
-                    <input class="form-control form-control-sm" name="notes" placeholder="Комментарий менеджера">
+                    <input class="form-control form-control-sm" name="notes" placeholder="Комментарий к оценке">
                   </div>
-                  <div class="col-12">
-                    <button class="btn btn-sm btn-outline-primary">Сохранить отзыв</button>
+                  <div class="col-12 d-flex flex-wrap gap-1">
+                    <button type="submit" name="training_verdict" value="accepted" class="btn btn-sm btn-success">Принять</button>
+                    <button type="submit" name="training_verdict" value="rejected" class="btn btn-sm btn-outline-danger">Отклонить</button>
                   </div>
                 </form>
-                <!-- {% if g.status == "needs_approval" %} -->
-                  <!-- <div class="row g-1" style="margin: .25rem 0;">
-                    <div class="col-6">
-                      <form method="post" action="/actions/greetings/{{ g.id }}/approve">
-                        <button class="btn btn-sm btn-success">Согласовать</button>
-                      </form>
-                    </div>
-                    <div class="col-4">
-                      <form method="post" action="/actions/greetings/{{ g.id }}/reject">
-                        <button class="btn btn-sm btn-outline-danger">Отклонить</button>
-                      </form>
-                    </div>
-                  </div> -->
-                  <!-- <div class="text-muted small mt-1">
-                    {% if delivery_schedule_mode == "immediate" %}
-                      После согласования поздравление будет отправлено сразу.
-                    {% else %}
-                      Отправка произойдёт при запуске агента в этот день.
-                    {% endif %}
-                  </div> -->
-                <!-- {% else %}
-                  <span class="text-muted">—</span>
-                {% endif %} -->
               </td>
               <td class="small">
                 <div class="fw-semibold">{{ g.subject }}</div>
@@ -225,7 +195,7 @@
             </tr>
           {% else %}
             <tr>
-              <td colspan="8" class="empty-state">Поздравлений пока нет. Запустите агента, чтобы заполнить эту страницу.</td>
+              <td colspan="7" class="empty-state">Поздравлений пока нет. Запустите агента, чтобы заполнить эту страницу.</td>
             </tr>
           {% endfor %}
         </tbody>
@@ -233,5 +203,3 @@
     </div>
   </div>
 {% endblock %}
-
-

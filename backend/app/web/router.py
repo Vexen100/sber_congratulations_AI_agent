@@ -16,7 +16,7 @@ from app.agent.orchestrator import run_once
 from app.core.config import settings
 from app.db.models import AgentRun, Client, Delivery, Event, Feedback, Greeting
 from app.db.session import get_session
-from app.services.approval import approve_greeting, reject_greeting
+from app.services.autonomy import get_or_create_state, next_daily_run_at
 from app.services.company_enrichment import enrich_client_company_by_id, enrich_missing_clients
 from app.services.company_import import import_clients_from_company_csv
 from app.services.feedback import save_feedback
@@ -42,6 +42,38 @@ def _split_contact_values(value: str | None) -> list[str]:
 templates.env.globals["split_contact_values"] = _split_contact_values
 
 
+def _format_dt(value: object) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, dt.datetime):
+        # Strip microseconds; keep timezone info as-is (DB values are typically UTC-aware).
+        return value.replace(microsecond=0).isoformat(sep=" ", timespec="seconds")
+    if isinstance(value, dt.date):
+        return value.isoformat()
+    return str(value)
+
+
+templates.env.filters["format_dt"] = _format_dt
+
+# Moscow civil time (Russia uses permanent UTC+3; no DST).
+_MSK_TZ = dt.timezone(dt.timedelta(hours=3))
+
+
+def _format_time_msk_hm(value: object) -> str:
+    """Wall-clock time in UTC+3 as HH:MM (for delivery lists, etc.)."""
+    if value is None:
+        return ""
+    if isinstance(value, dt.datetime):
+        dtv = value
+        if dtv.tzinfo is None:
+            dtv = dtv.replace(tzinfo=dt.timezone.utc)
+        return dtv.astimezone(_MSK_TZ).strftime("%H:%M")
+    return str(value)
+
+
+templates.env.filters["format_time_msk"] = _format_time_msk_hm
+
+
 @router.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request, session: AsyncSession = Depends(get_session)):
     qp = request.query_params
@@ -55,9 +87,11 @@ async def dashboard(request: Request, session: AsyncSession = Depends(get_sessio
     greetings_count = (await session.execute(select(func.count(Greeting.id)))).scalar_one()
     deliveries_count = (await session.execute(select(func.count(Delivery.id)))).scalar_one()
     feedback_count = (await session.execute(select(func.count(Feedback.id)))).scalar_one()
-    greetings_needing_approval = (
+    greetings_with_training_verdict = (
         await session.execute(
-            select(func.count(Greeting.id)).where(Greeting.status == "needs_approval")
+            select(func.count(func.distinct(Feedback.greeting_id))).where(
+                Feedback.training_verdict.is_not(None)
+            )
         )
     ).scalar_one()
     sent_greetings_count = (
@@ -102,7 +136,7 @@ async def dashboard(request: Request, session: AsyncSession = Depends(get_sessio
             "greetings_count": greetings_count,
             "deliveries_count": deliveries_count,
             "feedback_count": feedback_count,
-            "greetings_needing_approval": greetings_needing_approval,
+            "greetings_with_training_verdict": greetings_with_training_verdict,
             "sent_greetings_count": sent_greetings_count,
             "delivery_errors_count": delivery_errors_count,
             "greetings_with_feedback_count": greetings_with_feedback_count,
@@ -147,7 +181,7 @@ async def action_enrich_clients(session: AsyncSession = Depends(get_session)):
     result = await enrich_missing_clients(session)
     provider = (settings.company_enrichment_provider or "demo").strip().lower()
     msg = (
-        f"Обогащение завершено. Обогащено: {result['enriched']}, "
+        f"Обогащение ({provider}) завершено. Обогащено: {result['enriched']}, "
         f"ошибки: {result['errors']}, успешно: {result['processed']}"
     )
     return RedirectResponse(url=f"/clients?msg={quote(msg)}", status_code=303)
@@ -196,9 +230,6 @@ async def clients_page(request: Request, session: AsyncSession = Depends(get_ses
             "msg": qp.get("msg", ""),
             "error": qp.get("error", ""),
             "company_enrichment_provider": (settings.company_enrichment_provider or "demo")
-            .strip()
-            .lower(),
-            "delivery_schedule_mode": (settings.delivery_schedule_mode or "event_date")
             .strip()
             .lower(),
         },
@@ -257,7 +288,6 @@ async def clients_create(
     inn: str = Form(""),
     position: str = Form(""),
     profession: str = Form(...),
-    segment: str = Form("standard"),
     email: str = Form(""),
     phone: str = Form(""),
     preferred_channel: str = Form("email"),
@@ -271,10 +301,6 @@ async def clients_create(
         prof = (profession or "").strip().lower()
         if prof not in _PROFESSIONS:
             raise ValueError("profession: выберите значение из списка")
-        seg = (segment or "standard").strip().lower()
-        if seg not in {"standard", "vip", "loyal", "new"}:
-            raise ValueError("segment: недопустимое значение")
-
         bd = None
         if birth_date.strip():
             bd = dt.date.fromisoformat(birth_date.strip())
@@ -316,7 +342,6 @@ async def clients_create(
             inn=norm_inn,
             position=position.strip() or None,
             profession=prof,
-            segment=seg,
             email=em,
             phone=phone.strip() or None,
             preferred_channel=pref,
@@ -438,6 +463,16 @@ async def greetings_page(request: Request, session: AsyncSession = Depends(get_s
         .scalars()
         .all()
     )
+    total_g = len(greetings)
+    metric_sent = sum(1 for g in greetings if (g.status or "") == "sent")
+    metric_ready = sum(1 for g in greetings if (g.status or "") in ("generated", "approved"))
+    metric_rest = max(0, total_g - metric_sent - metric_ready)
+    metric_with_feedback = sum(1 for g in greetings if g.feedback_entries)
+    metric_with_verdict = sum(
+        1
+        for g in greetings
+        if any(getattr(f, "training_verdict", None) for f in (g.feedback_entries or []))
+    )
     return templates.TemplateResponse(
         request,
         "greetings.html",
@@ -445,9 +480,11 @@ async def greetings_page(request: Request, session: AsyncSession = Depends(get_s
             "greetings": greetings,
             "msg": qp.get("msg", ""),
             "error": qp.get("error", ""),
-            "delivery_schedule_mode": (settings.delivery_schedule_mode or "event_date")
-            .strip()
-            .lower(),
+            "metric_sent": metric_sent,
+            "metric_ready": metric_ready,
+            "metric_rest": metric_rest,
+            "metric_with_feedback": metric_with_feedback,
+            "metric_with_verdict": metric_with_verdict,
         },
     )
 
@@ -458,6 +495,7 @@ async def action_feedback_greeting(
     score: int | None = Form(None),
     outcome: str = Form("unknown"),
     notes: str = Form(""),
+    training_verdict: str | None = Form(None),
     session: AsyncSession = Depends(get_session),
 ):
     try:
@@ -467,6 +505,7 @@ async def action_feedback_greeting(
             score=score,
             outcome=outcome,
             notes=notes,
+            training_verdict=training_verdict,
         )
         return RedirectResponse(
             url=f"/greetings?msg={quote('Отзыв сохранён')}",
@@ -474,24 +513,6 @@ async def action_feedback_greeting(
         )
     except Exception as e:
         return RedirectResponse(url=f"/greetings?error={quote(str(e))}", status_code=303)
-
-
-@router.post("/actions/greetings/{greeting_id}/approve")
-async def action_approve_greeting(
-    greeting_id: int,
-    session: AsyncSession = Depends(get_session),
-):
-    await approve_greeting(session, greeting_id=greeting_id, approved_by="web-ui")
-    return RedirectResponse(url="/greetings", status_code=303)
-
-
-@router.post("/actions/greetings/{greeting_id}/reject")
-async def action_reject_greeting(
-    greeting_id: int,
-    session: AsyncSession = Depends(get_session),
-):
-    await reject_greeting(session, greeting_id=greeting_id, rejected_by="web-ui")
-    return RedirectResponse(url="/greetings", status_code=303)
 
 
 @router.get("/deliveries", response_class=HTMLResponse)
@@ -512,6 +533,9 @@ async def deliveries_page(request: Request, session: AsyncSession = Depends(get_
 
 @router.get("/runs", response_class=HTMLResponse)
 async def runs_page(request: Request, session: AsyncSession = Depends(get_session)):
+    autonomy = await get_or_create_state(session)
+    now = dt.datetime.now(dt.timezone.utc)
+    next_run = next_daily_run_at(now=now) if autonomy.enabled else None
     runs = (
         (await session.execute(select(AgentRun).order_by(AgentRun.id.desc()).limit(100)))
         .scalars()
@@ -529,7 +553,13 @@ async def runs_page(request: Request, session: AsyncSession = Depends(get_sessio
     return templates.TemplateResponse(
         request,
         "runs.html",
-        {"runs": runs, "total_runs": total_runs, "status_totals": status_totals},
+        {
+            "runs": runs,
+            "total_runs": total_runs,
+            "status_totals": status_totals,
+            "autonomy_enabled": autonomy.enabled,
+            "autonomy_next_run_iso": next_run.isoformat() if next_run else "",
+        },
     )
 
 
@@ -570,8 +600,10 @@ async def run_detail_page(
         if (delivery.status or "").lower() == "sent"
     )
     greetings_with_feedback = sum(1 for greeting in greetings if greeting.feedback_entries)
-    greetings_needing_approval = sum(
-        1 for greeting in greetings if (greeting.status or "").lower() == "needs_approval"
+    greetings_with_training_verdict = sum(
+        1
+        for greeting in greetings
+        if any(getattr(f, "training_verdict", None) for f in (greeting.feedback_entries or []))
     )
     return templates.TemplateResponse(
         request,
@@ -582,6 +614,6 @@ async def run_detail_page(
             "actual_deliveries": actual_deliveries,
             "actual_sent": actual_sent,
             "greetings_with_feedback": greetings_with_feedback,
-            "greetings_needing_approval": greetings_needing_approval,
+            "greetings_with_training_verdict": greetings_with_training_verdict,
         },
     )

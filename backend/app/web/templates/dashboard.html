@@ -167,9 +167,9 @@
             <a href="/greetings" class="text-decoration-none text-reset">
               <div class="surface-card h-100">
                 <div class="card-body">
-                  <div class="metric-label">Ждут согласования</div>
-                  <div class="metric-value">{{ greetings_needing_approval }}</div>
-                  <div class="metric-hint">VIP-поздравления, которые ещё не прошли ручную валидацию.</div>
+                  <div class="metric-label">Вердикт для дообучения</div>
+                  <div class="metric-value">{{ greetings_with_training_verdict }}</div>
+                  <div class="metric-hint">Поздравления, по которым менеджер уже отметил «принять/отклонить» для будущего дообучения.</div>
                 </div>
               </div>
             </a>
@@ -249,8 +249,8 @@
                 <th>ID</th>
                 <th>Статус</th>
                 <th>Источник</th>
-                <th>Старт</th>
-                <th>Финиш</th>
+                <th>Старт (МСК)</th>
+                <th>Финиш (МСК)</th>
                 <th>События</th>
                 <th>Поздравления</th>
                 <th>Отправлено</th>
@@ -273,8 +273,8 @@
                     {% endif %}
                   </td>
                   <td class="small">{{ r.triggered_by }}</td>
-                  <td class="small">{{ r.started_at }}</td>
-                  <td class="small">{{ r.finished_at or "" }}</td>
+                  <td class="small">{% if r.started_at %}{{ r.started_at | format_time_msk }}{% endif %}</td>
+                  <td class="small">{% if r.finished_at %}{{ r.finished_at | format_time_msk }}{% endif %}</td>
                   <td>{{ r.scanned_events }}</td>
                   <td>{{ r.generated_greetings }}</td>
                   <td>{{ r.sent_deliveries }}</td>

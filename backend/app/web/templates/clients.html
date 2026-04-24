@@ -99,20 +99,6 @@
               </select>
             </div>
 
-            <!-- Блок 4: Сегментация -->
-            <div class="col-12">
-              <h6 class="section-title text-muted mb-2 mt-2">Сегментация</h6>
-            </div>
-            <div class="col-12 col-md-4">
-              <select class="form-select" name="segment">
-                <option value="" selected disabled>Сегмент клиента</option>
-                <option value="standard">Стандарт</option>
-                <option value="vip">VIP</option>
-                <option value="loyal">Лояльный</option>
-                <option value="new">Новый</option>
-              </select>
-            </div>
-
             <!-- Кнопка -->
             <div class="col-12">
               <button class="btn btn-success quick-action px-4 mt-2">Добавить клиента</button>
@@ -134,8 +120,8 @@
             <b>{{ clients | selectattr('enrichment_status', 'equalto', 'enriched') | list | length }}</b>
           </div>
           <div class="kpi-pill">
-            <span class="text-muted small">VIP-клиенты</span>
-            <b>{{ clients | selectattr('segment', 'equalto', 'vip') | list | length }}</b>
+            <span class="text-muted small">Демо-записи</span>
+            <b>{{ clients | selectattr('is_demo', 'equalto', true) | list | length }}</b>
           </div>
         </div>
       </div>
@@ -156,7 +142,6 @@
             <th>Компания / Должность</th>
             <th>Обогащение</th>
             <th>Профиль</th>
-            <th>Сегмент</th>
             <th>Тип записи</th>
             <th>Контакт</th>
             <th>ДР</th>
@@ -219,11 +204,6 @@
               <td class="small">
                 <span class="badge text-bg-light">
                   {% if c.profession == "management" %}управление{% elif c.profession == "finance" %}финансы{% elif c.profession == "accounting" %}бухгалтерия{% elif c.profession == "it" %}IT{% elif c.profession == "hr" %}HR{% elif c.profession == "marketing" %}маркетинг{% elif c.profession == "sales" %}продажи{% elif c.profession == "logistics" %}логистика{% elif c.profession == "construction" %}строительство{% elif c.profession == "medicine" %}медицина{% elif c.profession == "security" %}безопасность{% else %}не задан{% endif %}
-                </span>
-              </td>
-              <td>
-                <span class="badge text-bg-secondary">
-                  {% if c.segment == "vip" %}VIP{% elif c.segment == "loyal" %}лояльный{% elif c.segment == "new" %}новый{% else %}стандарт{% endif %}
                 </span>
               </td>
               <td>

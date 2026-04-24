@@ -60,7 +60,7 @@
       <div class="surface-panel metric-card">
         <div class="metric-label">Авто-отправка в run</div>
         <div class="metric-value">{{ run.sent_deliveries }}</div>
-        <div class="metric-hint">Счётчик из `Запуск агента`, без поздних VIP подтверждений.</div>
+        <div class="metric-hint">Счётчик из «Запуск агента» за этот прогон.</div>
       </div>
     </div>
     <div class="col-12 col-md-4">
@@ -72,9 +72,9 @@
     </div>
     <div class="col-12 col-md-4">
       <div class="surface-panel metric-card">
-        <div class="metric-label">Ждут согласования</div>
-        <div class="metric-value">{{ greetings_needing_approval }}</div>
-        <div class="metric-hint">Обычно это VIP-получатели, требующие ручного подтверждения.</div>
+        <div class="metric-label">Вердикт дообучения</div>
+        <div class="metric-value">{{ greetings_with_training_verdict }}</div>
+        <div class="metric-hint">Поздравления этого прогона с отмеченным «принять/отклонить» в отзыве.</div>
       </div>
     </div>
   </div>
@@ -82,7 +82,7 @@
   <div class="surface-card">
     <div class="card-header d-flex align-items-center justify-content-between">
       <span>Поздравления, созданные этим запуском</span>
-      <span class="small text-muted">Старт: {{ run.started_at }}{% if run.finished_at %} | Финиш: {{ run.finished_at }}{% endif %}</span>
+      <span class="small text-muted">Старт (МСК): {% if run.started_at %}{{ run.started_at | format_time_msk }}{% endif %}{% if run.finished_at %} | Финиш (МСК): {{ run.finished_at | format_time_msk }}{% endif %}</span>
     </div>
     <div class="card-body table-responsive">
       <table class="table table-sm align-middle table-clean">
@@ -151,7 +151,7 @@
                   <span class="text-muted">нет</span>
                 {% endif %}
               </td>
-              <td class="small">{{ greeting.created_at }}</td>
+              <td class="small">{{ greeting.created_at | format_dt }}</td>
             </tr>
           {% else %}
             <tr>

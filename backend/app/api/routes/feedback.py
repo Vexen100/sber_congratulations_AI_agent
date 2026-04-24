@@ -27,4 +27,5 @@ async def create_feedback(
         score=payload.score,
         outcome=payload.outcome,
         notes=payload.notes,
+        training_verdict=payload.training_verdict,
     )

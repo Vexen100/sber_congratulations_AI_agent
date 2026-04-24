@@ -51,7 +51,6 @@ def _client_context(c: Client) -> dict:
         "okved_code": getattr(c, "okved_code", None),
         "okved_name": getattr(c, "okved_name", None),
         "company_site": getattr(c, "company_site", None),
-        "segment": c.segment,
         "preferred_channel": c.preferred_channel,
         "email": c.email,
         "phone": c.phone,
@@ -149,9 +148,7 @@ async def run_once(
                         await _update_run_progress()
                     continue
 
-                choice = choose_template(
-                    segment=client.segment, event_type=ev.event_type, title=ev.title
-                )
+                choice = choose_template(event_type=ev.event_type, title=ev.title)
                 tone, subject, body = await generate_subject_body(
                     event=ev, client=client, template_choice=choice, today=today
                 )
@@ -177,7 +174,6 @@ async def run_once(
                                 recipient_line=recipient_line,
                                 company=client.company_name,
                                 event_details=ev.details or {},
-                                segment=client.segment,
                                 profession=getattr(client, "profession", None),
                             )
                             file_id, jpg = await image_provider.generate_jpg(
@@ -228,7 +224,7 @@ async def run_once(
                     subject=subject,
                     body=body,
                     image_path=rel_image_path,
-                    status="needs_approval" if client.segment.lower() == "vip" else "generated",
+                    status="generated",
                 )
                 session.add(greeting)
                 await session.commit()

@@ -19,7 +19,6 @@ def test_event_semantics_for_business_holiday():
                 "tone_hint": "official",
             }
         },
-        segment="vip",
         profession="management",
     )
     assert semantics.category == "business"
@@ -38,7 +37,6 @@ def test_event_semantics_for_manual_technology_touchpoint():
             "focus_hint": "technology",
             "tone_hint": "warm",
         },
-        segment="standard",
         profession="it",
     )
     assert semantics.category == "manual-business"
@@ -54,7 +52,6 @@ def test_build_user_prompt_includes_event_semantics_block():
         event_type="holiday",
         event_title="День российского предпринимательства",
         event_date=dt.date(2026, 5, 26),
-        segment="vip",
         facts={
             "first_name": "Ирина",
             "profession": "management",

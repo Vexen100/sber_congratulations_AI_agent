@@ -13,7 +13,6 @@ class ClientCreate(BaseModel):
     official_company_name: str | None = Field(default=None, max_length=255)
     position: str | None = Field(default=None, max_length=200)
     profession: str | None = Field(default=None, max_length=80)
-    segment: str = Field(default="standard", max_length=50)
     inn: str | None = Field(default=None, min_length=10, max_length=12)
     ogrn: str | None = Field(default=None, max_length=15)
     kpp: str | None = Field(default=None, max_length=9)
@@ -45,7 +44,6 @@ class ClientOut(BaseModel):
     official_company_name: str | None
     position: str | None
     profession: str | None
-    segment: str
     inn: str | None
     ogrn: str | None
     kpp: str | None

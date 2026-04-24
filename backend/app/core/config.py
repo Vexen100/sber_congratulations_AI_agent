@@ -21,7 +21,6 @@ class Settings(BaseSettings):
     max_gigachat_images_per_run: int = 5  # speed + token safety; rest uses Pillow fallback
 
     send_mode: str = "file"  # file|smtp|noop
-    delivery_schedule_mode: str = "event_date"  # event_date|immediate
     outbox_dir: str = "./data/outbox"
 
     company_enrichment_provider: str = "demo"  # demo|dadata|hybrid

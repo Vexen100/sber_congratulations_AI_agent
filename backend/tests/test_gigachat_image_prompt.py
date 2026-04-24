@@ -34,7 +34,6 @@ def test_gigachat_prompt_uses_business_still_life_without_birthday_objects():
                 "audience": "business",
             }
         },
-        segment="vip",
         profession="management",
     )
     low = (system + "\n" + user).lower()
@@ -54,7 +53,6 @@ def test_gigachat_prompt_uses_new_year_specific_motif_without_birthday_objects()
         recipient_line="Иван Тестов",
         company="ООО Вектор",
         event_details={"holiday_tags": {"focus_hint": "renewal", "category": "holiday"}},
-        segment="standard",
         profession="management",
     )
     low = (system + "\n" + user).lower()
@@ -71,7 +69,6 @@ def test_gigachat_prompt_uses_march_8_flowers_without_birthday_objects():
         recipient_line="Ирина Тестова",
         company="ООО Вектор",
         event_details={"holiday_tags": {"focus_hint": "care", "category": "holiday"}},
-        segment="standard",
         profession="management",
     )
     low = (system + "\n" + user).lower()

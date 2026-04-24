@@ -43,7 +43,6 @@ async def test_enrich_client_via_dadata_provider(db_session, monkeypatch):
         last_name="Иванов",
         company_name="Тест Авто",
         profession="management",
-        segment="standard",
         inn="7701234567",
         email="contact@local.test",
         preferred_channel="email",

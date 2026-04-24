@@ -76,7 +76,6 @@ async def main() -> None:
         "last_name": "Соколова",
         "company_name": "ООО Альфа-Логистика",
         "position": "Генеральный директор",
-        "segment": "vip",
         "last_interaction_summary": "обсуждали условия РКО и зарплатный проект",
     }
     user = (
