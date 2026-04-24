@@ -1,0 +1,32 @@
+.table-card .card-header,
+.surface-card .card-header {
+background: transparent;
+border-bottom: 1px solid rgba(217, 230, 222, 0.9);
+padding: 1rem 1.2rem .95rem;
+font-weight: 800;
+}
+.surface-card .card-body {
+box-sizing: border-box;
+height: 100%;
+padding: 1rem 1.2rem 1.2rem;
+}
+.table-clean {
+--bs-table-bg: transparent;
+--bs-table-border-color: rgba(217, 230, 222, 0.8);
+}
+.table-clean thead th {
+color: var(--muted);
+font-size: .78rem;
+text-transform: uppercase;
+letter-spacing: .04em;
+font-weight: 800;
+border-top: 0;
+}
+.table-clean tbody tr:hover {
+background: rgba(18, 161, 80, 0.04);
+}
+.actions-col {
+min-width: 124px;
+white-space: nowrap;
+padding-right: 1rem !important;
+}

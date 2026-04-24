@@ -1,0 +1,99 @@
+.agent-control-widget {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.countdown-wrapper {
+  padding: 3px 0;
+}
+
+.countdown-display {
+  font-family: Inter, "Segoe UI", system-ui, sans-serif;
+  font-variant-numeric: tabular-nums; 
+  font-feature-settings: "tnum";
+  font-size: 1.9rem; 
+}
+
+.countdown-label {
+  font-size: 0.75rem;
+  color: #8896a4;
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.divider {
+  height: 1px;
+  background: #eee;
+  width: 100%;
+}
+
+.actions-wrapper {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.btn-control {
+  flex: 1;
+  padding: 10px 5px;
+  min-height: 64px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: all 0.2s ease;
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.btn-auto {
+  background: #f1f3f5;
+  color: #636e72;
+  border: 1px solid #dfe6e9;
+}
+
+.btn-auto:hover {
+  background: #e9ecef;
+}
+
+.btn-auto.active {
+  background: #e3f2fd;
+  color: #2196F3;
+  border-color: #2196F3;
+}
+
+.btn-auto.active .status-dot {
+  background-color: #2196F3;
+  box-shadow: 0 0 8px #2196F3;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #ccc;
+  margin-top: 2px;
+  transition: background-color 0.2s;
+}
+
+.btn-manual {
+  background: #4CAF50;
+  color: white;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.btn-manual:hover {
+  background: #43A047;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
+}
+
+.btn-manual:active {
+  transform: translateY(1px);
+}
