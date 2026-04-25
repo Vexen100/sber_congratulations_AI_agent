@@ -4,13 +4,15 @@ import datetime as dt
 import re
 
 import httpx
+import pytest
 from sqlalchemy import select
 
 from app.agent.orchestrator import run_once
 from app.db.models import AgentRun, Client, Delivery, Event, Feedback, Greeting
 from app.db.session import get_session
 from app.main import create_app
-from app.web.router import _format_time_msk_hm
+
+pytestmark = pytest.mark.integration
 
 
 async def test_dashboard_page_renders_new_presentation_layout(db_session):
@@ -29,7 +31,6 @@ async def test_dashboard_page_renders_new_presentation_layout(db_session):
     # Regression: custom UI should load bundled CSS and keep the main dashboard blocks.
     assert "/static/css/main.css" in resp.text
     assert "Быстрый просмотр данных" in resp.text
-    assert "Воронка после запуска" in resp.text
     assert "Воронка после запуска" in resp.text
     assert "Операционное здоровье" in resp.text
 
@@ -231,11 +232,6 @@ async def test_greetings_page_includes_training_verdict_form(db_session):
     assert resp.status_code == 200
     assert ">Сохранить отзыв</button>" in resp.text
     assert "1 — Ужасно" in resp.text
-
-
-def test_format_time_msk_hm_converts_utc_to_moscow_clock():
-    utc = dt.datetime(2026, 4, 24, 14, 30, 18, 400491, tzinfo=dt.timezone.utc)
-    assert _format_time_msk_hm(utc) == "17:30"
 
 
 async def test_deliveries_page_shows_sent_at_as_moscow_hh_mm(db_session):

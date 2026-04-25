@@ -8,7 +8,7 @@
 
 ## Репозиторий
 
-- **CI**: GitHub Actions workflow в `.github/workflows/ci.yml` (ruff/black/pytest)
+- **CI**: GitHub Actions в `.github/workflows/ci.yml` (ruff, black; unit и integration через `pytest -m` на ветках `main` и `integration`)
 - **Ключевые проектные документы**: начните с `docs/PROJECT_OVERVIEW.md` и `docs/DECISIONS.md`
 
 ## Возможности проекта
@@ -234,6 +234,20 @@ cd backend
 .venv\Scripts\activate
 pytest -q
 ```
+
+Только unit-тесты (без маркера `integration`):
+
+```bat
+pytest -q -m "not integration"
+```
+
+Только integration-тесты (ASGI + HTTP к API):
+
+```bat
+pytest -q -m integration
+```
+
+В GitHub Actions: отдельные job-ы quality, unit и integration (см. `.github/workflows/ci.yml`).
 
 ## Как расширять после MVP
 
