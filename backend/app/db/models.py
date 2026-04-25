@@ -113,10 +113,10 @@ class Greeting(Base):
     subject: Mapped[str] = mapped_column(String(250))
     body: Mapped[str] = mapped_column(Text)
     image_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    
+
     # НОВОЕ ПОЛЕ:
     generation_source: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    
+
     # Status lifecycle:
     # - generated: created by agent, eligible for scheduled send on event day
     # - approved: legacy intermediate (older DBs); treated like generated for sending

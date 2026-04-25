@@ -96,7 +96,7 @@ async def generate_subject_body(
     template_choice: TemplateChoice,
     today: dt.date | None = None,
 ) -> tuple[str, str, str, str]:
-    
+
     _ = today
 
     provider = get_llm_provider()
@@ -119,14 +119,14 @@ async def generate_subject_body(
                         client_profession=client.profession,
                         holiday_title=event.title,
                         limit=2,
-                        min_rating=4
+                        min_rating=4,
                     )
                     if similar_examples:
                         generation_source = f"llm_fewshot_{len(similar_examples)}_examples"
                         log.info(f"Найдено {len(similar_examples)} примеров для few-shot")
             except Exception as e:
                 log.warning(f"Ошибка поиска в векторной БД: {e}")
-            
+
             # Формируем примеры для промпта
             examples_text = ""
             if similar_examples:
@@ -136,7 +136,7 @@ async def generate_subject_body(
                 examples_text += "\nИспользуй СТИЛЬ этих примеров, но создай УНИКАЛЬНОЕ поздравление для текущего клиента. Не копируй текст дословно.\n"
 
             system = build_system_prompt()
-            
+
             # Используем обновлённую функцию с примерами
             user = build_user_prompt_with_examples(
                 event_type=event.event_type,
@@ -147,7 +147,7 @@ async def generate_subject_body(
                 tone_hint=tone_hint,
                 event_details=event.details or {},
             )
-            
+
             raw = await provider.generate(system=system, user=user)
             log.debug(
                 "LLM raw response for event=%s client=%s (first 1000 chars, total length=%d): %s",
@@ -178,7 +178,7 @@ async def generate_subject_body(
                 len(parsed.body),
                 generation_source,
             )
-            
+
             return parsed.tone, parsed.subject, normalized_body, generation_source
         except Exception as e:
             log.warning(

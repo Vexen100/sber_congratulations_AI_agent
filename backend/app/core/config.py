@@ -15,7 +15,9 @@ class Settings(BaseSettings):
     tz: str = "Europe/Moscow"
 
     database_url: str = "sqlite+aiosqlite:///./data/app.db"
-    vector_db_path: str = "data/vector_db"
+    # Optional: vector feedback store (RAG few-shot). Keep disabled by default.
+    vector_feedback_enabled: bool = False
+    vector_db_path: str = "./data/chroma_feedback"
 
     lookahead_days: int = 7
     max_holiday_recipients: int = 12  # prevents token blow-up on demo (per holiday)

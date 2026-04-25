@@ -53,7 +53,7 @@ def build_user_prompt(
         event_details=event_details or {},
         profession=(facts or {}).get("profession"),
     )
-    
+
     tone_guidance = ""
     if tone_hint:
         if tone_hint.lower() == "official":

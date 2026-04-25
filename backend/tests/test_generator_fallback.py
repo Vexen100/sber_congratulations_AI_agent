@@ -38,7 +38,7 @@ async def test_generator_falls_back_on_invalid_llm_json(monkeypatch):
     )
     choice = choose_template(event_type=ev.event_type, title=ev.title)
 
-    tone, subject, body = await generate_subject_body(
+    tone, subject, body, _source = await generate_subject_body(
         event=ev, client=c, template_choice=choice, today=today
     )
     assert tone in {"warm", "official"}
@@ -82,7 +82,7 @@ async def test_generator_uses_llm_when_valid(monkeypatch):
     )
     choice = choose_template(event_type=ev.event_type, title=ev.title)
 
-    tone, subject, body = await generate_subject_body(
+    tone, subject, body, _source = await generate_subject_body(
         event=ev, client=c, template_choice=choice, today=today
     )
     assert tone == "official"
@@ -125,7 +125,7 @@ async def test_generator_normalizes_surname_and_female_salutation(monkeypatch):
     )
     choice = choose_template(event_type=ev.event_type, title=ev.title)
 
-    _, _, body = await generate_subject_body(
+    _, _, body, _source = await generate_subject_body(
         event=ev, client=c, template_choice=choice, today=today
     )
     first_para = body.split("\n\n", 1)[0]
