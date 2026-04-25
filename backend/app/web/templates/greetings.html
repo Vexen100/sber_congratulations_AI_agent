@@ -198,10 +198,36 @@
 
               <td class="small">
                 <div class="fw-semibold">{{ g.subject }}</div>
-                <details class="mt-2">
-                  <summary class="text-muted">текст</summary>
-                  <pre class="small mb-0 mt-2 p-3 rounded-4 border bg-light" style="white-space: pre-wrap;">{{ g.body }}</pre>
-                </details>
+                <div class="gtext mt-2" data-greeting-id="{{ g.id }}">
+                  <div class="gtext-preview" data-testid="greeting-text-preview">
+                    {{ g.body }}
+                  </div>
+
+                  <details class="gtext-details">
+                    <summary class="gtext-toggle text-muted" data-testid="greeting-text-toggle">
+                      <span class="gtext-toggle__label-closed">Показать текст</span>
+                      <span class="gtext-toggle__label-open">Скрыть текст</span>
+                    </summary>
+
+                    <div class="gtext-actions">
+                      <button
+                        class="btn btn-sm btn-outline-secondary gtext-copy"
+                        type="button"
+                        data-copy-target="gtext-full-{{ g.id }}"
+                        aria-label="Скопировать текст поздравления"
+                      >
+                        Скопировать
+                      </button>
+                      <span class="gtext-copy-status" aria-live="polite"></span>
+                    </div>
+
+                    <div
+                      class="gtext-viewer"
+                      id="gtext-full-{{ g.id }}"
+                      data-testid="greeting-text-full"
+                    >{{ g.body }}</div>
+                  </details>
+                </div>
               </td>
               <td class="small">
                 {% if g.image_path %}
@@ -221,4 +247,6 @@
       </table>
     </div>
   </div>
+
+  <script src="{{ url_for('static', path='js/greetings.js') }}" defer></script>
 {% endblock %}
