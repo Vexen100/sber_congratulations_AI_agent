@@ -183,8 +183,8 @@
       const line = document.getElementById("autonomy-status-line");
       if (line) {
         line.innerHTML = autonomyEnabled
-          ? '<span class="badge text-bg-success">Автономный режим: включён</span>'
-          : '<span class="badge text-bg-secondary">Автономный режим: выключен</span>';
+          ? '<span class="autonomy-pill autonomy-pill--on"><span class="dot"></span>Автономный режим: включён</span>'
+          : '<span class="autonomy-pill autonomy-pill--off"><span class="dot"></span>Автономный режим: выключен</span>';
       }
 
       const btn = document.getElementById("btn-autonomy-toggle");

@@ -33,18 +33,15 @@ class HolidayClassifier:
 
     def __init__(self, client: Optional[Client] = None):
         self.client = client
-        self._client_segment = client.segment if client else "standard"
-        self._client_gender = client.gender if client else None
         self._client_profession = client.profession if client else None
         self._client_okved = client.okved_code if client else None
-        self._client_interests = client.interests if client and hasattr(client, "interests") else {}
 
     def classify_holiday(self, holiday: Holiday) -> Tuple[HolidayCategory, AudienceType]:
         """Определяет категорию и тип аудитории праздника"""
         tags = holiday.tags or {}
 
         # Определяем категорию
-        category_str = tags.get("category", holiday.category or "general")
+        category_str = tags.get("category", "general")
         category_map = {
             "personal": HolidayCategory.PERSONAL,
             "national": HolidayCategory.NATIONAL,
@@ -76,12 +73,6 @@ class HolidayClassifier:
         tags = holiday.tags or {}
         audience = tags.get("audience", "all")
 
-        # Проверка по полу
-        if audience == "gender_based":
-            required_gender = tags.get("gender")
-            if required_gender and required_gender != self._client_gender:
-                return False
-
         # Проверка по профессии
         if audience == "role_based":
             required_profession = tags.get("profession")
@@ -104,35 +95,13 @@ class HolidayClassifier:
         return True
 
     def get_priority(self, holiday: Holiday) -> int:
-        """Возвращает динамический приоритет праздника с учётом сегмента клиента"""
+        """Возвращает приоритет праздника (из tags; без сегментации клиентов)."""
         tags = holiday.tags or {}
-        base_priority = tags.get("priority", holiday.priority or 5)
-
-        # VIP-клиентам повышаем приоритет
-        if self._client_segment == "vip":
-            if tags.get("category") in ["professional", "industry"]:
-                return base_priority + 2
-            return base_priority + 1
-
-        # Премиум-клиентам небольшое повышение
-        if self._client_segment == "premium":
-            if tags.get("category") in ["professional", "industry"]:
-                return base_priority + 1
-
-        # Пенсионерам - повышаем приоритет личных праздников
-        if self._client_segment == "pensioner":
-            if tags.get("category") == "personal":
-                return base_priority + 1
-
-        return base_priority
+        return int(tags.get("priority", 5) or 5)
 
     def get_suggested_channel(self, holiday: Holiday) -> str:
         """Рекомендует канал отправки для данного праздника"""
         category, _ = self.classify_holiday(holiday)
-
-        # VIP-клиентам всегда отправляем email
-        if self._client_segment == "vip":
-            return "email"
 
         # Массовые праздники можно отправлять SMS
         if category == HolidayCategory.NATIONAL:
@@ -177,7 +146,6 @@ class HolidayClassifier:
         # Добавляем персональные данные клиента
         if self.client:
             context["client_name"] = self.client.first_name
-            context["client_segment"] = self._client_segment
             if self._client_profession:
                 context["profession"] = self._client_profession
 
@@ -202,11 +170,12 @@ class HolidayBatchClassifier:
             .order_by(Holiday.date)
         )
 
-        if category:
-            query = query.where(Holiday.category == category)
-
         result = await self.session.execute(query)
-        return result.scalars().all()
+        holidays = result.scalars().all()
+        if not category:
+            return holidays
+        # Категория хранится в Holiday.tags["category"].
+        return [h for h in holidays if ((h.tags or {}).get("category") or "general") == category]
 
     async def get_holidays_grouped_by_category(
         self, start_date: dt.date, end_date: dt.date
@@ -217,7 +186,7 @@ class HolidayBatchClassifier:
         grouped = {}
         for holiday in holidays:
             tags = holiday.tags or {}
-            category = tags.get("category", holiday.category or "general")
+            category = tags.get("category", "general")
             if category not in grouped:
                 grouped[category] = []
             grouped[category].append(holiday)
@@ -248,7 +217,7 @@ class HolidayBatchClassifier:
 
         for holiday in holidays:
             tags = holiday.tags or {}
-            category = tags.get("category", holiday.category or "general")
+            category = tags.get("category", "general")
             stats["by_category"][category] = stats["by_category"].get(category, 0) + 1
 
             month = holiday.date.month

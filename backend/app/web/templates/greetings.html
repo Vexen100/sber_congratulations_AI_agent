@@ -205,7 +205,7 @@
               </td>
               <td class="small">
                 {% if g.image_path %}
-                  <img src="/data/{{ g.image_path }}" alt="card" class="card-preview" />
+                  <img src="{{ url_for('data', path=g.image_path) }}" alt="card" class="card-preview" />
                 {% else %}
                   <div class="soft-note">Открытка появится после генерации.</div>
                 {% endif %}

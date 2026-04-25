@@ -64,51 +64,6 @@ class HolidayLoader:
         log.info(f"Loaded {count} holidays from {json_path}")
         return count
 
-    async def load_professional_holidays_from_catalog(self) -> int:
-        """
-        Загружает профессиональные праздники из holiday_catalog
-        """
-        from app.services.holiday_catalog import (
-            _PROFESSIONAL_HOLIDAYS,
-            _calculate_floating_date,
-        )
-
-        count = 0
-        current_year = dt.date.today().year
-
-        for profession, rule in _PROFESSIONAL_HOLIDAYS.items():
-            try:
-                if rule.is_floating and rule.calculation_rule:
-                    date_value = _calculate_floating_date(rule.calculation_rule, current_year)
-                else:
-                    date_value = dt.date(current_year, rule.month, rule.day)
-
-                existing = await self._find_existing_holiday(date_value.isoformat(), rule.title)
-
-                if existing:
-                    continue
-
-                holiday = Holiday(
-                    date=date_value,
-                    title=rule.title,
-                    tags={
-                        **rule.tags,
-                        "profession": profession,
-                        "is_floating": rule.is_floating,
-                    },
-                    category=rule.tags.get("category", "professional"),
-                    priority=rule.tags.get("priority", 5),
-                )
-                self.session.add(holiday)
-                count += 1
-
-            except Exception as e:
-                log.error(f"Failed to load holiday {rule.title}: {e}")
-
-        await self.session.commit()
-        log.info(f"Loaded {count} professional holidays from catalog")
-        return count
-
     async def load_general_holidays_from_catalog(self) -> int:
         """
         Загружает общие праздники из holiday_catalog
@@ -131,8 +86,7 @@ class HolidayLoader:
                     date=date_value,
                     title=rule.title,
                     tags=rule.tags,
-                    category=rule.tags.get("category", "general"),
-                    priority=rule.tags.get("priority", 5),
+                    is_business_relevant=bool(rule.tags.get("is_business_relevant", True)),
                 )
                 self.session.add(holiday)
                 count += 1
@@ -159,16 +113,16 @@ class HolidayLoader:
             date=dt.date.fromisoformat(item["date"]),
             title=item["title"],
             tags=item.get("tags", {}),
-            category=item.get("category", "general"),
-            priority=item.get("priority", 5),
+            is_business_relevant=bool(item.get("is_business_relevant", True)),
         )
         self.session.add(holiday)
 
     async def _update_holiday(self, holiday: Holiday, item: Dict) -> None:
         """Обновляет существующий праздник"""
         holiday.tags = item.get("tags", holiday.tags)
-        holiday.category = item.get("category", holiday.category)
-        holiday.priority = item.get("priority", holiday.priority)
+        holiday.is_business_relevant = bool(
+            item.get("is_business_relevant", holiday.is_business_relevant)
+        )
         self.session.add(holiday)
 
     async def get_all_holidays_for_year(self, year: int) -> List[Holiday]:
