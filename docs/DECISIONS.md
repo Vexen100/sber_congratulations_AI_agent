@@ -36,7 +36,7 @@
 ## 6) Без VIP approval gating (единый конвейер отправки)
 
 - **Решение**: сегментация клиента и ручное согласование перед отправкой убраны. Все поздравления создаются как `status="generated"`, а отправка определяется только режимом `DELIVERY_SCHEDULE_MODE` и датой события.
-- **Причина**: продуктовая логика упрощена; согласование/отклонение перенесено в feedback как вердикт для будущего обучения и аналитики, без влияния на доставку.
+- **Причина**: продуктовая логика упрощена; качество для аналитики и будущего дообучения фиксируется через feedback (оценка и производный `training_verdict`), без влияния на доставку.
 - **Файлы**: `backend/app/agent/orchestrator.py`, `backend/app/services/due_sender.py`, `backend/app/web/templates/greetings.html`.
 
 ## 7) Аудит запусков через AgentRun
@@ -53,9 +53,9 @@
 
 ## 9) Feedback loop для Human-in-the-Loop
 
-- **Решение**: менеджер сохраняет `score` (1–5), `notes` и вердикт `training_verdict=accepted|rejected` для каждого поздравления.
-- **Причина**: это создаёт канал оценки качества и механизм отбора примеров для дальнейшего улучшения генерации (в т.ч. few-shot/RAG), не вмешиваясь в отправку.
-- **Файлы**: `backend/app/services/feedback.py`, `backend/app/web/templates/greetings.html`, `backend/app/api/routes/feedback.py`.
+- **Решение**: в web UI менеджер сохраняет обязательный `score` (1–5), опционально `outcome` и `notes`; отдельного выбора вердикта в форме нет. В `save_feedback()` при отсутствии явного `training_verdict` он выводится из оценки: **4–5 → `accepted`**, **1–3 → `rejected`** (для отбора примеров дообучения и метрик). Через API по-прежнему можно передать `training_verdict` явно (`accepted` или `rejected`) — значение валидируется.
+- **Причина**: единый простой сценарий в UI и предсказуемая связь «оценка → допуск к обучающей выборке», без смешения с доставкой.
+- **Файлы**: `backend/app/services/feedback.py`, `backend/app/web/templates/greetings.html`, `backend/app/web/router.py`, `backend/app/api/routes/feedback.py`.
 
 ## 10) Управляемый режим отправки через `.env`
 
@@ -75,19 +75,19 @@
 - **Причина**: нужен быстрый управленческий экран, объясняющий качество процесса без погружения в отдельные таблицы.
 - **Файлы**: `backend/app/web/router.py`, `backend/app/web/templates/dashboard.html`.
 
-## 15) (Опционально) RAG few-shot по менеджерскому feedback
+## 13) (Опционально) RAG few-shot по менеджерскому feedback
 
 - **Решение**: векторная память примеров включается только флагом `VECTOR_FEEDBACK_ENABLED`; тяжёлые зависимости вынесены в отдельный `backend/requirements-rag.txt`, а при выключенном флаге слой работает как no-op.
 - **Причина**: CI/офлайн-демо должны оставаться быстрыми и детерминированными; RAG нужен как расширение для более качественной генерации в LLM-режимах.
 - **Файлы**: `backend/app/services/vector_feedback.py`, `backend/app/agent/generator.py`, `backend/app/agent/llm_prompts.py`, `backend/env.example`.
 
-## 13) Holiday knowledge layer и semantic-layer
+## 14) Holiday knowledge layer и semantic-layer
 
 - **Решение**: праздники и manual-сценарии расширяются семантическими тегами, а общий `EventSemantics` используется в text/image prompt-building.
 - **Причина**: проект должен масштабировать генерацию через структуру и семантику повода, а не через бесконечные ручные промпты.
 - **Файлы**: `backend/app/services/holiday_catalog.py`, `backend/app/services/event_detector.py`, `backend/app/agent/event_semantics.py`, `backend/app/agent/llm_prompts.py`.
 
-## 14) Branded HTML email и demo-safe fallback-доставка
+## 15) Branded HTML email и demo-safe fallback-доставка
 
 - **Решение**: SMTP-отправка формирует `multipart/alternative` письмо с HTML-версией, а клиенты без пригодного email автоматически переводятся в file-outbox fallback.
 - **Причина**: нужен одновременно более продуктовый email-канал и устойчивый demo-flow без падений на неполных контактах.

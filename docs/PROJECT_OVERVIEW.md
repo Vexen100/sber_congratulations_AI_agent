@@ -14,7 +14,7 @@
 - Генерация текста через `GigaChat` или template fallback.
 - Генерация открыток через `GigaChat` или локальный `Pillow` fallback.
 - Доставка через file outbox или SMTP с HTML-письмом.
-- Операторский контроль: VIP approval, feedback, audit запусков, dashboard metrics.
+- Операторский контроль: feedback по поздравлениям, audit запусков (`AgentRun`), метрики на dashboard.
 
 ## Архитектура
 
@@ -51,6 +51,7 @@ CSV / demo seed / DaData
 | `SEND_MODE` | `file`, `smtp` | Канал доставки |
 | `DELIVERY_SCHEDULE_MODE` | `event_date`, `immediate` | Когда отправлять поздравление |
 | `COMPANY_ENRICHMENT_PROVIDER` | `demo`, `dadata`, `hybrid` | Источник enrichment |
+| `VECTOR_FEEDBACK_ENABLED` | `true`, `false` | Опциональный few-shot по принятым отзывам (см. `docs/DECISIONS.md`, §13) |
 
 ## Связанные документы
 
