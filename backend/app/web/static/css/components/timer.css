@@ -39,17 +39,17 @@
 
 .btn-control {
   flex: 1;
-  padding: 10px 5px;
-  min-height: 64px;
-  border-radius: 8px;
+  padding: 0.7rem 0.9rem;
+  min-height: 48px;
+  border-radius: 14px;
   border: none;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
   transition: all 0.2s ease;
-  font-size: 0.75rem;
-  font-weight: 400;
+  font-size: 0.9rem;
+  font-weight: 700;
 }
 
 .btn-auto {
@@ -83,17 +83,26 @@
 }
 
 .btn-manual {
-  background: #4CAF50;
-  color: white;
-  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+  background: linear-gradient(135deg, var(--primary) 0%, #26b060 100%);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(18, 161, 80, 0.18);
 }
 
 .btn-manual:hover {
-  background: #43A047;
+  background: linear-gradient(135deg, #0f8a42 0%, #27b163 100%);
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
+  box-shadow: 0 12px 28px rgba(18, 161, 80, 0.25);
 }
 
 .btn-manual:active {
   transform: translateY(1px);
+}
+
+.btn-autonomy-toggle {
+  width: 100%;
+}
+
+.btn-autonomy-toggle .text {
+  line-height: 1.15;
+  text-wrap: balance;
 }
