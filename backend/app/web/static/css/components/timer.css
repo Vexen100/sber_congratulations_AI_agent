@@ -31,16 +31,67 @@
   width: 100%;
 }
 
+.autonomy-status {
+  display: flex;
+  justify-content: center;
+  margin: 0.1rem 0 0.35rem;
+}
+
+.autonomy-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.1px;
+  border: 1px solid rgba(217, 230, 222, 0.9);
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--text);
+}
+
+.autonomy-pill .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #9aa7a0;
+  box-shadow: 0 0 0 3px rgba(154, 167, 160, 0.18);
+}
+
+.autonomy-pill--on {
+  border-color: rgba(18, 161, 80, 0.25);
+  background: rgba(184, 230, 195, 0.55);
+  color: var(--primary-dark);
+}
+
+.autonomy-pill--on .dot {
+  background: var(--primary);
+  box-shadow: 0 0 0 3px rgba(18, 161, 80, 0.18);
+}
+
+.autonomy-pill--off {
+  border-color: rgba(92, 107, 98, 0.22);
+  background: rgba(244, 247, 245, 0.9);
+  color: var(--text-muted);
+}
+
+.autonomy-pill--off .dot {
+  background: #76857d;
+  box-shadow: 0 0 0 3px rgba(118, 133, 125, 0.16);
+}
+
 .actions-wrapper {
   display: flex;
-  gap: 10px;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 0.6rem;
+  align-items: stretch;
 }
 
 .btn-control {
-  flex: 1;
-  padding: 0.7rem 0.9rem;
-  min-height: 48px;
+  width: 100%;
+  padding: 0.85rem 1rem;
+  min-height: 56px;
   border-radius: 14px;
   border: none;
   cursor: pointer;

@@ -18,15 +18,21 @@
 
           <div class="divider"></div>
 
-          <div class="actions-wrapper">
-            <div class="small text-muted mb-2" id="autonomy-status-line">
-              {% if autonomy_enabled %}
-                <span class="badge text-bg-success">Автономный режим: включён</span>
-              {% else %}
-                <span class="badge text-bg-secondary">Автономный режим: выключен</span>
-              {% endif %}
-            </div>
+          <div class="autonomy-status" id="autonomy-status-line">
+            {% if autonomy_enabled %}
+              <span class="autonomy-pill autonomy-pill--on">
+                <span class="dot"></span>
+                Автономный режим: включён
+              </span>
+            {% else %}
+              <span class="autonomy-pill autonomy-pill--off">
+                <span class="dot"></span>
+                Автономный режим: выключен
+              </span>
+            {% endif %}
+          </div>
 
+          <div class="actions-wrapper">
             {% if autonomy_enabled %}
               <button class="btn-control btn-manual btn-autonomy-toggle" id="btn-autonomy-toggle" type="button" onclick="disableAutonomy()">
                 <span class="text">Остановить автономный режим</span>
