@@ -29,7 +29,11 @@ async def test_smtp_blocks_demo_client_even_if_email_looks_real(db_session, monk
     await db_session.refresh(c)
 
     ev = Event(
-        client_id=c.id, event_type="manual", event_date=dt.date.today(), title="Тест", details={}
+        client_id=c.id,
+        event_type="manual",
+        event_date=dt.date.today(),
+        title="Тест",
+        details={},
     )
     db_session.add(ev)
     await db_session.commit()
@@ -73,7 +77,11 @@ async def test_smtp_blocks_example_dot_com_recipients(db_session, monkeypatch, t
     await db_session.refresh(c)
 
     ev = Event(
-        client_id=c.id, event_type="manual", event_date=dt.date.today(), title="Тест", details={}
+        client_id=c.id,
+        event_type="manual",
+        event_date=dt.date.today(),
+        title="Тест",
+        details={},
     )
     db_session.add(ev)
     await db_session.commit()
@@ -116,7 +124,11 @@ async def test_smtp_blocks_when_allowlist_empty_by_default(db_session, monkeypat
     await db_session.refresh(c)
 
     ev = Event(
-        client_id=c.id, event_type="manual", event_date=dt.date.today(), title="Тест", details={}
+        client_id=c.id,
+        event_type="manual",
+        event_date=dt.date.today(),
+        title="Тест",
+        details={},
     )
     db_session.add(ev)
     await db_session.commit()
@@ -160,7 +172,11 @@ async def test_smtp_without_email_falls_back_to_file_outbox(db_session, monkeypa
     await db_session.refresh(c)
 
     ev = Event(
-        client_id=c.id, event_type="manual", event_date=dt.date.today(), title="Тест", details={}
+        client_id=c.id,
+        event_type="manual",
+        event_date=dt.date.today(),
+        title="Тест",
+        details={},
     )
     db_session.add(ev)
     await db_session.commit()

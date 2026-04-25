@@ -13,7 +13,9 @@ router = APIRouter(prefix="/autonomy")
 
 
 @router.get("/status", response_model=AutonomyStatusOut)
-async def autonomy_status(session: AsyncSession = Depends(get_session)) -> AutonomyStatusOut:
+async def autonomy_status(
+    session: AsyncSession = Depends(get_session),
+) -> AutonomyStatusOut:
     state = await get_or_create_state(session)
     now = dt.datetime.now(dt.timezone.utc)
     next_run = next_daily_run_at(now=now) if state.enabled else None
@@ -21,13 +23,17 @@ async def autonomy_status(session: AsyncSession = Depends(get_session)) -> Auton
 
 
 @router.post("/enable", response_model=AutonomyStatusOut)
-async def autonomy_enable(session: AsyncSession = Depends(get_session)) -> AutonomyStatusOut:
+async def autonomy_enable(
+    session: AsyncSession = Depends(get_session),
+) -> AutonomyStatusOut:
     state = await set_enabled(session, enabled=True)
     now = dt.datetime.now(dt.timezone.utc)
     return AutonomyStatusOut(enabled=state.enabled, next_run_at=next_daily_run_at(now=now))
 
 
 @router.post("/disable", response_model=AutonomyStatusOut)
-async def autonomy_disable(session: AsyncSession = Depends(get_session)) -> AutonomyStatusOut:
+async def autonomy_disable(
+    session: AsyncSession = Depends(get_session),
+) -> AutonomyStatusOut:
     state = await set_enabled(session, enabled=False)
     return AutonomyStatusOut(enabled=state.enabled, next_run_at=None)

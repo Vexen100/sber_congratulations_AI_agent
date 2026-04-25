@@ -8,7 +8,10 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agent.generator import generate_subject_body
-from app.agent.gigachat_providers import GigaChatImageProvider, build_illustration_prompt
+from app.agent.gigachat_providers import (
+    GigaChatImageProvider,
+    build_illustration_prompt,
+)
 from app.core.config import settings
 from app.db.models import AgentRun, Client, Event, Greeting
 from app.services.card_renderer import render_card

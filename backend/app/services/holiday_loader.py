@@ -68,7 +68,10 @@ class HolidayLoader:
         """
         Загружает профессиональные праздники из holiday_catalog
         """
-        from app.services.holiday_catalog import _PROFESSIONAL_HOLIDAYS, _calculate_floating_date
+        from app.services.holiday_catalog import (
+            _PROFESSIONAL_HOLIDAYS,
+            _calculate_floating_date,
+        )
 
         count = 0
         current_year = dt.date.today().year
@@ -88,7 +91,11 @@ class HolidayLoader:
                 holiday = Holiday(
                     date=date_value,
                     title=rule.title,
-                    tags={**rule.tags, "profession": profession, "is_floating": rule.is_floating},
+                    tags={
+                        **rule.tags,
+                        "profession": profession,
+                        "is_floating": rule.is_floating,
+                    },
                     category=rule.tags.get("category", "professional"),
                     priority=rule.tags.get("priority", 5),
                 )
@@ -168,7 +175,10 @@ class HolidayLoader:
         """Возвращает все праздники на указанный год"""
         result = await self.session.execute(
             select(Holiday)
-            .where(Holiday.date >= dt.date(year, 1, 1), Holiday.date <= dt.date(year, 12, 31))
+            .where(
+                Holiday.date >= dt.date(year, 1, 1),
+                Holiday.date <= dt.date(year, 12, 31),
+            )
             .order_by(Holiday.date)
         )
         return result.scalars().all()

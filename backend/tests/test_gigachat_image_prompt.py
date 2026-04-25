@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from app.agent.gigachat_client import GigaChatClient
-from app.agent.gigachat_providers import GigaChatImageProvider, build_illustration_prompt
+from app.agent.gigachat_providers import (
+    GigaChatImageProvider,
+    build_illustration_prompt,
+)
 from app.core.config import settings
 
 

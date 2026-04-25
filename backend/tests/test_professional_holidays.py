@@ -42,7 +42,9 @@ async def test_event_detector_creates_professional_holiday_for_accountant(db_ses
     )
 
 
-async def test_event_detector_creates_professional_holiday_for_security_on_dec_20(db_session):
+async def test_event_detector_creates_professional_holiday_for_security_on_dec_20(
+    db_session,
+):
     today = dt.date(2025, 12, 20)
     c = Client(
         first_name="Наталья",
@@ -76,7 +78,9 @@ async def test_event_detector_creates_professional_holiday_for_security_on_dec_2
     )
 
 
-async def test_event_detector_creates_builtin_business_holiday_with_structured_tags(db_session):
+async def test_event_detector_creates_builtin_business_holiday_with_structured_tags(
+    db_session,
+):
     today = dt.date(2026, 5, 25)
     c = Client(
         first_name="Олег",

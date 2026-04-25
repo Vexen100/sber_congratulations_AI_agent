@@ -152,7 +152,7 @@ async def lookup_company_profile(
 
     if provider == "demo":
         profile = lookup_demo_company_profile(inn=inn, company_name=company_name)
-        return profile, None if profile else "Организация не найдена в локальном demo-реестре."
+        return profile, (None if profile else "Организация не найдена в локальном demo-реестре.")
 
     if provider == "dadata":
         try:
@@ -208,7 +208,11 @@ async def enrich_client_company(
         client.enrichment_status = "error"
         client.enrichment_error = "Для enrichment нужен хотя бы ИНН или название компании."
         await session.commit()
-        return {"status": "error", "client_id": client.id, "reason": client.enrichment_error}
+        return {
+            "status": "error",
+            "client_id": client.id,
+            "reason": client.enrichment_error,
+        }
 
     client.enrichment_status = "pending"
     client.enrichment_error = None
@@ -219,7 +223,11 @@ async def enrich_client_company(
         client.enrichment_status = "error"
         client.enrichment_error = error or "Не удалось обогатить профиль компании."
         await session.commit()
-        return {"status": "error", "client_id": client.id, "reason": client.enrichment_error}
+        return {
+            "status": "error",
+            "client_id": client.id,
+            "reason": client.enrichment_error,
+        }
 
     _apply_profile_to_client(client, profile)
     client.enrichment_status = "enriched"

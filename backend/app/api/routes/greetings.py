@@ -12,5 +12,7 @@ router = APIRouter(prefix="/greetings")
 
 
 @router.get("", response_model=list[GreetingOut])
-async def list_greetings(session: AsyncSession = Depends(get_session)) -> list[Greeting]:
+async def list_greetings(
+    session: AsyncSession = Depends(get_session),
+) -> list[Greeting]:
     return (await session.execute(select(Greeting).order_by(Greeting.id.desc()))).scalars().all()

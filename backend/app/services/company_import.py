@@ -200,7 +200,10 @@ async def import_clients_from_company_csv(session: AsyncSession) -> dict:
             target.email = email or target.email
             target.phone = phone or target.phone
             target.preferred_channel = preferred_channel if (email or phone) else "email"
-            target.preferences = {**(target.preferences or {}), **_build_preferences(row)}
+            target.preferences = {
+                **(target.preferences or {}),
+                **_build_preferences(row),
+            }
             target.enrichment_status = "enriched"
             target.enrichment_error = None
             target.enriched_at = dt.datetime.now(dt.timezone.utc)

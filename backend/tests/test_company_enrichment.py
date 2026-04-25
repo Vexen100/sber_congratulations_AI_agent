@@ -5,7 +5,10 @@ import datetime as dt
 from sqlalchemy import select
 
 from app.db.models import Client
-from app.services.company_enrichment import enrich_client_company_by_id, enrich_missing_clients
+from app.services.company_enrichment import (
+    enrich_client_company_by_id,
+    enrich_missing_clients,
+)
 
 
 async def test_enrich_client_by_inn(db_session):

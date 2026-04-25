@@ -17,7 +17,10 @@ from app.core.config import settings
 from app.db.models import AgentRun, Client, Delivery, Event, Feedback, Greeting
 from app.db.session import get_session
 from app.services.autonomy import get_or_create_state, next_daily_run_at
-from app.services.company_enrichment import enrich_client_company_by_id, enrich_missing_clients
+from app.services.company_enrichment import (
+    enrich_client_company_by_id,
+    enrich_missing_clients,
+)
 from app.services.company_import import import_clients_from_company_csv
 from app.services.feedback import save_feedback
 from app.services.manual_events import (

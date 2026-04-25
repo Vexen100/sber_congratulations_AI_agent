@@ -12,7 +12,10 @@ from app.core.config import settings
 from app.db.models import Client
 from app.db.session import get_session
 from app.schemas.clients import ClientCreate, ClientOut
-from app.services.company_enrichment import enrich_client_company_by_id, enrich_missing_clients
+from app.services.company_enrichment import (
+    enrich_client_company_by_id,
+    enrich_missing_clients,
+)
 from app.services.company_import import import_clients_from_company_csv
 
 router = APIRouter(prefix="/clients")

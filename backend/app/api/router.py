@@ -2,7 +2,16 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from app.api.routes import agent, autonomy, clients, deliveries, events, feedback, greetings, health
+from app.api.routes import (
+    agent,
+    autonomy,
+    clients,
+    deliveries,
+    events,
+    feedback,
+    greetings,
+    health,
+)
 
 api_router = APIRouter(prefix="/api")
 
