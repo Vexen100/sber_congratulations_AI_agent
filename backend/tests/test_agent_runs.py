@@ -13,7 +13,6 @@ async def test_agent_run_is_logged(db_session):
     c = Client(
         first_name="Тест",
         last_name="Клиент",
-        segment="standard",
         email="test@example.com",
         preferred_channel="email",
         birth_date=dt.date(1990, today.month, today.day),

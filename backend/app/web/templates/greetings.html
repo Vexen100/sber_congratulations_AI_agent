@@ -3,7 +3,7 @@
   <div class="d-flex align-items-center justify-content-between mb-3">
     <div class="page-intro">
       <h2 class="mb-1">Поздравления</h2>
-      <div class="text-muted">Сгенерированные поздравления, review-flow для VIP и обратная связь от менеджеров.</div>
+      <div class="text-muted">Сгенерированные поздравления, отправка по расписанию в день события и сбор отзывов с вердиктом для дообучения.</div>
     </div>
   </div>
 
@@ -15,29 +15,81 @@
   {% endif %}
 
   <div class="row g-4 mb-4">
-    <div class="col-12 col-md-4">
-      <div class="surface-panel metric-card">
-        <div class="metric-label">Сгенерировано</div>
-        <div class="metric-value">{{ greetings | length }}</div>
-        <div class="metric-hint">Всего поздравлений в системе.</div>
-      </div>
-    </div>
-    <div class="col-12 col-md-4">
-      <div class="surface-panel metric-card">
-        <div class="metric-label">Нужно согласование</div>
-        <div class="metric-value">{{ greetings | selectattr('status', 'equalto', 'needs_approval') | list | length }}</div>
-        <div class="metric-hint">VIP-поздравления, ожидающие решения менеджера.</div>
-      </div>
-    </div>
-    <div class="col-12 col-md-4">
-      <div class="surface-panel metric-card">
-        <div class="metric-label">С обратной связью</div>
-        <div class="metric-value">{{ greetings | selectattr('feedback_entries') | list | length }}</div>
-        <div class="metric-hint">Поздравления, для которых уже сохранена операторская обратная связь.</div>
-      </div>
-    </div>
-  </div>
 
+    <div class="col-12 col-xl-6">
+
+      <div class="row g-4 mb-4">
+        <div class="col-12">
+          <div class="surface-panel metric-card">
+            <div class="metric-label">Сгенерировано</div>
+            <div class="metric-value">{{ greetings | length }}</div>
+            <div class="metric-hint">Всего поздравлений в системе.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-4">
+        <div class="col-12 col-md-6">
+          <div class="surface-panel metric-card h-100">
+            <div class="metric-label">Отправлено</div>
+            <div class="metric-value">{{ metric_sent }}</div>
+            <div class="metric-hint">Статус «Отправлено» (хотя бы одна доставка).</div>
+          </div>
+        </div>
+        <div class="col-12 col-md-6">
+          <div class="surface-panel metric-card h-100">
+            <div class="metric-label">С отзывом / вердиктом</div>
+            <div class="metric-value">{{ metric_with_feedback }} / {{ metric_with_verdict }}</div>
+            <div class="metric-hint">Отзыв оператора и отдельно — записи с вердиктом «принять/отклонить» для дообучения.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="col-12 col-xl-6">
+      <div class="surface-panel metric-card h-100">
+        <div class="metric-label mb-3">Распределение по статусам отправки</div>
+
+        {% set total = greetings | length %}
+
+        <div class="approval-pie-wrapper">
+          <div class="approval-pie"
+              style="--val-new: {{ metric_ready }}; --val-sent: {{ metric_sent }}; --val-other: {{ metric_rest }}; --total: {{ total or 1 }};"
+              {% if total == 0 %}data-empty="true"{% endif %}>
+            <div class="approval-pie-center">
+              <span class="approval-pie-total">{{ total }}</span>
+              <span class="approval-pie-label">всего</span>
+            </div>
+          </div>
+
+          <div class="approval-legend">
+            <div class="approval-legend-item">
+              <span class="approval-legend-dot" style="background: var(--primary);"></span>
+              <span class="approval-legend-text">В очереди на отправку: <strong>{{ metric_ready }}</strong></span>
+            </div>
+            <div class="approval-legend-item">
+              <span class="approval-legend-dot" style="background: var(--primary-dark);"></span>
+              <span class="approval-legend-text">Отправлено: <strong>{{ metric_sent }}</strong></span>
+            </div>
+            <div class="approval-legend-item">
+              <span class="approval-legend-dot" style="background: #9aa99e;"></span>
+              <span class="approval-legend-text">Прочие статусы: <strong>{{ metric_rest }}</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="approval-hint text-center mt-2">
+          {% if total > 0 %}
+            Вердикт для дообучения: {{ metric_with_verdict }} из {{ total }} ({{ (metric_with_verdict/total*100)|round|int }}%)
+          {% else %}
+            Нет данных для визуализации
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+  </div>
   <div class="surface-card">
     <div class="card-header">Список поздравлений</div>
     <div class="card-body table-responsive">
@@ -48,9 +100,9 @@
             <th>Событие</th>
             <th>Клиент</th>
             <th>Статус</th>
-            <th>Действия</th>
-            <th>Тема</th>
+            <th>Источник</th>
             <th>Обратная связь</th>
+            <th>Тема</th>
             <th>Открытка</th>
           </tr>
         </thead>
@@ -65,7 +117,6 @@
               <td class="small">
                 {% if g.client %}
                   <div class="fw-semibold">{{ g.client.first_name }} {{ g.client.middle_name or "" }} {{ g.client.last_name }}</div>
-                  <div class="text-muted">сегмент: {{ g.client.segment }}</div>
                   {% if g.client.official_company_name or g.client.company_name %}
                     <div class="text-muted">{{ g.client.official_company_name or g.client.company_name }}</div>
                   {% endif %}
@@ -78,94 +129,114 @@
               </td>
               <td>
                 {% if g.status == "sent" %}
-                  <span class="badge text-bg-success">отправлено</span>
+                  <span class="badge text-bg-success">Отправлено</span>
                 {% elif g.status == "needs_approval" %}
-                  <span class="badge text-bg-warning">нужно согласование</span>
+                  <span class="badge text-bg-warning">Очередь (legacy)</span>
                 {% elif g.status == "approved" %}
-                  <span class="badge text-bg-info">согласовано</span>
+                  <span class="badge text-bg-info">Согласовано (legacy)</span>
                 {% elif g.status == "skipped" %}
-                  <span class="badge text-bg-secondary">пропущено</span>
+                  <span class="badge text-bg-secondary">Пропущено</span>
                 {% elif g.status == "rejected" %}
-                  <span class="badge text-bg-dark">отклонено</span>
+                  <span class="badge text-bg-dark">Отклонено (legacy)</span>
                 {% elif g.status == "error" %}
-                  <span class="badge text-bg-danger">ошибка</span>
+                  <span class="badge text-bg-danger">Ошибка</span>
                 {% else %}
                   <span class="badge text-bg-secondary">{{ g.status }}</span>
                 {% endif %}
               </td>
+              
               <td class="small">
-                {% if g.status == "needs_approval" %}
-                  <div class="d-flex gap-2 flex-wrap">
-                    <form method="post" action="/actions/greetings/{{ g.id }}/approve">
-                      <button class="btn btn-sm btn-success">Согласовать</button>
-                    </form>
-                    <form method="post" action="/actions/greetings/{{ g.id }}/reject">
-                      <button class="btn btn-sm btn-outline-danger">Отклонить</button>
-                    </form>
-                  </div>
-                  <div class="text-muted small mt-1">
-                    {% if delivery_schedule_mode == "immediate" %}
-                      После согласования поздравление будет отправлено сразу.
-                    {% else %}
-                      Отправка произойдёт в день события при регулярном режиме или при запуске агента в этот день.
-                    {% endif %}
-                  </div>
+                {% if g.generation_source %}
+                  {% if "fewshot" in g.generation_source %}
+                    <span class="badge text-bg-info" title="С примерами из векторной БД">few-shot</span>
+                  {% elif g.generation_source == "template" %}
+                    <span class="badge text-bg-secondary">template</span>
+                  {% elif g.generation_source == "llm_no_examples" %}
+                    <span class="badge text-bg-light">llm</span>
+                  {% else %}
+                    <span class="badge text-bg-light">{{ g.generation_source }}</span>
+                  {% endif %}
                 {% else %}
                   <span class="text-muted">—</span>
                 {% endif %}
               </td>
+
               <td class="small">
-                <div class="fw-semibold">{{ g.subject }}</div>
-                <details class="mt-2">
-                  <summary class="text-muted">текст</summary>
-                  <pre class="small mb-0 mt-2 p-3 rounded-4 border bg-light" style="white-space: pre-wrap;">{{ g.body }}</pre>
-                </details>
-              </td>
-              <td class="small" style="min-width: 260px;">
                 {% if g.feedback_entries %}
                   {% set latest = g.feedback_entries[-1] %}
                   <div class="mb-2">
-                    <span class="badge text-bg-success">оценка: {{ latest.score or "нет" }}</span>
-                    <span class="badge text-bg-light">{{ latest.outcome }}</span>
+                    <span class="badge text-bg-success">оценка: {{ latest.score or "—" }}</span>
+                    {% if latest.training_verdict == "accepted" %}
+                      <span class="badge text-bg-primary">принято</span>
+                    {% elif latest.training_verdict == "rejected" %}
+                      <span class="badge text-bg-warning text-dark">отклонено</span>
+                    {% endif %}
                   </div>
                   {% if latest.notes %}
                     <div class="text-muted mb-2">{{ latest.notes }}</div>
                   {% endif %}
                 {% endif %}
                 <form method="post" action="/actions/greetings/{{ g.id }}/feedback" class="row g-1">
-                  <div class="col-4">
-                    <select class="form-select form-select-sm" name="score">
-                      <option value="">оценка</option>
-                      <option value="5">5</option>
-                      <option value="4">4</option>
-                      <option value="3">3</option>
-                      <option value="2">2</option>
-                      <option value="1">1</option>
-                    </select>
-                  </div>
-                  <div class="col-8">
-                    <select class="form-select form-select-sm" name="outcome">
-                      <option value="unknown">неизвестно</option>
-                      <option value="opened">открыто</option>
-                      <option value="replied">есть ответ</option>
-                      <option value="ignored">без реакции</option>
+                  <div class="col-12">
+                    <select class="form-select form-select-sm" name="score" required>
+                      <option value="" selected>Оценка</option>
+                      <option value="1">1 — Ужасно</option>
+                      <option value="2">2 — Плохо</option>
+                      <option value="3">3 — Удовлетворительно</option>
+                      <option value="4">4 — Хорошо</option>
+                      <option value="5">5 — Отлично</option>
                     </select>
                   </div>
                   <div class="col-12">
-                    <input class="form-control form-control-sm" name="notes" placeholder="Комментарий менеджера">
+                    <input class="form-control form-control-sm" name="notes" placeholder="Комментарий к оценке">
                   </div>
                   <div class="col-12">
-                    <button class="btn btn-sm btn-outline-primary">Сохранить отзыв</button>
+                    <button type="submit" class="btn btn-sm btn-primary">Сохранить отзыв</button>
                   </div>
                 </form>
               </td>
+
+              <td class="small">
+                <div class="fw-semibold">{{ g.subject }}</div>
+                <div class="gtext mt-2" data-greeting-id="{{ g.id }}">
+                  <div class="gtext-preview" data-testid="greeting-text-preview">
+                    {{ g.body }}
+                  </div>
+
+                  <details class="gtext-details">
+                    <summary class="gtext-toggle text-muted" data-testid="greeting-text-toggle">
+                      <span class="gtext-toggle__label-closed">Показать текст</span>
+                      <span class="gtext-toggle__label-open">Скрыть текст</span>
+                    </summary>
+
+                    <div class="gtext-actions">
+                      <button
+                        class="btn btn-sm btn-outline-secondary gtext-copy"
+                        type="button"
+                        data-copy-target="gtext-full-{{ g.id }}"
+                        aria-label="Скопировать текст поздравления"
+                      >
+                        Скопировать
+                      </button>
+                      <span class="gtext-copy-status" aria-live="polite"></span>
+                    </div>
+
+                    <div
+                      class="gtext-viewer"
+                      id="gtext-full-{{ g.id }}"
+                      data-testid="greeting-text-full"
+                    >{{ g.body }}</div>
+                  </details>
+                </div>
+              </td>
               <td class="small">
                 {% if g.image_path %}
-                  <img src="/data/{{ g.image_path }}" alt="card" class="card-preview" />
+                  <img src="{{ url_for('data', path=g.image_path) }}" alt="card" class="card-preview" />
                 {% else %}
                   <div class="soft-note">Открытка появится после генерации.</div>
                 {% endif %}
               </td>
+              
             </tr>
           {% else %}
             <tr>
@@ -176,6 +247,6 @@
       </table>
     </div>
   </div>
+
+  <script src="{{ url_for('static', path='js/greetings.js') }}" defer></script>
 {% endblock %}
-
-

@@ -15,14 +15,22 @@ class Settings(BaseSettings):
     tz: str = "Europe/Moscow"
 
     database_url: str = "sqlite+aiosqlite:///./data/app.db"
+    # Optional: vector feedback store (RAG few-shot). Keep disabled by default.
+    vector_feedback_enabled: bool = False
+    vector_db_path: str = "./data/chroma_feedback"
 
     lookahead_days: int = 7
     max_holiday_recipients: int = 12  # prevents token blow-up on demo (per holiday)
     max_gigachat_images_per_run: int = 5  # speed + token safety; rest uses Pillow fallback
 
     send_mode: str = "file"  # file|smtp|noop
-    delivery_schedule_mode: str = "event_date"  # event_date|immediate
     outbox_dir: str = "./data/outbox"
+
+    # Scheduler mode (autonomy runs)
+    # - off: no scheduler anywhere (prod-safe default)
+    # - inprocess: scheduler inside FastAPI lifespan
+    # - worker: scheduler as a separate process (app.worker.run_scheduler)
+    scheduler_mode: str = "off"  # off|inprocess|worker
 
     company_enrichment_provider: str = "demo"  # demo|dadata|hybrid
     company_import_csv_path: str = "./app/resources/company_data/export-base_demo_takbup.csv"

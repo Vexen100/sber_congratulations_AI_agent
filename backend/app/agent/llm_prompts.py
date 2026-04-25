@@ -18,7 +18,7 @@ def build_system_prompt() -> str:
         "- Если есть official_company_name / okved_name / ceo_name / company_site — используй их аккуратно и только по делу.\n"
         "- Никогда не придумывай ИНН, ОКВЭД, руководство компании или отрасль, если эти поля не переданы.\n"
         "- Не добавляй и не запрашивай чувствительные данные (паспорт, номера карт, PIN/CVV и т.п.).\n"
-        "- Тон: деловой/тёплый в зависимости от сегмента клиента и типа праздника, без фамильярности, без политических/спорных тем.\n"
+        "- Тон: деловой/тёплый в зависимости от типа праздника и подсказок в промпте, без фамильярности, без политических/спорных тем.\n"
         "- Не упоминай тему/вид последнего взаимодействия с клиентом; используй только общую благодарность за сотрудничество.\n"
         "- Каждое поздравление должно быть УНИКАЛЬНЫМ — избегай шаблонных фраз и одинаковых начал.\n"
         "- Проверь грамматику, пунктуацию и согласование в русском языке.\n"
@@ -34,7 +34,6 @@ def build_user_prompt(
     event_type: str,
     event_title: str,
     event_date: dt.date,
-    segment: str,
     facts: dict,
     tone_hint: str | None = None,
     event_details: dict | None = None,
@@ -45,7 +44,6 @@ def build_user_prompt(
         event_type: birthday|holiday|manual
         event_title: название события
         event_date: дата события
-        segment: сегмент клиента (VIP, standard, etc.)
         facts: словарь с фактами о клиенте
         tone_hint: подсказка тона из holiday_tags (official|warm), если есть
     """
@@ -53,24 +51,18 @@ def build_user_prompt(
         event_type=event_type,
         event_title=event_title,
         event_details=event_details or {},
-        segment=segment,
         profession=(facts or {}).get("profession"),
     )
-    # Определяем рекомендацию по тону
+
     tone_guidance = ""
     if tone_hint:
         if tone_hint.lower() == "official":
             tone_guidance = "Рекомендуемый тон: official (деловой, уважительный)."
         elif tone_hint.lower() == "warm":
             tone_guidance = "Рекомендуемый тон: warm (тёплый, дружелюбный)."
-    elif segment.lower() == "vip":
-        tone_guidance = (
-            "Клиент VIP-сегмента: используй более деловой тон (official), но сохраняй теплоту."
-        )
     else:
         tone_guidance = "Используй тёплый тон (warm), но оставайся профессиональным."
 
-    # Персонализация в зависимости от типа события
     personalization_guidance = ""
     if event_type.lower() == "birthday":
         personalization_guidance = (
@@ -84,7 +76,6 @@ def build_user_prompt(
             "- Добавь пожелания, которые подходят именно этому человеку (здоровье, успех в делах, гармония).\n"
         )
     else:
-        # holiday или manual
         personalization_guidance = (
             "ПЕРСОНАЛИЗАЦИЯ для праздника:\n"
             "- Адаптируй поздравление под конкретный праздник, учитывая его суть и значение.\n"
@@ -133,7 +124,6 @@ def build_user_prompt(
             )
             personalization_guidance += "".join(manual_lines)
 
-    # Строим промпт
     prompt_parts = [
         "Сгенерируй персональное поздравление от Сбербанка.\n\n",
         "FACTS о клиенте (используй ТОЛЬКО эти данные, не выдумывай ничего):\n",
@@ -142,7 +132,6 @@ def build_user_prompt(
         f"- Тип события: {event_type}\n",
         f"- Название: {event_title}\n",
         f"- Дата: {event_date.isoformat()}\n",
-        f"- Сегмент клиента: {segment}\n",
         f"- {tone_guidance}\n\n",
         "СЕМАНТИКА ПОВОДА:\n",
         f"- Категория: {semantics.category}\n",
@@ -175,3 +164,30 @@ def build_user_prompt(
     ]
 
     return "".join(prompt_parts)
+
+
+def build_user_prompt_with_examples(
+    *,
+    event_type: str,
+    event_title: str,
+    event_date: dt.date,
+    facts: dict,
+    examples: str | None = None,
+    tone_hint: str | None = None,
+    event_details: dict | None = None,
+) -> str:
+    base_prompt = build_user_prompt(
+        event_type=event_type,
+        event_title=event_title,
+        event_date=event_date,
+        facts=facts,
+        tone_hint=tone_hint,
+        event_details=event_details,
+    )
+
+    extra = (examples or "").strip()
+    if extra:
+        # Keep base prompt first; examples are a soft steering block.
+        return base_prompt + "\n\n" + extra + "\n"
+
+    return base_prompt

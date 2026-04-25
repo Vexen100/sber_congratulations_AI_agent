@@ -52,4 +52,8 @@ async def reset_runtime_data(
                 except Exception:
                     pass
 
-    return {"ok": True, "cleared_files": cleared_files, "cleared_clients": cleared_clients}
+    return {
+        "ok": True,
+        "cleared_files": cleared_files,
+        "cleared_clients": cleared_clients,
+    }

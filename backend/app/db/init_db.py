@@ -47,6 +47,8 @@ async def _migrate_sqlite(conn) -> None:
             alter_stmts.append("ALTER TABLE greetings ADD COLUMN review_comment TEXT")
         if "agent_run_id" not in existing:
             alter_stmts.append("ALTER TABLE greetings ADD COLUMN agent_run_id INTEGER")
+        if "generation_source" not in existing:
+            alter_stmts.append("ALTER TABLE greetings ADD COLUMN generation_source VARCHAR(100)")
         for stmt in alter_stmts:
             await conn.exec_driver_sql(stmt)
 
@@ -93,6 +95,32 @@ async def _migrate_sqlite(conn) -> None:
             alter_stmts.append("ALTER TABLE clients ADD COLUMN enriched_at DATETIME")
         for stmt in alter_stmts:
             await conn.exec_driver_sql(stmt)
+
+        # 3) feedback.training_verdict (дообучение)
+        res = await conn.exec_driver_sql("PRAGMA table_info(feedback)")
+        fb_cols = {r[1] for r in res.fetchall()}
+        if "training_verdict" not in fb_cols:
+            await conn.exec_driver_sql(
+                "ALTER TABLE feedback ADD COLUMN training_verdict VARCHAR(20)"
+            )
+
+        # 4) Legacy VIP queue: treat as generated so due_sender can send on event day
+        await conn.exec_driver_sql(
+            "UPDATE greetings SET status = 'generated' WHERE status = 'needs_approval'"
+        )
+
+        # 5) Drop clients.segment (SQLite 3.35+). Older SQLite: delete backend/data/app.db or upgrade SQLite.
+        res = await conn.exec_driver_sql("PRAGMA table_info(clients)")
+        client_cols = {r[1] for r in res.fetchall()}
+        if "segment" in client_cols:
+            ver_row = (await conn.exec_driver_sql("SELECT sqlite_version()")).fetchone()
+            ver_str = str(ver_row[0]) if ver_row else "0.0.0"
+            parts = [int(x) for x in ver_str.split(".") if x.isdigit()]
+            while len(parts) < 3:
+                parts.append(0)
+            major, minor, patch = parts[0], parts[1], parts[2]
+            if (major, minor, patch) >= (3, 35, 0):
+                await conn.exec_driver_sql("ALTER TABLE clients DROP COLUMN segment")
     except Exception:
         # For non-sqlite dialects or first-time DB, ignore.
         return

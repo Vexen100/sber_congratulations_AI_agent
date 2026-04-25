@@ -5,11 +5,10 @@ import datetime as dt
 from sqlalchemy import select
 
 from app.db.models import Client, Delivery, Event, Greeting
-from app.services.approval import approve_greeting
 from app.services.due_sender import send_due_greetings
 
 
-async def test_approve_does_not_send_before_event_date(db_session):
+async def test_generated_does_not_send_before_event_date(db_session):
     today = dt.date(2025, 12, 20)
     tomorrow = today + dt.timedelta(days=1)
 
@@ -18,7 +17,6 @@ async def test_approve_does_not_send_before_event_date(db_session):
         middle_name="Тестович",
         last_name="Клиент",
         profession="management",
-        segment="vip",
         email="vip.real@mycompany.test",
         preferred_channel="email",
         birth_date=dt.date(1990, 1, 1),
@@ -46,14 +44,14 @@ async def test_approve_does_not_send_before_event_date(db_session):
         subject="Тестовое поздравление",
         body="Достаточно длинный текст поздравления для прохождения валидации." * 3,
         image_path=None,
-        status="needs_approval",
+        status="generated",
     )
     db_session.add(g)
     await db_session.commit()
     await db_session.refresh(g)
 
-    res = await approve_greeting(db_session, greeting_id=g.id, approved_by="test", today=today)
-    assert res["status"] == "approved"
+    res = await send_due_greetings(db_session, today=today)
+    assert res["sent"] == 0
 
     deliveries = (await db_session.execute(select(Delivery))).scalars().all()
     assert deliveries == []
@@ -68,7 +66,6 @@ async def test_due_sender_sends_on_event_day(db_session):
         middle_name="Иванович",
         last_name="Петров",
         profession="accounting",
-        segment="standard",
         email="user@example.com",
         preferred_channel="email",
         birth_date=dt.date(1990, 1, 1),
@@ -114,20 +111,17 @@ async def test_due_sender_sends_on_event_day(db_session):
     assert g.status == "sent"
 
 
-async def test_approve_sends_immediately_when_mode_enabled(db_session, monkeypatch):
-    from app.core.config import settings
-
-    monkeypatch.setattr(settings, "delivery_schedule_mode", "immediate", raising=False)
+async def test_legacy_approved_status_waits_for_event_day(db_session):
+    """Older rows may still use status=approved; sending still waits for event_date."""
     today = dt.date(2025, 12, 20)
     tomorrow = today + dt.timedelta(days=1)
 
     c = Client(
-        first_name="Вип",
-        middle_name="Тестович",
+        first_name="Мария",
+        middle_name="Петровна",
         last_name="Клиент",
         profession="management",
-        segment="vip",
-        email="vip.real@mycompany.test",
+        email="m@mycompany.test",
         preferred_channel="email",
         birth_date=dt.date(1990, 1, 1),
         is_demo=False,
@@ -154,20 +148,19 @@ async def test_approve_sends_immediately_when_mode_enabled(db_session, monkeypat
         subject="Тестовое поздравление",
         body="Достаточно длинный текст поздравления для прохождения валидации." * 3,
         image_path=None,
-        status="needs_approval",
+        status="approved",
     )
     db_session.add(g)
     await db_session.commit()
     await db_session.refresh(g)
 
-    res = await approve_greeting(db_session, greeting_id=g.id, approved_by="test", today=today)
-    assert res["status"] == "sent"
+    res = await send_due_greetings(db_session, today=today)
+    assert res["sent"] == 0
+    await db_session.refresh(g)
+    assert g.status == "approved"
 
 
 async def test_due_sender_can_send_future_greeting_immediately(db_session, monkeypatch):
-    from app.core.config import settings
-
-    monkeypatch.setattr(settings, "delivery_schedule_mode", "immediate", raising=False)
     today = dt.date(2025, 12, 20)
     future_day = today + dt.timedelta(days=5)
 
@@ -176,7 +169,6 @@ async def test_due_sender_can_send_future_greeting_immediately(db_session, monke
         middle_name="Иванович",
         last_name="Петров",
         profession="accounting",
-        segment="standard",
         email="real.user@mycompany.test",
         preferred_channel="email",
         birth_date=dt.date(1990, 1, 1),
@@ -211,10 +203,10 @@ async def test_due_sender_can_send_future_greeting_immediately(db_session, monke
     await db_session.refresh(g)
 
     res = await send_due_greetings(db_session, today=today)
-    assert res["sent"] == 1
+    assert res["sent"] == 0
 
     await db_session.refresh(g)
-    assert g.status == "sent"
+    assert g.status == "generated"
 
 
 async def test_due_sender_in_smtp_mode_without_email_uses_file_fallback(
@@ -233,7 +225,6 @@ async def test_due_sender_in_smtp_mode_without_email_uses_file_fallback(
         middle_name="Почтыч",
         last_name="Клиент",
         profession="accounting",
-        segment="standard",
         email=None,
         phone=None,
         preferred_channel="email",

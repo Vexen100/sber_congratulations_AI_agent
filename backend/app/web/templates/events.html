@@ -47,7 +47,7 @@
 
   <div class="row g-4 mb-4">
     <div class="col-12 col-xl-6">
-      <div class="surface-card h-100">
+      <div class="surface-card">
         <div class="card-header">Создать ручное событие</div>
         <div class="card-body">
           <form method="post" action="/actions/events/manual" class="row g-2">
@@ -72,25 +72,47 @@
         </div>
       </div>
     </div>
+    {% set total = events | length %}
+    {% set b = events | selectattr('event_type', 'equalto', 'birthday') | list | length %}
+    {% set h = events | selectattr('event_type', 'equalto', 'holiday') | list | length %}
+    {% set m = events | selectattr('event_type', 'equalto', 'manual') | list | length %}
+
     <div class="col-12 col-xl-6">
-      <div class="surface-card h-100">
-        <div class="card-header">Быстрая demo-кампания</div>
-        <div class="card-body">
-          <div class="text-muted mb-3">Создаёт ручные поводы для первых реальных клиентов из базы, чтобы агент мог сразу сгенерировать поздравления для импортированного сегмента.</div>
-          <form method="post" action="/actions/events/demo-campaign" class="row g-2">
-            <div class="col-12 col-md-7">
-              <input class="form-control" name="title" value="Персональное деловое поздравление" required>
+      <div class="surface-panel metric-card">
+        <div class="metric-label mb-3">Распределение событий</div>
+
+          <div class="events-pie-wrapper">
+            <div class="events-pie"
+                style="--val-bd: {{ b }}; --val-hol: {{ h }}; --val-man: {{ m }}; --total: {{ total or 1 }};"
+                {% if total == 0 %}data-empty="true"{% endif %}>
+              <div class="events-pie-center">
+                <span class="events-pie-total">{{ total }}</span>
+                <span class="events-pie-label">всего</span>
+              </div>
             </div>
-            <div class="col-6 col-md-2">
-              <input class="form-control" type="number" min="1" max="20" name="count" value="5" required>
+
+            <div class="events-legend">
+              <div class="events-legend-item">
+                <span class="events-legend-dot" style="background: var(--primary);"></span>
+                <span class="events-legend-text">ДР: <strong>{{ b }}</strong></span>
+              </div>
+              <div class="events-legend-item">
+                <span class="events-legend-dot" style="background: var(--primary-dark);"></span>
+                <span class="events-legend-text">Праздники: <strong>{{ h }}</strong></span>
+              </div>
+              <div class="events-legend-item">
+                <span class="events-legend-dot" style="background: #41c77b;"></span>
+                <span class="events-legend-text">Ручные: <strong>{{ m }}</strong></span>
+              </div>
             </div>
-            <div class="col-6 col-md-3">
-              <input class="form-control" type="date" name="event_date">
-            </div>
-            <div class="col-12">
-              <button class="btn btn-outline-success quick-action">Подготовить события для реальной базы</button>
-            </div>
-          </form>
+          </div>
+
+        <div class="events-hint text-center mt-2">
+          {% if total > 0 %}
+            ДР: {{ (b/total*100)|round|int }}% | Праздники: {{ (h/total*100)|round|int }}% | Ручные: {{ (m/total*100)|round|int }}%
+          {% else %}
+            Нет данных для визуализации
+          {% endif %}
         </div>
       </div>
     </div>

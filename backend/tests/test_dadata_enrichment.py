@@ -20,7 +20,10 @@ async def test_enrich_client_via_dadata_provider(db_session, monkeypatch):
                 "okved": "45.20",
                 "okveds": [{"code": "45.20", "name": "Техническое обслуживание автомобилей"}],
                 "state": {"status": "ACTIVE"},
-                "management": {"name": "Иванов Иван Иванович", "post": "Генеральный директор"},
+                "management": {
+                    "name": "Иванов Иван Иванович",
+                    "post": "Генеральный директор",
+                },
                 "name": {
                     "short_with_opf": 'ООО "Тест Авто"',
                     "full_with_opf": 'Общество с ограниченной ответственностью "Тест Авто"',
@@ -43,7 +46,6 @@ async def test_enrich_client_via_dadata_provider(db_session, monkeypatch):
         last_name="Иванов",
         company_name="Тест Авто",
         profession="management",
-        segment="standard",
         inn="7701234567",
         email="contact@local.test",
         preferred_channel="email",

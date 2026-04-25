@@ -108,7 +108,6 @@ async def test_import_clients_from_company_csv_creates_clients(db_session, monke
     assert client.company_status == "Действующая"
     assert client.position == "Руководитель организации"
     assert client.profession == "sales"
-    assert client.segment == "loyal"
     assert client.enrichment_status == "enriched"
     assert client.enriched_at is not None
     assert client.preferences["import_source"] == "company_base_csv"
@@ -123,7 +122,6 @@ async def test_import_clients_from_company_csv_updates_existing_by_inn(
         last_name="Иванов",
         company_name="Старая компания",
         profession="management",
-        segment="standard",
         email="old@test.ru",
         preferred_channel="email",
         birth_date=dt.date(1990, 1, 1),

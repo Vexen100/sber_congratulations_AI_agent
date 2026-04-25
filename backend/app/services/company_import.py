@@ -84,18 +84,6 @@ def _infer_profession(row: dict[str, str]) -> str:
     return "management"
 
 
-def _infer_segment(row: dict[str, str]) -> str:
-    employees = _parse_int_value(row.get("Численность сотрудников (чел.) *"))
-    revenue = _parse_int_value(row.get("Выручка (тыс. руб.) *"))
-    if (revenue is not None and revenue >= 1_000_000) or (
-        employees is not None and employees >= 500
-    ):
-        return "vip"
-    if (revenue is not None and revenue >= 100_000) or (employees is not None and employees >= 100):
-        return "loyal"
-    return "standard"
-
-
 def _csv_path() -> Path:
     raw = (settings.company_import_csv_path or "").strip()
     if not raw:
@@ -187,7 +175,6 @@ async def import_clients_from_company_csv(session: AsyncSession) -> dict:
                 middle_name=middle_name,
                 last_name=last_name,
                 profession=_infer_profession(row),
-                segment=_infer_segment(row),
                 preferred_channel="email",
                 is_demo=False,
             )
@@ -197,10 +184,7 @@ async def import_clients_from_company_csv(session: AsyncSession) -> dict:
             target.inn = inn
             target.ogrn = re.sub(r"\D", "", row.get("ОГРН") or "") or None
             inferred_profession = _infer_profession(row)
-            inferred_segment = _infer_segment(row)
             target.profession = target.profession or inferred_profession
-            if not target.segment or target.segment == "standard":
-                target.segment = inferred_segment
             target.ceo_name = _clean_cell(row.get("Руководитель (по ЕГРЮЛ)"))
             target.okved_code = _clean_cell(row.get("Главный ОКВЭД (код)"))
             target.okved_name = _clean_cell(row.get("Главный ОКВЭД (название)"))
@@ -216,7 +200,10 @@ async def import_clients_from_company_csv(session: AsyncSession) -> dict:
             target.email = email or target.email
             target.phone = phone or target.phone
             target.preferred_channel = preferred_channel if (email or phone) else "email"
-            target.preferences = {**(target.preferences or {}), **_build_preferences(row)}
+            target.preferences = {
+                **(target.preferences or {}),
+                **_build_preferences(row),
+            }
             target.enrichment_status = "enriched"
             target.enrichment_error = None
             target.enriched_at = dt.datetime.now(dt.timezone.utc)

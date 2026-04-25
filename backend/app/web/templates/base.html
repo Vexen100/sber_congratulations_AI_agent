@@ -1,430 +1,101 @@
 <!doctype html>
 <html lang="ru">
   <head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{{ title or "Sber Congratulations (MVP)" }}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-      :root {
-        --bg: #f3f7f4;
-        --surface: #ffffff;
-        --surface-2: #f8fbf9;
-        --border: #d9e6de;
-        --text: #173228;
-        --muted: #6d7f76;
-        --primary: #12a150;
-        --primary-dark: #0b7d3d;
-        --primary-soft: #e8f6ee;
-        --warning-soft: #fff4d9;
-        --danger-soft: #fde8e8;
-        --shadow: 0 16px 40px rgba(17, 52, 37, 0.08);
-      }
-
-      body {
-        background:
-          radial-gradient(circle at top right, rgba(18, 161, 80, 0.10), transparent 28%),
-          linear-gradient(180deg, #f7fbf8 0%, var(--bg) 100%);
-        color: var(--text);
-        font-family: Inter, "Segoe UI", system-ui, sans-serif;
-      }
-
-      a { text-decoration: none; }
-      code.small { font-size: .85em; }
-
-      .layout-shell {
-        min-height: 100vh;
-      }
-
-      .sidebar-shell {
-        background: rgba(255, 255, 255, 0.92);
-        backdrop-filter: blur(10px);
-        border-right: 1px solid rgba(217, 230, 222, 0.9);
-        overflow-x: hidden;
-      }
-
-      .brand-card {
-        background: linear-gradient(135deg, #0d7d3c 0%, #12a150 55%, #41c77b 100%);
-        color: #fff;
-        border-radius: 22px;
-        padding: 1.1rem 1.1rem 1rem;
-        box-shadow: var(--shadow);
-      }
-
-      .brand-title {
-        font-weight: 800;
-        letter-spacing: .2px;
-        margin-bottom: .2rem;
-      }
-
-      .brand-subtitle {
-        color: rgba(255, 255, 255, 0.82);
-        font-size: .9rem;
-      }
-
-      .quick-action {
-        border-radius: 14px;
-        font-weight: 600;
-        box-shadow: 0 8px 20px rgba(18, 161, 80, 0.12);
-      }
-
-      .quick-action.btn-success {
-        background: linear-gradient(135deg, var(--primary) 0%, #26b060 100%);
-        border-color: transparent;
-      }
-
-      .quick-action.btn-outline-secondary,
-      .quick-action.btn-outline-danger {
-        background: #fff;
-        border-color: var(--border);
-        color: var(--text);
-      }
-
-      .nav-stack {
-        display: grid;
-        gap: .5rem;
-      }
-
-      .nav-chip {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: .75rem;
-        padding: .85rem 1rem;
-        border-radius: 16px;
-        color: var(--text);
-        background: transparent;
-        border: 1px solid transparent;
-        transition: all .18s ease;
-        font-weight: 600;
-      }
-
-      .nav-chip:hover {
-        background: rgba(18, 161, 80, 0.06);
-        border-color: rgba(18, 161, 80, 0.12);
-        color: var(--primary-dark);
-      }
-
-      .nav-chip.active {
-        background: linear-gradient(135deg, rgba(18, 161, 80, 0.14), rgba(18, 161, 80, 0.06));
-        border-color: rgba(18, 161, 80, 0.18);
-        color: var(--primary-dark);
-        box-shadow: none;
-      }
-
-      .nav-chip small {
-        color: var(--muted);
-        font-weight: 500;
-      }
-
-      .nav-chip.active small {
-        color: rgba(11, 125, 61, 0.78);
-      }
-
-      .delivery-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: .35rem;
-        padding: .45rem .7rem;
-        border-radius: 999px;
-        background: var(--primary-soft);
-        color: var(--primary-dark);
-        font-weight: 700;
-        font-size: .85rem;
-      }
-
-      .content-shell {
-        padding: 1.75rem 1.75rem 2rem;
-      }
-
-      .topbar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-        margin-bottom: 1.25rem;
-      }
-
-      .topbar-meta {
-        color: var(--muted);
-        font-size: .92rem;
-      }
-
-      .surface-card,
-      .surface-panel {
-        background: rgba(255, 255, 255, 0.94);
-        border: 1px solid rgba(217, 230, 222, 0.9);
-        border-radius: 22px;
-        box-shadow: var(--shadow);
-      }
-
-      .surface-panel {
-        padding: 1.25rem;
-      }
-
-      .hero-card {
-        background:
-          radial-gradient(circle at top right, rgba(255, 255, 255, 0.22), transparent 28%),
-          linear-gradient(135deg, #0f7d3d 0%, #12a150 55%, #2db766 100%);
-        color: #fff;
-        border-radius: 28px;
-        padding: 1.5rem;
-        box-shadow: 0 24px 50px rgba(18, 161, 80, 0.20);
-      }
-
-      .hero-card p,
-      .hero-card .text-soft {
-        color: rgba(255, 255, 255, 0.85);
-      }
-
-      .hero-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: .4rem;
-        padding: .35rem .7rem;
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.16);
-        color: #fff;
-        font-size: .82rem;
-        font-weight: 700;
-        letter-spacing: .2px;
-      }
-
-      .metric-card {
-        height: 100%;
-        padding: 1.15rem 1.2rem;
-      }
-
-      .metric-label {
-        color: var(--muted);
-        font-size: .88rem;
-        font-weight: 600;
-      }
-
-      .metric-value {
-        font-size: 2rem;
-        font-weight: 800;
-        line-height: 1;
-        margin: .45rem 0;
-      }
-
-      .metric-hint {
-        color: var(--muted);
-        font-size: .82rem;
-      }
-
-      .section-title {
-        font-size: 1.05rem;
-        font-weight: 800;
-        margin-bottom: .25rem;
-      }
-
-      .section-subtitle {
-        color: var(--muted);
-        font-size: .92rem;
-      }
-
-      .workflow-step {
-        display: flex;
-        gap: .9rem;
-        align-items: flex-start;
-      }
-
-      .workflow-index {
-        width: 2rem;
-        height: 2rem;
-        min-width: 2rem;
-        border-radius: 50%;
-        background: var(--primary-soft);
-        color: var(--primary-dark);
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 800;
-      }
-
-      .table-card .card-header,
-      .surface-card .card-header {
-        background: transparent;
-        border-bottom: 1px solid rgba(217, 230, 222, 0.9);
-        padding: 1rem 1.2rem .95rem;
-        font-weight: 800;
-      }
-
-      .surface-card .card-body {
-        padding: 1rem 1.2rem 1.2rem;
-      }
-
-      .table-clean {
-        --bs-table-bg: transparent;
-        --bs-table-border-color: rgba(217, 230, 222, 0.8);
-      }
-
-      .table-clean thead th {
-        color: var(--muted);
-        font-size: .78rem;
-        text-transform: uppercase;
-        letter-spacing: .04em;
-        font-weight: 800;
-        border-top: 0;
-      }
-
-      .table-clean tbody tr:hover {
-        background: rgba(18, 161, 80, 0.04);
-      }
-
-      .soft-note {
-        background: var(--surface-2);
-        border: 1px solid var(--border);
-        border-radius: 18px;
-        padding: 1rem 1.1rem;
-      }
-
-      .status-dot {
-        width: .55rem;
-        height: .55rem;
-        border-radius: 50%;
-        display: inline-block;
-        background: var(--primary);
-      }
-
-      .card-preview {
-        max-width: 220px;
-        border-radius: 16px;
-        border: 1px solid rgba(217, 230, 222, 0.85);
-        box-shadow: 0 10px 24px rgba(17, 52, 37, 0.12);
-      }
-
-      .kpi-strip {
-        display: flex;
-        flex-wrap: wrap;
-        gap: .75rem;
-      }
-
-      .kpi-pill {
-        padding: .65rem .85rem;
-        border-radius: 16px;
-        background: #fff;
-        border: 1px solid var(--border);
-        color: var(--text);
-        min-width: 140px;
-      }
-
-      .kpi-pill b {
-        display: block;
-        font-size: 1.05rem;
-      }
-
-      .form-panel {
-        background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,251,249,0.96));
-      }
-
-      .page-intro {
-        max-width: 72ch;
-      }
-
-      .empty-state {
-        padding: 2rem;
-        text-align: center;
-        color: var(--muted);
-      }
-
-      .actions-col {
-        min-width: 124px;
-        white-space: nowrap;
-        padding-right: 1rem !important;
-      }
-
-      .action-btn {
-        min-width: 104px;
-      }
-
-      .contact-pill {
-        color: var(--text);
-        border: 1px solid var(--border);
-        font-weight: 500;
-        text-align: left;
-        width: fit-content;
-        max-width: 100%;
-      }
-
-      @media (max-width: 991px) {
-        .content-shell {
-          padding: 1rem;
-        }
-        .sidebar-shell {
-          min-height: auto !important;
-        }
-      }
-    </style>
+    <title>{{title or "Агент поздравлений"}}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/main.css') }}">
   </head>
   <body>
     {% set current_path = request.url.path if request is defined else "/" %}
     <div class="container-fluid layout-shell">
       <div class="row g-0">
         <aside class="col-12 col-lg-3 col-xl-2 p-3 p-lg-4 min-vh-100 sidebar-shell">
-          <div class="brand-card mb-4">
-            <div class="brand-title">Sber Congrats</div>
-            <div class="brand-subtitle">Консоль AI-агента для персональных поздравлений</div>
-            <div class="mt-3 hero-badge">Подготовлено к презентации</div>
-          </div>
           <div class="d-grid gap-2 mb-4">
             <form action="/actions/run-agent" method="post">
               <button class="btn btn-success quick-action w-100">Запустить агента</button>
             </form>
             <form action="/actions/seed-demo" method="post">
-              <button class="btn btn-outline-secondary quick-action w-100">Загрузить демо-данные</button>
+              <button class="btn btn-outline-secondary quick-action w-100">Загрузить данные</button>
             </form>
             <form action="/actions/reset-runtime" method="post">
-              <button class="btn btn-outline-danger quick-action w-100">Очистить демо-среду</button>
+              <button class="btn btn-outline-danger quick-action w-100">Очистить среду</button>
             </form>
           </div>
-          <div class="section-title">Рабочая зона</div>
-          <div class="section-subtitle mb-3">Навигация по конвейеру и контролю качества.</div>
+          <div class="sidebar-brand-wrap">
+            <img
+              class="sidebar-brand-logo"
+              src="{{ url_for('static', path='css/vibe-team-logo.svg') }}"
+              alt="Vibe Team"
+              loading="lazy"
+            />
+          </div>
+          <!-- <div class="section-subtitle mb-3">Навигация по конвейеру и контролю качества.</div> -->
           <div class="nav-stack">
             <a class="nav-chip {% if current_path == '/' %}active{% endif %}" href="/">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" color="currentColor" fill="none" stroke="#141B34" stroke-width="1.5" stroke-linecap="round">
+                  <path d="M7 17L7 13" />
+                  <path d="M12 17L12 7" />
+                  <path d="M17 17L17 11" />
+                  <path d="M2.5 12C2.5 7.52166 2.5 5.28249 3.89124 3.89124C5.28249 2.5 7.52166 2.5 12 2.5C16.4783 2.5 18.7175 2.5 20.1088 3.89124C21.5 5.28249 21.5 7.52166 21.5 12C21.5 16.4783 21.5 18.7175 20.1088 20.1088C18.7175 21.5 16.4783 21.5 12 21.5C7.52166 21.5 5.28249 21.5 3.89124 20.1088C2.5 18.7175 2.5 16.4783 2.5 12Z" />
+              </svg>
               <span>Дашборд</span>
-              <small>обзор</small>
             </a>
             <a class="nav-chip {% if current_path.startswith('/clients') %}active{% endif %}" href="/clients">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" color="currentColor" fill="none" stroke="#141B34" stroke-width="1.5" stroke-linecap="round">
+                  <path d="M8.49994 16.5C9.19857 15.2923 10.5044 14.4797 11.9999 14.4797C13.4955 14.4797 14.8013 15.2923 15.4999 16.5M14 10C14 11.1046 13.1045 12 12 12C10.8954 12 9.99997 11.1046 9.99997 10C9.99997 8.89543 10.8954 8 12 8C13.1045 8 14 8.89543 14 10Z" />
+                  <path d="M22 13.9669V10.0332C19.1433 10.0332 17.2857 6.93041 18.732 4.46691L15.2679 2.5001C13.8038 4.99405 10.1978 4.99395 8.73363 2.5L5.26953 4.46681C6.71586 6.93035 4.85673 10.0332 2 10.0332V13.9669C4.85668 13.9669 6.71425 17.0697 5.26795 19.5332L8.73205 21.5C10.1969 19.0048 13.8046 19.0047 15.2695 21.4999L18.7336 19.5331C17.2874 17.0696 19.1434 13.9669 22 13.9669Z" />
+              </svg>
               <span>Клиенты</span>
-              <small>crm + обогащение</small>
             </a>
             <a class="nav-chip {% if current_path.startswith('/events') %}active{% endif %}" href="/events">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" color="currentColor" fill="none" stroke="#141B34" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 2V6M8 2V6" />
+                  <path d="M13 4H11C7.22876 4 5.34315 4 4.17157 5.17157C3 6.34315 3 8.22876 3 12V14C3 17.7712 3 19.6569 4.17157 20.8284C5.34315 22 7.22876 22 11 22H13C16.7712 22 18.6569 22 19.8284 20.8284C21 19.6569 21 17.7712 21 14V12C21 8.22876 21 6.34315 19.8284 5.17157C18.6569 4 16.7712 4 13 4Z" />
+                  <path d="M3 10H21" />
+                  <path d="M12.1258 14H12.0008M12.1258 18H12.0008M7.625 14H7.5M7.625 18H7.5M16.625 14H16.5M12.2508 14C12.2508 14.1381 12.1389 14.25 12.0008 14.25C11.8628 14.25 11.7508 14.1381 11.7508 14C11.7508 13.8619 11.8628 13.75 12.0008 13.75C12.1389 13.75 12.2508 13.8619 12.2508 14ZM12.2508 18C12.2508 18.1381 12.1389 18.25 12.0008 18.25C11.8628 18.25 11.7508 18.1381 11.7508 18C11.7508 17.8619 11.8628 17.75 12.0008 17.75C12.1389 17.75 12.2508 17.8619 12.2508 18ZM7.75 14C7.75 14.1381 7.63807 14.25 7.5 14.25C7.36193 14.25 7.25 14.1381 7.25 14C7.25 13.8619 7.36193 13.75 7.5 13.75C7.63807 13.75 7.75 13.8619 7.75 14ZM7.75 18C7.75 18.1381 7.63807 18.25 7.5 18.25C7.36193 18.25 7.25 18.1381 7.25 18C7.25 17.8619 7.36193 17.75 7.5 17.75C7.63807 17.75 7.75 17.8619 7.75 18ZM16.75 14C16.75 14.1381 16.6381 14.25 16.5 14.25C16.3619 14.25 16.25 14.1381 16.25 14C16.25 13.8619 16.3619 13.75 16.5 13.75C16.6381 13.75 16.75 13.8619 16.75 14Z" />
+              </svg>
               <span>События</span>
-              <small>предстоящие триггеры</small>
             </a>
             <a class="nav-chip {% if current_path.startswith('/greetings') %}active{% endif %}" href="/greetings">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" color="currentColor" fill="none" stroke="#141B34" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 11V15C4 18.2998 4 19.9497 5.02513 20.9749C6.05025 22 7.70017 22 11 22H13C16.2998 22 17.9497 22 18.9749 20.9749C20 19.9497 20 18.2998 20 15V11" />
+                  <path d="M3 9C3 8.25231 3 7.87846 3.20096 7.6C3.33261 7.41758 3.52197 7.26609 3.75 7.16077C4.09808 7 4.56538 7 5.5 7H18.5C19.4346 7 19.9019 7 20.25 7.16077C20.478 7.26609 20.6674 7.41758 20.799 7.6C21 7.87846 21 8.25231 21 9C21 9.74769 21 10.1215 20.799 10.4C20.6674 10.5824 20.478 10.7339 20.25 10.8392C19.9019 11 19.4346 11 18.5 11H5.5C4.56538 11 4.09808 11 3.75 10.8392C3.52197 10.7339 3.33261 10.5824 3.20096 10.4C3 10.1215 3 9.74769 3 9Z" />
+                  <path d="M6 3.78571C6 2.79949 6.79949 2 7.78571 2H8.14286C10.2731 2 12 3.7269 12 5.85714V7H9.21429C7.43908 7 6 5.56091 6 3.78571Z" />
+                  <path d="M18 3.78571C18 2.79949 17.2005 2 16.2143 2H15.8571C13.7269 2 12 3.7269 12 5.85714V7H14.7857C16.5609 7 18 5.56091 18 3.78571Z" />
+                  <path d="M12 11L12 22" />
+              </svg>
               <span>Поздравления</span>
-              <small>проверка + обратная связь</small>
             </a>
             <a class="nav-chip {% if current_path.startswith('/deliveries') %}active{% endif %}" href="/deliveries">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" color="currentColor" fill="none" stroke="#141B34" stroke-width="1.5" stroke-linejoin="round">
+                  <path d="M2 5L8.91302 8.92462C11.4387 10.3585 12.5613 10.3585 15.087 8.92462L22 5" />
+                  <path d="M21.996 10.5024C21.9933 10.1357 21.9894 9.77017 21.9842 9.5265C21.9189 6.46005 21.8862 4.92682 20.7551 3.79105C19.6239 2.65528 18.0497 2.61571 14.9012 2.53658C12.9607 2.48781 11.0393 2.48781 9.09882 2.53657C5.95033 2.6157 4.37608 2.65526 3.24495 3.79103C2.11382 4.92681 2.08114 6.46003 2.01576 9.52648C1.99474 10.5125 1.99475 11.4926 2.01577 12.4786C2.08114 15.5451 2.11383 17.0783 3.24496 18.2141C4.37608 19.3498 5.95033 19.3894 9.09883 19.4685C9.7068 19.4838 10.4957 19.4943 11 19.5" />
+                  <path d="M15.586 18.6482C14.9572 19.0167 13.3086 19.7693 14.3127 20.711C14.8032 21.171 15.3495 21.5 16.0364 21.5H19.9556C20.6424 21.5 21.1887 21.171 21.6792 20.711C22.6834 19.7693 21.0347 19.0167 20.4059 18.6482C18.9314 17.7839 17.0605 17.7839 15.586 18.6482Z" />
+                  <path d="M19.996 14C19.996 15.1046 19.1005 16 17.996 16C16.8914 16 15.996 15.1046 15.996 14C15.996 12.8954 16.8914 12 17.996 12C19.1005 12 19.996 12.8954 19.996 14Z" />
+              </svg>
               <span>Доставки</span>
-              <small>журнал outbox</small>
             </a>
             <a class="nav-chip {% if current_path.startswith('/runs') %}active{% endif %}" href="/runs">
-              <span>Запуски агента</span>
-              <small>аудит</small>
-            </a>
-            <a class="nav-chip" href="/docs">
-              <span>Документация API</span>
-              <small>openapi / swagger</small>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" color="currentColor" fill="none" stroke="#141B34" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 4V2" />
+                <path d="M20 22C20 17.5817 16.4183 14 12 14C7.58172 14 4 17.5817 4 22" />
+                <path d="M9.375 8.25H9.25M9.5 8.25C9.5 8.38807 9.38807 8.5 9.25 8.5C9.11193 8.5 9 8.38807 9 8.25C9 8.11193 9.11193 8 9.25 8C9.38807 8 9.5 8.11193 9.5 8.25Z" />
+                <path d="M14.875 8.25H14.75M15 8.25C15 8.38807 14.8881 8.5 14.75 8.5C14.6119 8.5 14.5 8.38807 14.5 8.25C14.5 8.11193 14.6119 8 14.75 8C14.8881 8 15 8.11193 15 8.25Z" />
+                <path d="M15.1538 4H8.84615C7.59095 4 6.96334 4 6.47397 4.22025C5.91693 4.47095 5.47095 4.91693 5.22025 5.47397C5 5.96334 5 6.59095 5 7.84615C5 9.85448 5 10.8586 5.3524 11.6417C5.75353 12.5329 6.46709 13.2465 7.35835 13.6476C8.14135 14 9.14552 14 11.1538 14H12.8462C14.8545 14 15.8586 14 16.6417 13.6476C17.5329 13.2465 18.2465 12.5329 18.6476 11.6417C19 10.8586 19 9.85448 19 7.84615C19 6.59095 19 5.96334 18.7797 5.47397C18.529 4.91693 18.0831 4.47095 17.526 4.22025C17.0367 4 16.4091 4 15.1538 4Z" />
+              </svg>
+              <div style="text-align: right;">Запуски агента</div>
             </a>
           </div>
           <div class="mt-4">
             <div class="delivery-pill">Режим доставки: файловый outbox</div>
           </div>
-          <div class="mt-4 soft-note small">
-            <div class="fw-semibold mb-1">Сценарий показа</div>
-            <div>Загрузите демо-данные, обогатите клиентов, запустите агента, проверьте поздравления, сохраните обратную связь и покажите доставки.</div>
-          </div>
         </aside>
         <main class="col-12 col-lg-9 col-xl-10 content-shell">
           <div class="topbar">
             <div>
-              <div class="topbar-meta"><span class="status-dot me-2"></span>Рабочее пространство для презентации</div>
             </div>
-            <div class="topbar-meta">FastAPI + Jinja + SQLite + подключаемый GigaChat</div>
           </div>
           {% block content %}{% endblock %}
         </main>

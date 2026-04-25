@@ -7,54 +7,42 @@ from sqlalchemy import select
 from app.agent.orchestrator import run_once
 from app.core.config import settings
 from app.db.models import Client, Delivery, Event, Greeting
-from app.services.approval import approve_greeting
+from app.services.due_sender import send_due_greetings
 
 
-async def test_vip_requires_approval_and_sends_after_approve(db_session, monkeypatch, tmp_path):
-    # Keep tests hermetic: write outbox to a temp folder and avoid external image providers.
+async def test_run_once_generates_and_sends_on_event_day_without_manual_approval(
+    db_session, monkeypatch, tmp_path
+):
+    """Birthday today: agent creates a sendable greeting; due sender runs in same pass (no approve step)."""
     monkeypatch.setattr(settings, "outbox_dir", str(tmp_path / "outbox"))
     monkeypatch.setattr(settings, "image_mode", "pillow")
 
     today = dt.date.today()
     c = Client(
-        first_name="Вип",
-        last_name="Клиент",
-        segment="vip",
-        email="vip@example.com",
+        first_name="Клиент",
+        middle_name="Тестович",
+        last_name="ДеньРождения",
+        profession="management",
+        email="vip@mycompany.test",
         preferred_channel="email",
         birth_date=dt.date(1990, today.month, today.day),
+        is_demo=False,
     )
     db_session.add(c)
     await db_session.commit()
 
     summary = await run_once(db_session, today=today, lookahead_days=1)
     assert summary.generated_greetings >= 1
-    assert summary.sent_deliveries == 0
+    assert summary.sent_deliveries >= 1
 
     greeting = (
         (await db_session.execute(select(Greeting).order_by(Greeting.id.desc()))).scalars().first()
     )
     assert greeting is not None
-    assert greeting.status == "needs_approval"
-
-    deliveries_before = (await db_session.execute(select(Delivery))).scalars().all()
-    assert deliveries_before == []
-
-    res = await approve_greeting(db_session, greeting_id=greeting.id, approved_by="test")
-    assert res["status"] == "sent"
-
-    await db_session.refresh(greeting)
     assert greeting.status == "sent"
 
-    deliveries_after = (await db_session.execute(select(Delivery))).scalars().all()
-    assert len(deliveries_after) == 1
 
-
-async def test_vip_demo_client_in_smtp_mode_falls_back_to_file_and_is_sent(
-    db_session, monkeypatch, tmp_path
-):
-    # SMTP enabled globally, but demo clients must never get real emails.
-    # We still want the VIP approve demo flow to "send" (to outbox files).
+async def test_smtp_mode_demo_client_sends_via_file_outbox(db_session, monkeypatch, tmp_path):
     monkeypatch.setattr(settings, "send_mode", "smtp", raising=False)
     monkeypatch.setattr(settings, "smtp_host", "smtp.example.local", raising=False)
     monkeypatch.setattr(settings, "smtp_allow_all_recipients", True, raising=False)
@@ -64,11 +52,12 @@ async def test_vip_demo_client_in_smtp_mode_falls_back_to_file_and_is_sent(
     today = dt.date.today()
     c = Client(
         first_name="Демо",
-        last_name="VIP",
-        segment="vip",
+        middle_name="Тестович",
+        last_name="Клиент",
+        profession="management",
         email="demo.vip@gmail.com",
         preferred_channel="email",
-        birth_date=dt.date(1990, today.month, today.day),
+        birth_date=dt.date(1990, 1, 1),
         is_demo=True,
     )
     db_session.add(c)
@@ -93,14 +82,14 @@ async def test_vip_demo_client_in_smtp_mode_falls_back_to_file_and_is_sent(
         subject="Тестовое поздравление",
         body="Достаточно длинный текст поздравления для прохождения валидации." * 3,
         image_path=None,
-        status="needs_approval",
+        status="generated",
     )
     db_session.add(g)
     await db_session.commit()
     await db_session.refresh(g)
 
-    res = await approve_greeting(db_session, greeting_id=g.id, approved_by="test")
-    assert res["status"] == "sent"
+    res = await send_due_greetings(db_session, today=today)
+    assert res["sent"] == 1
     await db_session.refresh(g)
     assert g.status == "sent"
 
@@ -110,8 +99,7 @@ async def test_vip_demo_client_in_smtp_mode_falls_back_to_file_and_is_sent(
     assert deliveries[0].channel == "file"
 
 
-async def test_vip_approve_in_smtp_mode_skipped_is_not_error(db_session, monkeypatch):
-    # If SMTP safety blocks sending (e.g. allowlist empty), approval should not turn into "error".
+async def test_send_due_in_smtp_mode_allowlist_empty_skips_not_error(db_session, monkeypatch):
     monkeypatch.setattr(settings, "send_mode", "smtp", raising=False)
     monkeypatch.setattr(settings, "smtp_host", "smtp.example.local", raising=False)
     monkeypatch.setattr(settings, "smtp_allow_all_recipients", False, raising=False)
@@ -120,11 +108,12 @@ async def test_vip_approve_in_smtp_mode_skipped_is_not_error(db_session, monkeyp
     today = dt.date.today()
     c = Client(
         first_name="Реальный",
-        last_name="VIP",
-        segment="vip",
+        middle_name="Тестович",
+        last_name="Клиент",
+        profession="management",
         email="real.vip@mycompany.test",
         preferred_channel="email",
-        birth_date=dt.date(1990, today.month, today.day),
+        birth_date=dt.date(1990, 1, 1),
         is_demo=False,
     )
     db_session.add(c)
@@ -149,13 +138,13 @@ async def test_vip_approve_in_smtp_mode_skipped_is_not_error(db_session, monkeyp
         subject="Тестовое поздравление",
         body="Достаточно длинный текст поздравления для прохождения валидации." * 3,
         image_path=None,
-        status="needs_approval",
+        status="generated",
     )
     db_session.add(g)
     await db_session.commit()
     await db_session.refresh(g)
 
-    res = await approve_greeting(db_session, greeting_id=g.id, approved_by="test")
-    assert res["status"] == "skipped"
+    res = await send_due_greetings(db_session, today=today)
+    assert res["errors"] == 0
     await db_session.refresh(g)
     assert g.status == "skipped"

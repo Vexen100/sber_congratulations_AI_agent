@@ -5,7 +5,10 @@ import datetime as dt
 from sqlalchemy import select
 
 from app.db.models import Client
-from app.services.company_enrichment import enrich_client_company_by_id, enrich_missing_clients
+from app.services.company_enrichment import (
+    enrich_client_company_by_id,
+    enrich_missing_clients,
+)
 
 
 async def test_enrich_client_by_inn(db_session):
@@ -16,7 +19,6 @@ async def test_enrich_client_by_inn(db_session):
         company_name="ООО Безопасность+",
         position="Руководитель службы безопасности",
         profession="security",
-        segment="vip",
         inn="7701122334",
         email="natalia@company.test",
         preferred_channel="email",
@@ -49,7 +51,6 @@ async def test_bulk_enrichment_can_match_by_company_name(db_session):
         company_name="ООО ДевСтудио",
         position="CTO",
         profession="it",
-        segment="standard",
         email="nikita@company.test",
         preferred_channel="email",
         birth_date=dt.date(1991, 5, 10),

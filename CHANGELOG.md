@@ -8,20 +8,25 @@ and the repository follows a lightweight semantic versioning approach for releas
 ## [Unreleased]
 
 ### Added
-- Базовый конвейер поздравлений: события -> генерация -> доставка, web UI, API, тесты и локальные скрипты запуска.
-- VIP approval gating (`needs_approval`) и аудит запусков через `AgentRun`.
-- Company enrichment layer: импорт CSV, поля `ИНН/ОКВЭД/руководитель`, провайдеры `demo`, `dadata`, `hybrid`.
-- Feedback loop для оценки качества поздравлений и ручные события для импортированной базы.
-- Документы по проектной структуре, обзору и интеграции GigaChat.
+
+- GitHub Actions: job `quality` (ruff, black), `unit-tests` (`pytest -m "not integration"`), `integration-tests` (`pytest -m integration`), сборка архива `backend`; опциональные шаги публикации релиза и deploy по тегу и ветке `main`. Триггер push также для ветки `integration`.
+- Маркер pytest `integration` в `pytest.ini`; интеграционный тест API `POST /api/agent/run-once` со списками greetings/deliveries; тесты guardrails; unit-тест форматирования времени МСК в веб-слое.
+- Опциональный few-shot по менеджерскому feedback: флаг `VECTOR_FEEDBACK_ENABLED`, зависимости в `backend/requirements-rag.txt`, поле `generation_source` у сценариев генерации.
+- Календарь праздников в БД с загрузкой/миграцией и классификацией поводов (merge `holidays_branch` в `integration`).
+- Merge ветки `New-tests` в `integration` с сохранением коммитов участника в истории (`merge --no-ff`).
 
 ### Changed
-- Публичная документация приведена к более профессиональной структуре: краткий `README`, отдельный `SETUP.md`, обзор проекта и краткая инструкция по GigaChat.
-- Дефолтный запуск `run_backend.cmd` использует порт `8001`.
-- Генерация изображений через GigaChat использует event-specific presets и строгие запреты на людей и текст.
+
+- Web UI feedback на странице поздравлений: одна кнопка сохранения отзыва, обязательный `score`; `training_verdict` выставляется в `save_feedback()` по оценке (4–5 → `accepted`, 1–3 → `rejected`), явная передача вердикта из формы не используется. API по-прежнему допускает явный `training_verdict` при создании записи.
+- Конфигурация доставки: удалён неиспользуемый параметр `DELIVERY_SCHEDULE_MODE`; отправка всегда происходит только в день события (`Event.event_date == today`).
+- Планировщик: автономность теперь гейтит scheduler и запуск «run once on start» (если автономность выключена — прогон не запускается).
+- Документация: `docs/DECISIONS.md` (в т.ч. нумерация разделов 13–15), `README.md`, `docs/PROJECT_OVERVIEW.md`, `SETUP.md`, `ROADMAP.md`, этот changelog — без ссылок на удалённый VIP-контур и устаревший ручной вердикт в UI.
+
+### Removed
+
+- VIP approval gating и сегмент клиента в продуктовом потоке; отдельное согласование перед отправкой.
 
 ### Fixed
-- SMTP fallback для клиентов без пригодного email.
-- Стабильность JSON-ответа GigaChat и обработка “почти JSON” сценариев.
-- Повторяемость demo-flow: reset runtime data, контроль лимитов и улучшенные outbox-сценарии.
 
-
+- SMTP: для демо-клиентов и небезопасных адресов — откат в file-outbox вместо падения прогона.
+- Обработка «почти JSON» ответов GigaChat и повторяемость demo-flow (см. также коммиты в `integration`).

@@ -29,7 +29,7 @@ _FOCUS_TO_GUIDANCE: dict[str, tuple[str, str]] = {
     ),
     "team": (
         "Подчеркни силу команды, поддержку, слаженность и общее движение к результату.",
-        "деловая командная иллюстрация: свет, динамика, современное пространство, ощущение совместной работы, без текста",
+        "символичная иллюстрация командности без людей: несколько элементов, объединённых лентой/линиями, свет и динамика, без текста",
     ),
     "gratitude": (
         "Сделай акцент на благодарности, уважении и значимости повода без излишнего пафоса.",
@@ -87,13 +87,11 @@ def build_event_semantics(
     event_type: str,
     event_title: str,
     event_details: dict | None = None,
-    segment: str | None = None,
     profession: str | None = None,
 ) -> EventSemantics:
     et = (event_type or "").strip().lower()
     title = (event_title or "").strip()
     details = event_details or {}
-    seg = (segment or "standard").strip().lower()
     prof = (profession or "").strip().lower()
 
     if et == "birthday":
@@ -106,7 +104,7 @@ def build_event_semantics(
         return EventSemantics(
             category="personal",
             focus_hint=focus,
-            tone_hint="official" if seg == "vip" else "warm",
+            tone_hint="warm",
             audience="individual",
             prompt_hint="Личный праздник, уважение к человеку, тёплая энергия и хорошие пожелания.",
             greeting_guidance=guidance,
@@ -136,7 +134,7 @@ def build_event_semantics(
         return EventSemantics(
             category="manual-business",
             focus_hint=focus,
-            tone_hint=details.get("tone_hint") or ("official" if seg == "vip" else "warm"),
+            tone_hint=details.get("tone_hint") or "warm",
             audience="business",
             prompt_hint=(
                 details.get("prompt_hint")
@@ -165,7 +163,7 @@ def build_event_semantics(
     return EventSemantics(
         category=str(holiday_tags.get("category") or "holiday"),
         focus_hint=focus,
-        tone_hint=holiday_tags.get("tone_hint") or ("official" if seg == "vip" else "warm"),
+        tone_hint=holiday_tags.get("tone_hint") or "warm",
         audience=str(holiday_tags.get("audience") or "all"),
         prompt_hint=str(
             holiday_tags.get("prompt_hint")

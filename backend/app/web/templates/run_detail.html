@@ -5,22 +5,22 @@
       <div class="text-muted small mb-2"><a href="/runs">Все запуски</a></div>
       <h2 class="mb-1">Детали запуска #{{ run.id }}</h2>
       <div class="text-muted">
-        Что именно создал этот прогон агента, в каком статусе находятся поздравления и дошли ли они до доставки или feedback.
+        Что именно создал этот прогон агента, в каком статусе находятся поздравления и дошли ли они до доставки или обратной связи.
       </div>
     </div>
     <div class="d-flex flex-wrap gap-2">
       {% if run.status == "success" %}
-        <span class="badge text-bg-success">успех</span>
+        <span class="badge text-bg-success">Успех</span>
       {% elif run.status == "partial" %}
-        <span class="badge text-bg-warning">частично</span>
+        <span class="badge text-bg-warning">Частично</span>
       {% elif run.status == "error" %}
-        <span class="badge text-bg-danger">ошибка</span>
+        <span class="badge text-bg-danger">Ошибка</span>
       {% else %}
         <span class="badge text-bg-secondary">{{ run.status }}</span>
       {% endif %}
-      <span class="badge text-bg-light">источник: {{ run.triggered_by }}</span>
+      <span class="badge text-bg-light">Источник: {{ run.triggered_by }}</span>
       <span class="badge text-bg-light">LLM: {{ run.llm_mode }}</span>
-      <span class="badge text-bg-light">картинки: {{ run.image_mode }}</span>
+      <span class="badge text-bg-light">Картинки: {{ run.image_mode }}</span>
     </div>
   </div>
 
@@ -36,14 +36,14 @@
       <div class="surface-panel metric-card">
         <div class="metric-label">Создано поздравлений</div>
         <div class="metric-value">{{ run.generated_greetings }}</div>
-        <div class="metric-hint">Записано в `Greeting` именно этим запуском.</div>
+        <div class="metric-hint">Записано в `Поздравления` именно этим запуском.</div>
       </div>
     </div>
     <div class="col-12 col-md-3">
       <div class="surface-panel metric-card">
         <div class="metric-label">Фактические доставки</div>
         <div class="metric-value">{{ actual_deliveries }}</div>
-        <div class="metric-hint">Все связанные `Delivery`, включая более поздние ручные действия.</div>
+        <div class="metric-hint">Все связанные `Доставки`, включая более поздние ручные действия.</div>
       </div>
     </div>
     <div class="col-12 col-md-3">
@@ -60,7 +60,7 @@
       <div class="surface-panel metric-card">
         <div class="metric-label">Авто-отправка в run</div>
         <div class="metric-value">{{ run.sent_deliveries }}</div>
-        <div class="metric-hint">Счётчик из `AgentRun`, без поздних VIP approve.</div>
+        <div class="metric-hint">Счётчик из «Запуск агента» за этот прогон.</div>
       </div>
     </div>
     <div class="col-12 col-md-4">
@@ -72,9 +72,9 @@
     </div>
     <div class="col-12 col-md-4">
       <div class="surface-panel metric-card">
-        <div class="metric-label">Ждут согласования</div>
-        <div class="metric-value">{{ greetings_needing_approval }}</div>
-        <div class="metric-hint">Обычно это VIP-получатели, требующие ручного approve.</div>
+        <div class="metric-label">Вердикт дообучения</div>
+        <div class="metric-value">{{ greetings_with_training_verdict }}</div>
+        <div class="metric-hint">Поздравления этого прогона с отмеченным «принять/отклонить» в отзыве.</div>
       </div>
     </div>
   </div>
@@ -82,7 +82,7 @@
   <div class="surface-card">
     <div class="card-header d-flex align-items-center justify-content-between">
       <span>Поздравления, созданные этим запуском</span>
-      <span class="small text-muted">Старт: {{ run.started_at }}{% if run.finished_at %} | Финиш: {{ run.finished_at }}{% endif %}</span>
+      <span class="small text-muted">Старт (МСК): {% if run.started_at %}{{ run.started_at | format_time_msk }}{% endif %}{% if run.finished_at %} | Финиш (МСК): {{ run.finished_at | format_time_msk }}{% endif %}</span>
     </div>
     <div class="card-body table-responsive">
       <table class="table table-sm align-middle table-clean">
@@ -151,7 +151,7 @@
                   <span class="text-muted">нет</span>
                 {% endif %}
               </td>
-              <td class="small">{{ greeting.created_at }}</td>
+              <td class="small">{{ greeting.created_at | format_dt }}</td>
             </tr>
           {% else %}
             <tr>

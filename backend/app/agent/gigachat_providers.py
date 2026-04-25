@@ -46,6 +46,14 @@ def _illustration_scene_brief(
             "аккуратные праздничные элементы, мягкий свет, светлый фон"
         )
 
+    if "1 мая" in title_low or "праздник весны и труда" in title_low:
+        return (
+            "первомайский весенний натюрморт (без людей): свежая зелень и весенние цветы, "
+            "аккуратные рабочие символы без брендов (например, минималистичный садовый инструмент без рук), "
+            "светлая праздничная композиция, мягкий естественный свет, чистый светлый фон, "
+            "сдержанные зелёные акценты"
+        )
+
     if category == "manual-business" or category == "business" or target_audience == "business":
         return (
             "премиальный деловой натюрморт: подарочная коробка, минималистичный декор, стеклянные и металлические акценты, "
@@ -133,8 +141,7 @@ class GigaChatImageProvider:
         file_id = extract_img_file_id(content)
         if not file_id:
             log.error(
-                "GigaChat image file_id not found in content. "
-                "Full content: %s. Full response: %s",
+                "GigaChat image file_id not found in content. Full content: %s. Full response: %s",
                 content,
                 data,
             )
@@ -156,7 +163,6 @@ def build_illustration_prompt(
     recipient_line: str,
     company: str | None,
     event_details: dict | None = None,
-    segment: str | None = None,
     profession: str | None = None,
 ) -> tuple[str, str]:
     """Build prompt for a text-free celebratory still life with event-specific presets."""
@@ -174,7 +180,6 @@ def build_illustration_prompt(
         event_type=event_type,
         event_title=event_title,
         event_details=event_details or {},
-        segment=segment,
         profession=profession,
     )
     scene_brief = _illustration_scene_brief(

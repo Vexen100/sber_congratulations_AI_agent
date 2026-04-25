@@ -97,7 +97,10 @@ class GigaChatClient:
         self._token = AccessToken(value=token, expires_at=expires_at)
         return self._token
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=0.5, min=0.5, max=3))
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=0.5, min=0.5, max=3),
+    )
     async def chat_completions(
         self,
         *,
@@ -145,7 +148,10 @@ class GigaChatClient:
 
     # Для скачивания изображений используем более длинный таймаут, но без повторных попыток,
     # чтобы не затягивать прогон слишком сильно.
-    @retry(stop=stop_after_attempt(1), wait=wait_exponential(multiplier=0.5, min=0.5, max=3))
+    @retry(
+        stop=stop_after_attempt(1),
+        wait=wait_exponential(multiplier=0.5, min=0.5, max=3),
+    )
     async def download_file_content(self, *, file_id: str, x_client_id: str | None = None) -> bytes:
         token = await self._get_token()
 
@@ -156,7 +162,8 @@ class GigaChatClient:
             headers["X-Client-ID"] = x_client_id
 
         async with httpx.AsyncClient(
-            timeout=float(settings.gigachat_image_timeout_sec), verify=_ssl_verify_param()
+            timeout=float(settings.gigachat_image_timeout_sec),
+            verify=_ssl_verify_param(),
         ) as c:
             r = await c.get(url, headers=headers)
             if r.status_code == 405:

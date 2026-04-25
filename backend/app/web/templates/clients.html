@@ -3,10 +3,6 @@
   <div class="d-flex align-items-center justify-content-between mb-3">
     <div class="page-intro">
       <h2 class="mb-1">Клиенты</h2>
-      <div class="text-muted">
-        CRM-слой для персонализации и enrichment. Для демо поддерживаем <b>ровно 5</b> клиентов.
-        Кнопка загрузки демо-данных пересоздаёт 5 демо-клиентов; при ручном добавлении демо-клиенты автоматически вытесняются.
-      </div>
     </div>
     <div class="d-flex gap-2">
       <form method="post" action="/actions/import-company-base">
@@ -35,118 +31,97 @@
       <div class="surface-card form-panel h-100">
         <div class="card-header">Добавить клиента вручную</div>
         <div class="card-body">
-      <form method="post" action="/clients" class="row g-2">
-        <div class="col-12 col-md-3">
-          <input class="form-control" name="first_name" placeholder="Имя" required minlength="2" maxlength="50">
-        </div>
-        <div class="col-12 col-md-3">
-          <input class="form-control" name="middle_name" placeholder="Отчество" required minlength="2" maxlength="50">
-          <div class="form-text">Используется для уважительного обращения; модель не будет «придумывать» отчество.</div>
-        </div>
-        <div class="col-12 col-md-3">
-          <input class="form-control" name="last_name" placeholder="Фамилия" required minlength="2" maxlength="50">
-        </div>
-        <div class="col-12 col-md-3">
-          <select class="form-select" name="profession" required>
-            <option value="" selected disabled>Профессия (для проф. праздников)</option>
-            <option value="management">управление</option>
-            <option value="finance">финансы</option>
-            <option value="accounting">бухгалтерия</option>
-            <option value="it">IT</option>
-            <option value="hr">HR</option>
-            <option value="marketing">маркетинг</option>
-            <option value="sales">продажи</option>
-            <option value="logistics">логистика</option>
-            <option value="construction">строительство</option>
-            <option value="medicine">медицина</option>
-            <option value="security">безопасность</option>
-          </select>
-          <div class="form-text">Используется для профессиональных праздников (например «День бухгалтера»).</div>
-        </div>
-        <div class="col-12 col-md-3">
-          <input class="form-control" name="company_name" placeholder="Компания">
-        </div>
-        <div class="col-12 col-md-3">
-          <input class="form-control" name="inn" placeholder="ИНН организации" minlength="10" maxlength="12">
-          <div class="form-text">Нужен для автоматического обогащения профиля компании.</div>
-        </div>
-        <div class="col-12 col-md-3">
-          <input class="form-control" name="position" placeholder="Должность">
-        </div>
+          <form method="post" action="/clients" class="row g-2">
+            
+            <!-- Блок 1: Личные данные -->
+            <div class="col-12">
+              <h6 class="section-title text-muted mb-2 mt-1">Личные данные</h6>
+            </div>
+            <div class="col-12 col-md-3">
+              <input class="form-control" name="first_name" placeholder="Имя" required minlength="2" maxlength="50">
+            </div>
+            <div class="col-12 col-md-3">
+              <input class="form-control" name="middle_name" placeholder="Отчество" title="Используется для уважительного обращения" required minlength="2" maxlength="50">
+            </div>
+            <div class="col-12 col-md-3">
+              <input class="form-control" name="last_name" placeholder="Фамилия" required minlength="2" maxlength="50">
+            </div>
+            <div class="col-12 col-md-3">
+              <input class="form-control" name="birth_date" placeholder="Дата рождения" type="date">
+            </div>
 
-        <div class="col-12 col-md-2">
-          <select class="form-select" name="segment">
-            <option value="standard">стандарт</option>
-            <option value="vip">VIP</option>
-            <option value="loyal">лояльный</option>
-            <option value="new">новый</option>
-          </select>
-        </div>
-        <div class="col-12 col-md-3">
-          <input class="form-control" name="email" placeholder="Email (для реальной отправки)" type="email">
-          <div class="form-text">Адреса вида <code>...@example.com</code> запрещены (демо-безопасность).</div>
-        </div>
-        <div class="col-12 col-md-3">
-          <input class="form-control" name="phone" placeholder="Телефон">
-        </div>
-        <div class="col-12 col-md-2">
-          <select class="form-select" name="preferred_channel">
-            <option value="email">email</option>
-            <option value="sms">sms</option>
-            <option value="messenger">мессенджер</option>
-          </select>
-        </div>
-        <div class="col-12 col-md-2">
-          <input class="form-control" name="birth_date" placeholder="Дата ДР" type="date">
-        </div>
-        <div class="col-12 col-md-12">
-          <button class="btn btn-success quick-action">Добавить клиента</button>
-        </div>
-      </form>
+            <!-- Блок 2: Работа и компания -->
+            <div class="col-12">
+              <h6 class="section-title text-muted mb-2 mt-2">Работа и компания</h6>
+            </div>
+            <div class="col-12 col-md-3">
+              <select class="form-select" name="profession" required title="Используется для профессиональных праздников">
+                <option value="" selected disabled>Профессия</option>
+                <option value="management">Управление</option>
+                <option value="finance">Финансы</option>
+                <option value="accounting">Бухгалтерия</option>
+                <option value="it">IT</option>
+                <option value="hr">HR</option>
+                <option value="marketing">Маркетинг</option>
+                <option value="sales">Продажи</option>
+                <option value="logistics">Логистика</option>
+                <option value="construction">Строительство</option>
+                <option value="medicine">Медицина</option>
+                <option value="security">Безопасность</option>
+              </select>
+            </div>
+            <div class="col-12 col-md-3">
+              <input class="form-control" name="position" placeholder="Должность">
+            </div>
+            <div class="col-12 col-md-3">
+              <input class="form-control" name="company_name" placeholder="Компания">
+            </div>
+            <div class="col-12 col-md-3">
+              <input class="form-control" name="inn" placeholder="ИНН организации" title="Нужен для авто-обогащения профиля" minlength="10" maxlength="12">
+            </div>
+
+            <!-- Блок 3: Контакты и коммуникация -->
+            <div class="col-12">
+              <h6 class="section-title text-muted mb-2 mt-2">Контакты и коммуникация</h6>
+            </div>
+            <div class="col-12 col-md-4">
+              <input class="form-control" name="email" placeholder="Email" type="email" title="Адреса вида '...@example.com' запрещены">
+            </div>
+            <div class="col-12 col-md-4">
+              <input class="form-control" name="phone" placeholder="Телефон">
+            </div>
+            <div class="col-12 col-md-4">
+              <select class="form-select" name="preferred_channel">
+                <option value="" selected disabled>Канал доставки</option>
+                <option value="email">Email</option>
+                <option value="sms">SMS</option>
+                <option value="messenger">Мессенджер</option>
+              </select>
+            </div>
+
+            <!-- Кнопка -->
+            <div class="col-12">
+              <button class="btn btn-success quick-action px-4 mt-2">Добавить клиента</button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
     <div class="col-12 col-xl-4">
-      <div class="surface-panel h-100">
+      <div class="surface-panel">
         <div class="section-title">Качество данных</div>
-        <div class="section-subtitle mb-3">Быстрая сводка по тому, насколько качественно подготовлены клиентские профили.</div>
-        <div class="kpi-strip mb-3">
+        <div class="kpi-strip-container">
           <div class="kpi-pill">
-            <span class="text-muted small">всего клиентов</span>
+            <span class="text-muted small">Всего клиентов</span>
             <b>{{ clients | length }}</b>
           </div>
           <div class="kpi-pill">
-            <span class="text-muted small">обогащено</span>
+            <span class="text-muted small">Обогащено</span>
             <b>{{ clients | selectattr('enrichment_status', 'equalto', 'enriched') | list | length }}</b>
           </div>
           <div class="kpi-pill">
-            <span class="text-muted small">VIP-клиенты</span>
-            <b>{{ clients | selectattr('segment', 'equalto', 'vip') | list | length }}</b>
-          </div>
-          <div class="kpi-pill">
-            <span class="text-muted small">демо-записи</span>
-            <b>{{ clients | selectattr('is_demo', 'equalto', True) | list | length }}</b>
-          </div>
-        </div>
-        <div class="soft-note">
-          <div class="fw-semibold mb-1">Рекомендуемый сценарий демо</div>
-          <div class="section-subtitle">
-            Сначала покажите, что у клиента есть только базовые поля. Затем запустите enrichment и продемонстрируйте,
-            как профиль становится пригодным для более умной генерации поздравлений.
-          </div>
-        </div>
-        <div class="soft-note mt-3">
-          <div class="fw-semibold mb-1">Текущие режимы</div>
-          <div class="section-subtitle">
-            Провайдер enrichment: <b>{{ company_enrichment_provider }}</b>.<br>
-            Отправка поздравлений: <b>{% if delivery_schedule_mode == "immediate" %}сразу после генерации/аппрува{% else %}в дату события{% endif %}</b>.
-          </div>
-        </div>
-        <div class="soft-note mt-3">
-          <div class="fw-semibold mb-1">Как использовать CSV и DaData вместе</div>
-          <div class="section-subtitle">
-            CSV-импорт создаёт локально обогащённую базу для демо. Если включён <b>DaData</b>, используйте актуализацию по ИНН для проверки,
-            что внешний источник действительно работает и умеет обновлять уже загруженные профили.
+            <span class="text-muted small">Демо-записи</span>
+            <b>{{ clients | selectattr('is_demo', 'equalto', true) | list | length }}</b>
           </div>
         </div>
       </div>
@@ -167,7 +142,6 @@
             <th>Компания / Должность</th>
             <th>Обогащение</th>
             <th>Профиль</th>
-            <th>Сегмент</th>
             <th>Тип записи</th>
             <th>Контакт</th>
             <th>ДР</th>
@@ -233,11 +207,6 @@
                 </span>
               </td>
               <td>
-                <span class="badge text-bg-secondary">
-                  {% if c.segment == "vip" %}VIP{% elif c.segment == "loyal" %}лояльный{% elif c.segment == "new" %}новый{% else %}стандарт{% endif %}
-                </span>
-              </td>
-              <td>
                 {% if c.is_demo %}
                   <span class="badge text-bg-warning">демо</span>
                 {% else %}
@@ -284,5 +253,3 @@
     </div>
   </div>
 {% endblock %}
-
-

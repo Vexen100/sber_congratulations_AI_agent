@@ -10,5 +10,3 @@ apscheduler>=3.10,<4.0
 tenacity>=8.2,<9.0
 httpx>=0.27,<1.0
 pillow>=10.3,<12.0
-
-

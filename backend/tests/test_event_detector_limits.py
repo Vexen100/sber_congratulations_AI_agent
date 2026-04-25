@@ -17,7 +17,6 @@ async def test_holiday_recipients_are_limited(db_session):
             Client(
                 first_name=f"Test{i}",
                 last_name="User",
-                segment="standard",
                 email=f"test{i}@example.com",
                 preferred_channel="email",
                 birth_date=None,

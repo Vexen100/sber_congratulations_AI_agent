@@ -36,7 +36,10 @@ class OpenAICompatibleProvider(BaseLLMProvider):
         self._temperature = float(settings.openai_temperature)
         self._timeout = float(settings.openai_timeout_sec)
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=0.5, min=0.5, max=3))
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=0.5, min=0.5, max=3),
+    )
     async def generate(self, *, system: str, user: str) -> str:
         url = f"{self._base_url}/chat/completions"
         headers = {"Authorization": f"Bearer {settings.openai_api_key}"}

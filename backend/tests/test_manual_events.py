@@ -19,7 +19,6 @@ async def test_create_manual_event_record_persists_event(db_session):
         last_name="Петрова",
         company_name="ООО Партнер",
         profession="management",
-        segment="standard",
         email="partner@company.test",
         preferred_channel="email",
         is_demo=False,
@@ -44,11 +43,11 @@ async def test_create_manual_event_record_persists_event(db_session):
 async def test_seed_manual_campaign_for_real_clients_generates_agent_input(db_session):
     today = dt.date.today()
     clients = [
-        ("sales", "standard", "ООО Компания Продаж"),
-        ("finance", "vip", "ООО Компания Финансы"),
-        ("it", "standard", "ООО Компания Тех"),
+        ("sales", "ООО Компания Продаж"),
+        ("finance", "ООО Компания Финансы"),
+        ("it", "ООО Компания Тех"),
     ]
-    for idx, (profession, segment, company) in enumerate(clients):
+    for idx, (profession, company) in enumerate(clients):
         db_session.add(
             Client(
                 first_name=f"Клиент{idx}",
@@ -56,7 +55,6 @@ async def test_seed_manual_campaign_for_real_clients_generates_agent_input(db_se
                 last_name="Тестов",
                 company_name=company,
                 profession=profession,
-                segment=segment,
                 email=f"real{idx}@company.test",
                 preferred_channel="email",
                 is_demo=False,
