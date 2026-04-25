@@ -28,10 +28,10 @@ jobs:
         run: |
           cd backend
           python -m ruff check .
-      - name: Format check (ruff)
+      - name: Format check (black)
         run: |
           cd backend
-          python -m ruff format --check .
+          python -m black --check .
 
   unit-tests:
     runs-on: ubuntu-latest
