@@ -33,11 +33,11 @@
 - **Причина**: конвейер должен быть безопасен к повторным прогонам и scheduler-сценариям.
 - **Файлы**: `backend/app/services/sender.py`.
 
-## 6) VIP approval gating
+## 6) Без VIP approval gating (единый конвейер отправки)
 
-- **Решение**: для клиентов `segment=vip` создаётся `Greeting.status="needs_approval"` и автоматическая отправка блокируется до ручного approve.
-- **Причина**: это снижает риск неудачной коммуникации по чувствительным клиентам.
-- **Файлы**: `backend/app/agent/orchestrator.py`, `backend/app/services/approval.py`, `backend/app/web/templates/greetings.html`.
+- **Решение**: сегментация клиента и ручное согласование перед отправкой убраны. Все поздравления создаются как `status="generated"`, а отправка определяется только режимом `DELIVERY_SCHEDULE_MODE` и датой события.
+- **Причина**: продуктовая логика упрощена; согласование/отклонение перенесено в feedback как вердикт для будущего обучения и аналитики, без влияния на доставку.
+- **Файлы**: `backend/app/agent/orchestrator.py`, `backend/app/services/due_sender.py`, `backend/app/web/templates/greetings.html`.
 
 ## 7) Аудит запусков через AgentRun
 
@@ -53,15 +53,15 @@
 
 ## 9) Feedback loop для Human-in-the-Loop
 
-- **Решение**: менеджер может сохранять `score`, `outcome`, `notes` для каждого поздравления.
-- **Причина**: это создаёт канал оценки качества и фундамент для дальнейшего улучшения генерации.
+- **Решение**: менеджер сохраняет `score` (1–5), `notes` и вердикт `training_verdict=accepted|rejected` для каждого поздравления.
+- **Причина**: это создаёт канал оценки качества и механизм отбора примеров для дальнейшего улучшения генерации (в т.ч. few-shot/RAG), не вмешиваясь в отправку.
 - **Файлы**: `backend/app/services/feedback.py`, `backend/app/web/templates/greetings.html`, `backend/app/api/routes/feedback.py`.
 
 ## 10) Управляемый режим отправки через `.env`
 
 - **Решение**: время отправки вынесено в `DELIVERY_SCHEDULE_MODE=event_date|immediate`.
 - **Причина**: demo-сценарий и более реалистичный сценарий доставки требуют разного поведения без переписывания кода.
-- **Файлы**: `backend/app/core/config.py`, `backend/app/services/due_sender.py`, `backend/app/services/approval.py`, `backend/env.example`.
+- **Файлы**: `backend/app/core/config.py`, `backend/app/services/due_sender.py`, `backend/env.example`.
 
 ## 11) Ручные события для импортированной базы
 
@@ -71,9 +71,15 @@
 
 ## 12) Post-generation funnel на dashboard
 
-- **Решение**: dashboard показывает путь `generated -> needs approval -> delivered -> feedback` и связанные health-метрики.
+- **Решение**: dashboard показывает метрики по доставке/feedback/вердиктам (без стадии approval).
 - **Причина**: нужен быстрый управленческий экран, объясняющий качество процесса без погружения в отдельные таблицы.
 - **Файлы**: `backend/app/web/router.py`, `backend/app/web/templates/dashboard.html`.
+
+## 15) (Опционально) RAG few-shot по менеджерскому feedback
+
+- **Решение**: векторная память примеров включается только флагом `VECTOR_FEEDBACK_ENABLED`; тяжёлые зависимости вынесены в отдельный `backend/requirements-rag.txt`, а при выключенном флаге слой работает как no-op.
+- **Причина**: CI/офлайн-демо должны оставаться быстрыми и детерминированными; RAG нужен как расширение для более качественной генерации в LLM-режимах.
+- **Файлы**: `backend/app/services/vector_feedback.py`, `backend/app/agent/generator.py`, `backend/app/agent/llm_prompts.py`, `backend/env.example`.
 
 ## 13) Holiday knowledge layer и semantic-layer
 
