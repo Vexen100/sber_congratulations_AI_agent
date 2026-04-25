@@ -18,6 +18,8 @@ and the repository follows a lightweight semantic versioning approach for releas
 ### Changed
 
 - Web UI feedback на странице поздравлений: одна кнопка сохранения отзыва, обязательный `score`; `training_verdict` выставляется в `save_feedback()` по оценке (4–5 → `accepted`, 1–3 → `rejected`), явная передача вердикта из формы не используется. API по-прежнему допускает явный `training_verdict` при создании записи.
+- Конфигурация доставки: удалён неиспользуемый параметр `DELIVERY_SCHEDULE_MODE`; отправка всегда происходит только в день события (`Event.event_date == today`).
+- Планировщик: автономность теперь гейтит scheduler и запуск «run once on start» (если автономность выключена — прогон не запускается).
 - Документация: `docs/DECISIONS.md` (в т.ч. нумерация разделов 13–15), `README.md`, `docs/PROJECT_OVERVIEW.md`, `SETUP.md`, `ROADMAP.md`, этот changelog — без ссылок на удалённый VIP-контур и устаревший ручной вердикт в UI.
 
 ### Removed

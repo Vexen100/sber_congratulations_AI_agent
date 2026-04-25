@@ -11,10 +11,19 @@ from app.agent.orchestrator import run_once
 from app.core.config import settings
 from app.core.logging import configure_logging
 from app.db.session import SessionLocal
+from app.services.autonomy import get_or_create_state
+
+
+async def _autonomy_enabled(session) -> bool:
+    state = await get_or_create_state(session)
+    return bool(state.enabled)
 
 
 async def _job() -> None:
     async with SessionLocal() as session:
+        if not await _autonomy_enabled(session):
+            logging.getLogger(__name__).info("autonomy disabled; skipping scheduler job")
+            return
         summary = await run_once(session, today=dt.date.today(), triggered_by="scheduler")
         logging.getLogger(__name__).info("agent run summary: %s", summary.as_dict())
 
@@ -27,7 +36,11 @@ async def main() -> None:
     scheduler.start()
 
     # Demo-friendly: run once on start (so you don't have to wait for 09:00).
-    await _job()
+    async with SessionLocal() as session:
+        if await _autonomy_enabled(session):
+            await _job()
+        else:
+            logging.getLogger(__name__).info("autonomy disabled; skipping run-on-start")
 
     logging.getLogger(__name__).info("scheduler started; press Ctrl+C to stop")
     while True:

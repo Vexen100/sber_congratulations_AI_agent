@@ -43,10 +43,7 @@
 3) **Sender** доставляет через канал (в MVP: файловый outbox), фиксирует Delivery с **idempotency_key**.  
 4) **Web/UI + API** даёт контроль и ручные операции.
 
-Ключевой принцип доставки настраивается через `.env`:  
-- `DELIVERY_SCHEDULE_MODE=event_date` — поздравления могут генерироваться заранее, но отправка происходит только в день события;  
-- `DELIVERY_SCHEDULE_MODE=immediate` — поздравление отправляется сразу после генерации.  
-Ручного approve в MVP больше нет.
+Ключевой принцип доставки: поздравления могут генерироваться заранее, но **отправка происходит только в день события** (`Event.event_date == today`). Ручного approve в MVP больше нет.
 
 ## Структура репозитория
 
@@ -151,7 +148,6 @@ scripts\kill_port.cmd 8000
 - **MAX_GIGACHAT_IMAGES_PER_RUN**: лимит генераций изображений через GigaChat за один прогон (скорость/токены). Остальные картинки — Pillow fallback.
 - **GIGACHAT_IMAGE_GENERATION_TIMEOUT_SEC**: отдельный таймаут именно на генерацию изображения через GigaChat; полезно повышать для демо, если часть картинок не успевает вернуться.
 - **SEND_MODE**: `file` (MVP) — пишет письма в outbox.
-- **DELIVERY_SCHEDULE_MODE**: `event_date` или `immediate`.
 - **OUTBOX_DIR**: куда «отправлять».
 - **COMPANY_ENRICHMENT_PROVIDER**: `demo`, `dadata`, `hybrid`.
 - **COMPANY_IMPORT_CSV_PATH**: путь к CSV-справочнику компаний.

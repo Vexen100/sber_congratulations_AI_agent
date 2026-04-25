@@ -49,7 +49,6 @@ CSV / demo seed / DaData
 | `LLM_MODE` | `template`, `gigachat`, `openai` | Генерация текста |
 | `IMAGE_MODE` | `pillow`, `gigachat` | Генерация открыток |
 | `SEND_MODE` | `file`, `smtp` | Канал доставки |
-| `DELIVERY_SCHEDULE_MODE` | `event_date`, `immediate` | Когда отправлять поздравление |
 | `COMPANY_ENRICHMENT_PROVIDER` | `demo`, `dadata`, `hybrid` | Источник enrichment |
 | `VECTOR_FEEDBACK_ENABLED` | `true`, `false` | Опциональный few-shot по принятым отзывам (см. `docs/DECISIONS.md`, §13) |
 
