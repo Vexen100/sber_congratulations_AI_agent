@@ -229,8 +229,7 @@ async def test_greetings_page_includes_training_verdict_form(db_session):
     app.dependency_overrides.clear()
 
     assert resp.status_code == 200
-    assert 'name="training_verdict"' in resp.text
-    assert ">Принять</button>" in resp.text
+    assert ">Сохранить отзыв</button>" in resp.text
     assert "1 — Ужасно" in resp.text
 
 

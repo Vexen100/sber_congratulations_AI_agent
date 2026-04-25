@@ -489,10 +489,9 @@ async def greetings_page(request: Request, session: AsyncSession = Depends(get_s
 @router.post("/actions/greetings/{greeting_id}/feedback")
 async def action_feedback_greeting(
     greeting_id: int,
-    score: int | None = Form(None),
+    score: int = Form(...),
     outcome: str = Form("unknown"),
     notes: str = Form(""),
-    training_verdict: str | None = Form(None),
     session: AsyncSession = Depends(get_session),
 ):
     """Сохранение оценки (без approve/reject)"""
@@ -502,7 +501,6 @@ async def action_feedback_greeting(
             greeting_id=greeting_id,
             score=score,
             notes=notes,
-            training_verdict=training_verdict,
         )
         return RedirectResponse(
             url=f"/greetings?msg={quote('Отзыв сохранён')}",

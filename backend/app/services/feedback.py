@@ -25,6 +25,10 @@ def _should_save_to_vector_db(*, training_verdict: str | None, score: int | None
     return int(score) >= 4
 
 
+def _auto_training_verdict(score: int) -> str:
+    return "accepted" if int(score) >= 4 else "rejected"
+
+
 async def save_feedback(
     session: AsyncSession,
     *,
@@ -41,6 +45,10 @@ async def save_feedback(
     norm_verdict = (training_verdict or "").strip().lower() or None
     if norm_verdict is not None and norm_verdict not in VALID_TRAINING_VERDICTS:
         raise ValueError("training_verdict must be 'accepted' or 'rejected'")
+
+    # Auto-verdict: if caller did not provide it, infer from score.
+    if norm_verdict is None and score is not None:
+        norm_verdict = _auto_training_verdict(int(score))
 
     if norm_verdict is not None:
         if score is None:
@@ -65,7 +73,7 @@ async def save_feedback(
     await session.commit()
     await session.refresh(entry)
 
-    if _should_save_to_vector_db(training_verdict=norm_verdict, score=entry.score):
+    if _should_save_to_vector_db(training_verdict=entry.training_verdict, score=entry.score):
         try:
             # Optional dependency. Must never break core save_feedback flow.
             from app.core.config import settings

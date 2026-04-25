@@ -178,7 +178,7 @@
                 {% endif %}
                 <form method="post" action="/actions/greetings/{{ g.id }}/feedback" class="row g-1">
                   <div class="col-12">
-                    <select class="form-select form-select-sm" name="score">
+                    <select class="form-select form-select-sm" name="score" required>
                       <option value="" selected>Оценка</option>
                       <option value="1">1 — Ужасно</option>
                       <option value="2">2 — Плохо</option>
@@ -190,9 +190,8 @@
                   <div class="col-12">
                     <input class="form-control form-control-sm" name="notes" placeholder="Комментарий к оценке">
                   </div>
-                  <div class="col-12 d-flex flex-wrap gap-1">
-                    <button type="submit" name="training_verdict" value="accepted" class="btn btn-sm btn-success">Принять</button>
-                    <button type="submit" name="training_verdict" value="rejected" class="btn btn-sm btn-outline-danger">Отклонить</button>
+                  <div class="col-12">
+                    <button type="submit" class="btn btn-sm btn-primary">Сохранить отзыв</button>
                   </div>
                 </form>
               </td>
