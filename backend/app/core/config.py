@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     tz: str = "Europe/Moscow"
 
     database_url: str = "sqlite+aiosqlite:///./data/app.db"
+    vector_db_path: str = "data/vector_db"
 
     lookahead_days: int = 7
     max_holiday_recipients: int = 12  # prevents token blow-up on demo (per holiday)

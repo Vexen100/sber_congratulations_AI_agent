@@ -159,7 +159,6 @@ async def action_run_agent(session: AsyncSession = Depends(get_session)):
 
 @router.post("/actions/seed-demo")
 async def action_seed_demo(session: AsyncSession = Depends(get_session)):
-    # Reseed demo data every time: random 5 clients with upcoming birthdays (good for demos).
     from app.api.routes.clients import seed_demo_clients
 
     await seed_demo_clients(session, n=5, replace=True)
@@ -316,7 +315,6 @@ async def clients_create(
         if pref == "email" and not em:
             raise ValueError("email: обязателен для preferred_channel=email")
 
-        # Keep total clients at 5 to avoid hitting GigaChat image limits in demo.
         clients = (
             (await session.execute(select(Client).order_by(Client.created_at.asc())))
             .scalars()
@@ -325,7 +323,6 @@ async def clients_create(
         if len(clients) >= 5:
             demo_clients = [c for c in clients if getattr(c, "is_demo", False)]
             if demo_clients:
-                # Remove the oldest demo client to keep capacity.
                 await session.delete(demo_clients[0])
                 await session.commit()
             else:
@@ -498,12 +495,12 @@ async def action_feedback_greeting(
     training_verdict: str | None = Form(None),
     session: AsyncSession = Depends(get_session),
 ):
+    """Сохранение оценки (без approve/reject)"""
     try:
         await save_feedback(
             session,
             greeting_id=greeting_id,
             score=score,
-            outcome=outcome,
             notes=notes,
             training_verdict=training_verdict,
         )

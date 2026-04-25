@@ -100,6 +100,7 @@
             <th>Событие</th>
             <th>Клиент</th>
             <th>Статус</th>
+            <th>Источник</th>
             <th>Обратная связь</th>
             <th>Тема</th>
             <th>Открытка</th>
@@ -143,15 +144,32 @@
                   <span class="badge text-bg-secondary">{{ g.status }}</span>
                 {% endif %}
               </td>
+              
+              <td class="small">
+                {% if g.generation_source %}
+                  {% if "fewshot" in g.generation_source %}
+                    <span class="badge text-bg-info" title="С примерами из векторной БД">few-shot</span>
+                  {% elif g.generation_source == "template" %}
+                    <span class="badge text-bg-secondary">template</span>
+                  {% elif g.generation_source == "llm_no_examples" %}
+                    <span class="badge text-bg-light">llm</span>
+                  {% else %}
+                    <span class="badge text-bg-light">{{ g.generation_source }}</span>
+                  {% endif %}
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+
               <td class="small">
                 {% if g.feedback_entries %}
                   {% set latest = g.feedback_entries[-1] %}
                   <div class="mb-2">
                     <span class="badge text-bg-success">оценка: {{ latest.score or "—" }}</span>
                     {% if latest.training_verdict == "accepted" %}
-                      <span class="badge text-bg-primary">дообучение: принято</span>
+                      <span class="badge text-bg-primary">принято</span>
                     {% elif latest.training_verdict == "rejected" %}
-                      <span class="badge text-bg-warning text-dark">дообучение: отклонено</span>
+                      <span class="badge text-bg-warning text-dark">отклонено</span>
                     {% endif %}
                   </div>
                   {% if latest.notes %}
@@ -178,6 +196,7 @@
                   </div>
                 </form>
               </td>
+
               <td class="small">
                 <div class="fw-semibold">{{ g.subject }}</div>
                 <details class="mt-2">
@@ -192,10 +211,11 @@
                   <div class="soft-note">Открытка появится после генерации.</div>
                 {% endif %}
               </td>
+              
             </tr>
           {% else %}
             <tr>
-              <td colspan="7" class="empty-state">Поздравлений пока нет. Запустите агента, чтобы заполнить эту страницу.</td>
+              <td colspan="8" class="empty-state">Поздравлений пока нет. Запустите агента, чтобы заполнить эту страницу.</td>
             </tr>
           {% endfor %}
         </tbody>

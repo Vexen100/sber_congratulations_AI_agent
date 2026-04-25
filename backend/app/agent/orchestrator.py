@@ -149,7 +149,7 @@ async def run_once(
                     continue
 
                 choice = choose_template(event_type=ev.event_type, title=ev.title)
-                tone, subject, body = await generate_subject_body(
+                tone, subject, body, generation_source = await generate_subject_body(
                     event=ev, client=client, template_choice=choice, today=today
                 )
 
@@ -225,6 +225,7 @@ async def run_once(
                     body=body,
                     image_path=rel_image_path,
                     status="generated",
+                    generation_source=generation_source,
                 )
                 session.add(greeting)
                 await session.commit()
