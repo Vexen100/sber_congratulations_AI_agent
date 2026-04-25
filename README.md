@@ -148,6 +148,7 @@ scripts\kill_port.cmd 8000
 - **MAX_GIGACHAT_IMAGES_PER_RUN**: лимит генераций изображений через GigaChat за один прогон (скорость/токены). Остальные картинки — Pillow fallback.
 - **GIGACHAT_IMAGE_GENERATION_TIMEOUT_SEC**: отдельный таймаут именно на генерацию изображения через GigaChat; полезно повышать для демо, если часть картинок не успевает вернуться.
 - **SEND_MODE**: `file` (MVP) — пишет письма в outbox.
+- **SCHEDULER_MODE**: `off|inprocess|worker` — где запускается планировщик автономного режима. Autonomy включается только кнопкой в UI; ручной запуск агента работает всегда.
 - **OUTBOX_DIR**: куда «отправлять».
 - **COMPANY_ENRICHMENT_PROVIDER**: `demo`, `dadata`, `hybrid`.
 - **COMPANY_IMPORT_CSV_PATH**: путь к CSV-справочнику компаний.

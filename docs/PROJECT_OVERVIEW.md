@@ -49,6 +49,7 @@ CSV / demo seed / DaData
 | `LLM_MODE` | `template`, `gigachat`, `openai` | Генерация текста |
 | `IMAGE_MODE` | `pillow`, `gigachat` | Генерация открыток |
 | `SEND_MODE` | `file`, `smtp` | Канал доставки |
+| `SCHEDULER_MODE` | `off`, `inprocess`, `worker` | Где запускается scheduler автономного режима |
 | `COMPANY_ENRICHMENT_PROVIDER` | `demo`, `dadata`, `hybrid` | Источник enrichment |
 | `VECTOR_FEEDBACK_ENABLED` | `true`, `false` | Опциональный few-shot по принятым отзывам (см. `docs/DECISIONS.md`, §13) |
 

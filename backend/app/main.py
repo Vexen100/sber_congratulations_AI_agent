@@ -45,10 +45,17 @@ def create_app() -> FastAPI:
                 summary = await run_once(session, triggered_by="scheduler")
                 log.info("autonomy run summary: %s", summary.as_dict())
 
-        # In-process scheduler for autonomous mode (daily 09:00 in configured timezone).
-        scheduler = AsyncIOScheduler(timezone=ZoneInfo(getattr(settings, "tz", "Europe/Moscow")))
-        scheduler.add_job(_autonomy_job, "cron", hour=9, minute=0)
-        scheduler.start()
+        mode = (getattr(settings, "scheduler_mode", "off") or "off").strip().lower()
+        if mode == "inprocess":
+            # In-process scheduler for autonomous mode (daily 09:00 in configured timezone).
+            scheduler = AsyncIOScheduler(
+                timezone=ZoneInfo(getattr(settings, "tz", "Europe/Moscow"))
+            )
+            scheduler.add_job(_autonomy_job, "cron", hour=9, minute=0)
+            scheduler.start()
+            log.info("scheduler enabled (mode=inprocess)")
+        else:
+            log.info("scheduler disabled (mode=%s)", mode)
         yield
         if scheduler:
             scheduler.shutdown(wait=False)

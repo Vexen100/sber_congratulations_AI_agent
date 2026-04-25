@@ -30,6 +30,10 @@ async def _job() -> None:
 
 async def main() -> None:
     configure_logging()
+    mode = (getattr(settings, "scheduler_mode", "off") or "off").strip().lower()
+    if mode != "worker":
+        logging.getLogger(__name__).info("scheduler process disabled (mode=%s); exiting", mode)
+        return
     scheduler = AsyncIOScheduler(timezone=ZoneInfo(getattr(settings, "tz", "Europe/Moscow")))
     # Regular mode: every day at 09:00 in configured timezone
     scheduler.add_job(_job, "cron", hour=9, minute=0)

@@ -26,6 +26,12 @@ class Settings(BaseSettings):
     send_mode: str = "file"  # file|smtp|noop
     outbox_dir: str = "./data/outbox"
 
+    # Scheduler mode (autonomy runs)
+    # - off: no scheduler anywhere (prod-safe default)
+    # - inprocess: scheduler inside FastAPI lifespan
+    # - worker: scheduler as a separate process (app.worker.run_scheduler)
+    scheduler_mode: str = "off"  # off|inprocess|worker
+
     company_enrichment_provider: str = "demo"  # demo|dadata|hybrid
     company_import_csv_path: str = "./app/resources/company_data/export-base_demo_takbup.csv"
 
