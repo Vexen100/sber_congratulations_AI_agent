@@ -37,13 +37,13 @@
 
 - **Решение**: сегментация клиента и ручное согласование перед отправкой убраны. Все поздравления создаются как `status="generated"`, а отправка происходит только в день события (`Event.event_date == today`) и зависит от `SEND_MODE` (file/smtp/noop).
 - **Причина**: продуктовая логика упрощена; качество для аналитики и будущего дообучения фиксируется через feedback (оценка и производный `training_verdict`), без влияния на доставку.
-- **Файлы**: `backend/app/agent/orchestrator.py`, `backend/app/services/due_sender.py`, `backend/app/web/templates/greetings.html`.
+- **Файлы**: `backend/app/agent/orchestrator.py`, `backend/app/services/due_sender.py`, `frontend/src/App.tsx`.
 
 ## 7) Аудит запусков через AgentRun
 
 - **Решение**: каждый `run_once()` фиксируется как `AgentRun`, а greeting-объекты связываются с конкретным run.
 - **Причина**: для диагностики и демонстрации важен прозрачный аудит не только по счётчикам, но и по конкретным результатам прогона.
-- **Файлы**: `backend/app/db/models.py`, `backend/app/agent/orchestrator.py`, `backend/app/web/templates/runs.html`, `backend/app/web/templates/run_detail.html`.
+- **Файлы**: `backend/app/db/models.py`, `backend/app/agent/orchestrator.py`, `backend/app/api/routes/ui.py`, `frontend/src/App.tsx`.
 
 ## 8) Company enrichment через provider-based слой
 
@@ -53,9 +53,9 @@
 
 ## 9) Feedback loop для Human-in-the-Loop
 
-- **Решение**: в web UI менеджер сохраняет обязательный `score` (1–5), опционально `outcome` и `notes`; отдельного выбора вердикта в форме нет. В `save_feedback()` при отсутствии явного `training_verdict` он выводится из оценки: **4–5 → `accepted`**, **1–3 → `rejected`** (для отбора примеров дообучения и метрик). Через API по-прежнему можно передать `training_verdict` явно (`accepted` или `rejected`) — значение валидируется.
+- **Решение**: в React UI менеджер сохраняет обязательный `score` (1–5), опционально `outcome` и `notes`; отдельного выбора вердикта в форме нет. В `save_feedback()` при отсутствии явного `training_verdict` он выводится из оценки: **4–5 → `accepted`**, **1–3 → `rejected`** (для отбора примеров дообучения и метрик). Через API по-прежнему можно передать `training_verdict` явно (`accepted` или `rejected`) — значение валидируется.
 - **Причина**: единый простой сценарий в UI и предсказуемая связь «оценка → допуск к обучающей выборке», без смешения с доставкой.
-- **Файлы**: `backend/app/services/feedback.py`, `backend/app/web/templates/greetings.html`, `backend/app/web/router.py`, `backend/app/api/routes/feedback.py`.
+- **Файлы**: `backend/app/services/feedback.py`, `backend/app/api/routes/feedback.py`, `backend/app/api/routes/ui.py`, `frontend/src/App.tsx`.
 
 ## 10) Управляемый режим отправки через `.env`
 
@@ -65,13 +65,13 @@ _Удалено_ (переменная `DELIVERY_SCHEDULE_MODE` больше н�
 
 - **Решение**: оператор может создать единичный ручной повод или demo-кампанию для реальных клиентов.
 - **Причина**: импортированная база не обязана иметь релевантные дни рождения или праздники в текущем окне времени, а генерацию нужно запускать уже сейчас.
-- **Файлы**: `backend/app/services/manual_events.py`, `backend/app/api/routes/events.py`, `backend/app/web/templates/events.html`.
+- **Файлы**: `backend/app/services/manual_events.py`, `backend/app/api/routes/events.py`, `backend/app/api/routes/ui.py`, `frontend/src/App.tsx`.
 
 ## 12) Post-generation funnel на dashboard
 
 - **Решение**: dashboard показывает метрики по доставке/feedback/вердиктам (без стадии approval).
 - **Причина**: нужен быстрый управленческий экран, объясняющий качество процесса без погружения в отдельные таблицы.
-- **Файлы**: `backend/app/web/router.py`, `backend/app/web/templates/dashboard.html`.
+- **Файлы**: `backend/app/api/routes/ui.py`, `frontend/src/App.tsx`.
 
 ## 13) (Опционально) RAG few-shot по менеджерскому feedback
 
@@ -90,5 +90,4 @@ _Удалено_ (переменная `DELIVERY_SCHEDULE_MODE` больше н�
 - **Решение**: SMTP-отправка формирует `multipart/alternative` письмо с HTML-версией, а клиенты без пригодного email автоматически переводятся в file-outbox fallback.
 - **Причина**: нужен одновременно более продуктовый email-канал и устойчивый demo-flow без падений на неполных контактах.
 - **Файлы**: `backend/app/services/email_rendering.py`, `backend/app/services/sender.py`, `backend/app/services/due_sender.py`.
-
 

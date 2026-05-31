@@ -95,10 +95,10 @@ async def test_manual_run_works_when_autonomy_disabled(db_session, monkeypatch):
     app.dependency_overrides[get_session] = override_session
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.post("/actions/run-agent")
+        resp = await client.post("/api/ui/agent/run-once")
     app.dependency_overrides.clear()
 
-    assert resp.status_code in (200, 303)
+    assert resp.status_code == 200
 
     runs = (await db_session.execute(select(AgentRun.id))).scalars().all()
     assert len(runs) >= 1

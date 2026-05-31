@@ -11,6 +11,7 @@ from app.api.routes import (
     feedback,
     greetings,
     health,
+    ui,
 )
 
 api_router = APIRouter(prefix="/api")
@@ -23,3 +24,4 @@ api_router.include_router(deliveries.router, tags=["deliveries"])
 api_router.include_router(feedback.router, tags=["feedback"])
 api_router.include_router(agent.router, tags=["agent"])
 api_router.include_router(autonomy.router, tags=["autonomy"])
+api_router.include_router(ui.router, tags=["ui"])

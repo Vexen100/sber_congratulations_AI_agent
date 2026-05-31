@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 def test_static_css_modules_exist():
-    base = Path(__file__).resolve().parents[1] / "app" / "web" / "static" / "css"
+    base = Path(__file__).resolve().parents[1] / "app" / "static"
     assert (base / "main.css").exists()
     assert (base / "base" / "variables.css").exists()
     assert (base / "base" / "typography.css").exists()

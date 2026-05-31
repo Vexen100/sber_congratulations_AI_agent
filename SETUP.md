@@ -99,6 +99,28 @@ scripts\kill_port.cmd 8000
 
 Важно: агент **может сгенерировать поздравления заранее**, но отправка происходит **только в день события**.
 
+## React UI (опционально)
+
+Backend теперь обслуживает только React UI. Чтобы открыть интерфейс через FastAPI, сначала соберите frontend:
+
+```bat
+cd frontend
+npm install
+npm run build
+cd ..
+scripts\run_backend.cmd
+```
+
+Для разработки можно запустить Vite отдельно. Он проксирует `/api`, `/data` и `/static` на backend на порту `8001`:
+
+```bat
+cd frontend
+npm install
+npm run dev
+```
+
+Если React build отсутствует, backend покажет страницу-подсказку с командой `npm run build`.
+
 ## (Опционально) Регулярный режим (планировщик)
 
 Запуск:
@@ -158,5 +180,3 @@ pip install -r requirements-rag.txt
 VECTOR_FEEDBACK_ENABLED=true
 VECTOR_DB_PATH=./data/chroma_feedback
 ```
-
-

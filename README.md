@@ -48,12 +48,13 @@
 ## Структура репозитория
 
 ```
-backend/                 # FastAPI + web UI (Jinja) + SQLite + агент + планировщик
+backend/                 # FastAPI + API + React static host + SQLite + агент + планировщик
   app/
   tests/
   requirements.txt
   requirements-dev.txt
   env.example
+frontend/                # React/Vite UI (опциональная SPA-сборка поверх API)
 scripts/                 # удобные команды для Windows
 ROADMAP.md
 ```
@@ -61,7 +62,7 @@ ROADMAP.md
 ## Скрипты (Windows)
 
 - **`scripts/setup_backend.cmd`**: создаёт `backend/.venv`, ставит зависимости, создаёт `backend/.env` из `backend/env.example`.
-- **`scripts/run_backend.cmd`**: запускает web UI + API (по умолчанию порт **8001**; можно переопределить через `PORT`).
+- **`scripts/run_backend.cmd`**: запускает API + React-host backend (по умолчанию порт **8001**; можно переопределить через `PORT`).
 - **`scripts/run_scheduler.cmd`**: запускает планировщик (демо «регулярного» режима).
 - **`scripts/kill_port.cmd`**: освобождает порт (если после прошлых запусков остались «залипшие» процессы).
 
@@ -78,6 +79,7 @@ scripts\run_backend.cmd
 
 - **ОС**: Windows поддерживается из коробки через `.cmd`-скрипты; для Linux/macOS команды нужно адаптировать вручную.
 - **Python**: 3.10+
+- **Node.js/npm**: нужны только для разработки или сборки React UI.
 - **База данных**: SQLite по умолчанию
 
 ## Локальный запуск на Windows
@@ -126,6 +128,26 @@ scripts\run_backend.cmd
 ```bat
 scripts\kill_port.cmd 8000
 ```
+
+### React UI
+
+Dev-режим React:
+
+```bat
+cd frontend
+npm install
+npm run dev
+```
+
+Production-сборка, которую FastAPI начнёт отдавать на `/`, `/clients`, `/events`, `/greetings`, `/deliveries`, `/runs`:
+
+```bat
+cd frontend
+npm install
+npm run build
+```
+
+Если `frontend/dist/index.html` отсутствует, backend покажет служебную страницу с подсказкой собрать frontend или запустить Vite dev server.
 
 ### 4) Демо-сценарий (рекомендуемый)
 
@@ -253,5 +275,3 @@ pytest -q -m integration
 - Обогащение по ИНН: ОКВЭД/руководитель (интеграции/парсинг), кэширование.
 - Контентные guardrails (политики, стоп-слова, антигаллюцинации, проверка фактов).
 - Петля обучения: A/B шаблонов, метрики отклика, обучение ранжирования.
-
-

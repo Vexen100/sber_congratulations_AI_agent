@@ -20,6 +20,45 @@ from app.services.company_import import import_clients_from_company_csv
 
 router = APIRouter(prefix="/clients")
 
+_NAME_RE = re.compile(r"^[A-Za-zА-Яа-яЁё][A-Za-zА-Яа-яЁё\s\-]{1,49}$")
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+_PROFESSIONS = {
+    "management",
+    "finance",
+    "accounting",
+    "it",
+    "hr",
+    "marketing",
+    "sales",
+    "logistics",
+    "construction",
+    "medicine",
+    "security",
+}
+
+
+def _validate_human_name(value: str | None, *, field: str) -> str:
+    normalized = (value or "").strip()
+    if not _NAME_RE.fullmatch(normalized):
+        raise HTTPException(
+            status_code=400,
+            detail=f"{field}: используйте 2-50 символов (буквы/пробел/дефис)",
+        )
+    return normalized
+
+
+def _validate_email(value: str | None) -> str:
+    normalized = (value or "").strip()
+    if not _EMAIL_RE.fullmatch(normalized):
+        raise HTTPException(status_code=400, detail="email: некорректный формат")
+    lower = normalized.lower()
+    if lower.endswith("@example.com") or lower.endswith(".invalid") or lower.endswith(".example"):
+        raise HTTPException(
+            status_code=400,
+            detail="email: используйте реальный адрес (example.com запрещён)",
+        )
+    return normalized
+
 
 @router.get("", response_model=list[ClientOut])
 async def list_clients(session: AsyncSession = Depends(get_session)) -> list[Client]:
@@ -34,10 +73,56 @@ async def create_client(
     inn = re.sub(r"\D", "", data.get("inn") or "")
     if inn and len(inn) not in {10, 12}:
         raise HTTPException(status_code=400, detail="inn must contain 10 or 12 digits")
+
+    first_name = _validate_human_name(data.get("first_name"), field="first_name")
+    middle_name = _validate_human_name(data.get("middle_name"), field="middle_name")
+    last_name = _validate_human_name(data.get("last_name"), field="last_name")
+    profession = (data.get("profession") or "").strip().lower()
+    if profession not in _PROFESSIONS:
+        raise HTTPException(status_code=400, detail="profession: выберите значение из списка")
+
+    preferred_channel = (data.get("preferred_channel") or "email").strip().lower()
+    if preferred_channel not in {"email", "sms", "messenger"}:
+        raise HTTPException(status_code=400, detail="preferred_channel: недопустимое значение")
+
+    email = None
+    if data.get("email"):
+        email = _validate_email(data.get("email"))
+    if preferred_channel == "email" and not email:
+        raise HTTPException(status_code=400, detail="email: обязателен для preferred_channel=email")
+
+    clients = (
+        (await session.execute(select(Client).order_by(Client.created_at.asc(), Client.id.asc())))
+        .scalars()
+        .all()
+    )
+    if len(clients) >= 5:
+        demo_client = next((client for client in clients if client.is_demo), None)
+        if demo_client:
+            await session.delete(demo_client)
+            await session.commit()
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Лимит: уже 5 реальных клиентов. Удалите одного или используйте "
+                    "Seed demo data."
+                ),
+            )
+
     data["inn"] = inn or None
+    data["first_name"] = first_name
+    data["middle_name"] = middle_name
+    data["last_name"] = last_name
+    data["profession"] = profession
+    data["preferred_channel"] = preferred_channel
+    data["email"] = email
     data["enrichment_status"] = data.get("enrichment_status") or (
         "pending" if inn else "not_requested"
     )
+    data["company_name"] = (data.get("company_name") or "").strip() or None
+    data["position"] = (data.get("position") or "").strip() or None
+    data["phone"] = (data.get("phone") or "").strip() or None
     c = Client(**data)
     session.add(c)
     await session.commit()
