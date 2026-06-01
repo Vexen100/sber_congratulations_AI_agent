@@ -1,16 +1,25 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 
 from pydantic import ValidationError
 
 from app.core.config import settings
 from app.llm.provider import LLMProvider, get_project_planner_llm_provider
+from app.project_planner.llm_normalizer import normalize_llm_project_report_json
 from app.project_planner.mock_generator import build_mock_report
 from app.project_planner.prompts import SYSTEM_PROMPT, build_user_prompt
 from app.project_planner.schemas import ProjectPlannerInput, ProjectReport
 from app.project_planner.validators import validate_project_report
+
+
+logger = logging.getLogger(__name__)
+FALLBACK_VALIDATION_WARNING = (
+    "LLM-ответ не соответствовал ожидаемой структуре, использован fallback-генератор. "
+    "Содержимое требует проверки."
+)
 
 
 class ProjectPlannerGenerationError(RuntimeError):
@@ -35,6 +44,12 @@ def _extract_json_object(content: str) -> dict:
     return parsed
 
 
+def _error_summary(exc: Exception) -> str:
+    if isinstance(exc, ValidationError):
+        return f"Pydantic validation failed ({exc.error_count()} errors)"
+    return exc.__class__.__name__
+
+
 async def generate_project_report(
     payload: ProjectPlannerInput,
     *,
@@ -55,35 +70,41 @@ async def generate_project_report(
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": build_user_prompt(payload)},
     ]
-    last_error: Exception | None = None
     attempts = max(1, int(settings.gigachat_retry_count) + 1)
     for attempt in range(attempts):
         try:
             response = await provider.generate_text(messages)
             parsed = _extract_json_object(response.content)
+            parsed = normalize_llm_project_report_json(parsed, payload)
             report = ProjectReport.model_validate(parsed)
             report.warnings.extend(validate_project_report(report))
             return report, response.model_name, False
         except (json.JSONDecodeError, ValidationError, ProjectPlannerGenerationError) as exc:
-            last_error = exc
-            messages.append(
-                {
-                    "role": "user",
-                    "content": (
-                        "Предыдущий ответ не прошёл JSON/Pydantic-валидацию. "
-                        f"Попытка {attempt + 1}: {exc}. Верни только исправленный JSON."
-                    ),
-                }
+            logger.warning(
+                "Project Planner LLM response failed validation on attempt %s/%s: %s",
+                attempt + 1,
+                attempts,
+                _error_summary(exc),
+                exc_info=True,
             )
+            if attempt < attempts - 1:
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": (
+                            "Предыдущий ответ не прошёл проверку структуры "
+                            f"({_error_summary(exc)}). Верни полный исправленный JSON ProjectReport "
+                            "без markdown. Используй roadmap[].name/start_date/end_date/milestones "
+                            "и milestones[].title/due_date/description."
+                        ),
+                    }
+                )
         except Exception as exc:
-            last_error = exc
+            logger.warning("Project Planner LLM provider failed; using fallback generator.", exc_info=True)
             break
 
     report = build_mock_report(
         payload,
-        extra_warnings=[
-            "LLM-генерация не прошла валидацию; использован fallback-генератор.",
-            f"Техническая причина fallback: {last_error}",
-        ],
+        extra_warnings=[FALLBACK_VALIDATION_WARNING],
     )
     return report, "fallback", True
