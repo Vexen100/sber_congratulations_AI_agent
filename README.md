@@ -8,7 +8,7 @@
 
 ## Репозиторий
 
-- **CI**: GitHub Actions в `.github/workflows/ci.yml` (ruff, black; unit и integration через `pytest -m` на ветках `main` и `integration`)
+- **CI**: GitHub Actions в `.github/workflows/ci.yml` (ruff, black; unit и integration через `pytest -m` на ветках `main`, `integration` и `react-new-base-backend`)
 - **Ключевые проектные документы**: начните с `docs/PROJECT_OVERVIEW.md` и `docs/DECISIONS.md`
 
 ## Возможности проекта
@@ -34,6 +34,7 @@
 - **Постоянное улучшение**: менеджерский feedback (оценка 1–5 и комментарий); `training_verdict=accepted|rejected` для дообучения выставляется автоматически по оценке (4–5 приняты, иначе отклонены) и сохраняется в БД.
 - **Веб-интерфейс**: просмотр клиентов/событий/поздравлений/доставок, создание клиента, ручной триггер, запуск агента.
 - **Ручные кампании для реальной базы**: можно создать единичное ручное событие или быструю demo-кампанию для импортированных клиентов, чтобы агент сгенерировал поздравления не только по ДР/праздникам.
+- **Project Planner**: отдельная страница `/project-planner` для генерации проектного паспорта, дорожной карты, ресурсов, RACI, preview и DOCX-отчёта в mock/offline или GigaChat-режиме.
 - **Тесты**: базовая проверка детектора событий и идемпотентной отправки.
 
 ## Архитектура (упрощённо)
@@ -139,6 +140,8 @@ npm install
 npm run dev
 ```
 
+В dev-режиме Vite проксирует `/api`, `/data` и `/static` на backend. Для полноценной работы UI, включая скачивание DOCX из Project Planner, backend должен быть запущен на `http://127.0.0.1:8001`.
+
 Production-сборка, которую FastAPI начнёт отдавать на `/`, `/clients`, `/events`, `/greetings`, `/deliveries`, `/runs`:
 
 ```bat
@@ -162,6 +165,22 @@ npm run build
    - `backend\data\outbox\` (файлы сообщений),
    - `backend\data\cards\` (сгенерированные открытки).
 
+## Project Planner
+
+Project Planner доступен в React UI на `/project-planner`. Пользователь вводит идею проекта, дедлайн, географию, стейкхолдеров и акценты; модуль возвращает уточняющие вопросы, позволяет включить простую опцию «генерировать с допущениями», создаёт run, показывает preview/history и отдаёт DOCX через `/api/project-planner/runs/{run_id}/docx`.
+
+DOCX-отчёт включает исходные данные, паспорт проекта, дорожную карту, Gantt-like таблицу, ресурсы и предварительный бюджет, команду, RACI, варианты концепций, рекомендованную концепцию, риски/предупреждения, outline презентации и defense script.
+
+Для локального демо Project Planner работает без сети и GigaChat credentials:
+
+```env
+PROJECT_PLANNER_USE_MOCK_LLM=true
+```
+
+Чтобы попробовать GigaChat-провайдер именно для Project Planner, выставьте `PROJECT_PLANNER_USE_MOCK_LLM=false` и настройте `GIGACHAT_CREDENTIALS` в `backend/.env`. Секреты не коммитятся; `.env` должен оставаться локальным.
+
+Ограничения текущей версии: используются тестовые справочники и предварительная бюджетная оценка; нет поиска рыночных цен, загрузки каталогов, PPTX, RAG и RBAC для Project Planner.
+
 ## Переменные окружения
 
 См. `backend/env.example`. Важное:
@@ -177,6 +196,8 @@ npm run build
 - **DADATA_API_KEY**: ключ для `find-party` в DaData.
 - **LLM_MODE**: `template` (по умолчанию, офлайн) или `openai` (OpenAI-compatible HTTP API).
 - **IMAGE_MODE**: `pillow` (по умолчанию) или `gigachat` (генерация открыток через GigaChat).
+- **PROJECT_PLANNER_USE_MOCK_LLM**: `true` (локальный mock/offline Project Planner) или `false` (Project Planner пробует GigaChat provider с fallback).
+- **PROJECT_PLANNER_DOCX_DIR**: директория для DOCX-артефактов Project Planner.
 
 ## Что добавлено сверх исходного MVP
 

@@ -28,6 +28,23 @@ GIGACHAT_VERIFY_SSL_CERTS=false
 
 Использовать это значение в постоянной среде не рекомендуется.
 
+## Project Planner
+
+Project Planner использует GigaChat опционально и по умолчанию остаётся в локальном mock/offline режиме:
+
+```env
+PROJECT_PLANNER_USE_MOCK_LLM=true
+```
+
+Чтобы включить GigaChat для Project Planner, выставьте:
+
+```env
+PROJECT_PLANNER_USE_MOCK_LLM=false
+GIGACHAT_CREDENTIALS=<ваш_ключ_авторизации>
+```
+
+Настройки старого агента поздравлений (`LLM_MODE`, `IMAGE_MODE`) при этом не меняются автоматически. Для Project Planner ответы Lite/Pro проходят retry, JSON-нормализацию, Pydantic-валидацию и backend guardrails; если структура ответа не подходит, используется fallback generator с коротким пользовательским предупреждением.
+
 ## Что ещё проверить
 
 - `GIGACHAT_CREDENTIALS` задан в `backend/.env`, а сам файл не попал в Git.
