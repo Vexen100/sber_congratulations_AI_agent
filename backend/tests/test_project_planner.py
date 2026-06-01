@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime as dt
+from pathlib import Path
 import zipfile
 
 import httpx
@@ -110,6 +111,36 @@ def test_docx_export_contains_demo_ready_sections(tmp_path, monkeypatch):
     assert "RACI" in text
     assert "Факторы трудоёмкости" in text
     assert "Сценарий защиты" in text
+
+
+def test_frontend_docx_download_does_not_use_spa_navigation():
+    repo_root = Path(__file__).resolve().parents[2]
+    page_source = (repo_root / "frontend/src/pages/ProjectPlannerPage.tsx").read_text(encoding="utf-8")
+    api_source = (repo_root / "frontend/src/api/projectPlanner.ts").read_text(encoding="utf-8")
+    app_source = (repo_root / "frontend/src/App.tsx").read_text(encoding="utf-8")
+
+    assert "href={`/api/project-planner/runs/${" not in page_source
+    assert 'href="/api/project-planner/runs/' not in page_source
+    assert "window.location" not in api_source
+    assert "window.open" not in api_source
+    assert "navigate(" not in api_source
+
+    assert "event.preventDefault();" in page_source
+    assert "event.stopPropagation();" in page_source
+    assert 'type="button"' in page_source
+
+    assert "fetch(`/api/project-planner/runs/${runId}/docx`)" in api_source
+    assert "URL.createObjectURL" in api_source
+    assert 'link.dataset.noSpa = "true";' in api_source
+    assert "link.click();" in api_source
+    assert "URL.revokeObjectURL" in api_source
+
+    assert "if (!event.isTrusted) return;" in app_source
+    assert 'link.hasAttribute("download")' in app_source
+    assert 'link.hasAttribute("data-no-spa")' in app_source
+    assert 'link.hasAttribute("data-router-ignore")' in app_source
+    assert 'href.startsWith("/api/")' in app_source
+    assert 'href.startsWith("blob:")' in app_source
 
 
 @pytest.mark.parametrize("tz_value", [None, "", object(), "No/Such_Timezone"])

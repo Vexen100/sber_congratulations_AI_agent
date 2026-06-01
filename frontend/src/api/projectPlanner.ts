@@ -55,6 +55,7 @@ export async function downloadProjectPlannerDocx(runId: number | string): Promis
   const link = document.createElement("a");
   link.href = url;
   link.download = filenameFromContentDisposition(response.headers.get("Content-Disposition"), runId);
+  link.dataset.noSpa = "true";
   link.style.display = "none";
   document.body.appendChild(link);
   try {

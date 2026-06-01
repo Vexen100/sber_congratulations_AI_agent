@@ -138,12 +138,37 @@ function Layout({
   onResetRuntime: () => void;
 }) {
   function handleClick(event: MouseEvent<HTMLDivElement>) {
+    if (!event.isTrusted) return;
+    if (event.defaultPrevented) return;
+    if (event.button !== 0) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
     const link = (event.target as Element).closest("a");
     if (!link) return;
     const href = link.getAttribute("href");
-    if (!href || href.startsWith("http") || href.startsWith("mailto:")) return;
+    const target = link.getAttribute("target");
+    if (
+      !href ||
+      link.hasAttribute("download") ||
+      link.hasAttribute("data-no-spa") ||
+      link.hasAttribute("data-router-ignore") ||
+      (target && target !== "_self") ||
+      href.startsWith("mailto:") ||
+      href.startsWith("tel:") ||
+      href.startsWith("blob:") ||
+      href.startsWith("data:") ||
+      href.startsWith("/api/") ||
+      href.startsWith("/data/") ||
+      href.startsWith("/static/")
+    ) {
+      return;
+    }
+
+    const url = new URL(href, window.location.origin);
+    if (url.origin !== window.location.origin) return;
+
     event.preventDefault();
-    onNavigate(href);
+    onNavigate(`${url.pathname}${url.search}${url.hash}`);
   }
 
   return (

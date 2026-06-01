@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent, type MouseEvent } from "react";
 
 import {
   clarifyProjectPlanner,
@@ -360,7 +360,7 @@ function HistoryTable({
 }: {
   runs: ProjectPlannerRunSummary[];
   onSelect: (run: ProjectPlannerRunSummary) => void;
-  onDownload: (runId: number) => void;
+  onDownload: (event: MouseEvent<HTMLButtonElement>, runId: number) => void;
   busy: string | null;
 }) {
   return (
@@ -397,7 +397,7 @@ function HistoryTable({
                       className="btn btn-sm btn-outline-success"
                       disabled={busy === `docx-${run.id}`}
                       type="button"
-                      onClick={() => onDownload(run.id)}
+                      onClick={(event) => onDownload(event, run.id)}
                     >
                       {busy === `docx-${run.id}` ? "Скачиваю..." : "Скачать"}
                     </button>
@@ -496,7 +496,9 @@ export default function ProjectPlannerPage() {
     }
   }
 
-  async function downloadDocx(runId: number) {
+  async function handleDownloadDocx(event: MouseEvent<HTMLButtonElement>, runId: number) {
+    event.preventDefault();
+    event.stopPropagation();
     setBusy(`docx-${runId}`);
     try {
       await downloadProjectPlannerDocx(runId);
@@ -647,7 +649,7 @@ export default function ProjectPlannerPage() {
                   className="btn btn-sm btn-success"
                   disabled={busy === `docx-${selectedRun.id}`}
                   type="button"
-                  onClick={() => downloadDocx(selectedRun.id)}
+                  onClick={(event) => handleDownloadDocx(event, selectedRun.id)}
                 >
                   {busy === `docx-${selectedRun.id}` ? "Скачиваю..." : "Скачать DOCX"}
                 </button>
@@ -675,7 +677,7 @@ export default function ProjectPlannerPage() {
       </div>
 
       <div className="mt-4">
-        <HistoryTable runs={runs} onSelect={selectFromHistory} onDownload={downloadDocx} busy={busy} />
+        <HistoryTable runs={runs} onSelect={selectFromHistory} onDownload={handleDownloadDocx} busy={busy} />
         {busy?.startsWith("run-") ? <div className="text-muted mt-2">Загружаю выбранный запуск...</div> : null}
       </div>
     </>
