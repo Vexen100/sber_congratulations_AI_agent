@@ -15,8 +15,8 @@ from app.project_planner.schemas import ProjectReport
 logger = logging.getLogger(__name__)
 
 PRELIMINARY_NOTICE = (
-    "Оценка является предварительной, сформирована по тестовым справочникам MVP "
-    "и требует экспертной проверки перед запуском проекта."
+    "Оценка является предварительной, сформирована по тестовым справочникам "
+    "и требует экспертной проверки перед запуском проекта MVP."
 )
 
 
@@ -29,9 +29,19 @@ def _clean_text(value: object | None) -> str:
     if value is None:
         return ""
     text = str(value).replace("\r\n", "\n").replace("\r", "\n")
+    text = re.sub(r"([A-Za-zА-Яа-яЁё0-9])-+\s*,\s*([A-Za-zА-Яа-яЁё0-9])", r"\1-\2", text)
     text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"([«(\[{])\s+", r"\1", text)
+    text = re.sub(r"\s+([»)\]}])", r"\1", text)
     text = re.sub(r"\s+([,.;:!?])", r"\1", text)
-    return "\n".join(line.strip() for line in text.split("\n")).strip()
+    text = re.sub(r"(?:,\s*){2,}", ", ", text)
+    text = re.sub(r"\s+([,.;:!?])", r"\1", text)
+    lines = []
+    for line in text.split("\n"):
+        line = line.strip()
+        line = re.sub(r",+$", "", line).strip()
+        lines.append(line)
+    return "\n".join(lines).strip()
 
 
 def _paragraph_xml(text: str) -> str:

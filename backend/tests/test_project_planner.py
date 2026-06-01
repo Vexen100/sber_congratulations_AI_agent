@@ -211,6 +211,11 @@ def test_docx_export_contains_demo_ready_sections(tmp_path, monkeypatch):
     assert "RACI" in text
     assert "Факторы трудоёмкости" in text
     assert "Сценарий защиты" in text
+    assert (
+        "Оценка является предварительной, сформирована по тестовым справочникам "
+        "и требует экспертной проверки перед запуском проекта MVP."
+    ) in text
+    assert " ," not in text
 
 
 def test_docx_export_builds_gantt_rows_when_report_gantt_is_empty(tmp_path, monkeypatch):
@@ -226,11 +231,34 @@ def test_docx_export_builds_gantt_rows_when_report_gantt_is_empty(tmp_path, monk
     assert "█" in text
 
 
-def test_docx_text_cleanup_removes_spaces_before_punctuation():
-    assert _clean_text("по тестовым ,  справочникам .\n  Следующее  !") == (
-        "по тестовым, справочникам.\nСледующее!"
-    )
+def test_docx_text_cleanup_removes_common_typography_artifacts():
+    assert _clean_text("по тестовым , справочникам") == "по тестовым, справочникам"
+    assert _clean_text("по тестовым ,  справочникам .\n  Следующее  !") == "по тестовым, справочникам.\nСледующее!"
+    assert _clean_text("HR, , руководители") == "HR, руководители"
+    assert _clean_text("оплата площадок , оборудование призы ,") == "оплата площадок, оборудование призы"
+    assert _clean_text("HR- , команда") == "HR-команда"
+    assert _clean_text("« текст » и ( значение )") == "«текст» и (значение)"
     assert _clean_text(None) == ""
+
+
+def test_docx_export_cleans_messy_core_section_text(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "project_planner_docx_dir", str(tmp_path), raising=False)
+    report = build_mock_report(_payload())
+    report.source_input.stakeholders = "HR, , руководители направлений"
+    report.source_input.current_resources = "оплата площадок , оборудование призы ,"
+    report.passport.goal = "Провести Талант шоу - , без лишних пробелов ,"
+    report.passport.tasks[0] = "мастер классы - , коммуникации ,"
+    report.resources.material_resources[0] = "площадка , оборудование ,"
+    report.raci[0].consulted = ["HR- , команда", "финансы ,"]
+
+    path = export_project_report_docx(report, run_id=45)
+    text = _docx_text(path)
+
+    assert "HR, руководители направлений" in text
+    assert "оплата площадок, оборудование призы" in text
+    assert "площадка, оборудование" in text
+    assert "HR-команда" in text
+    assert " ," not in text
 
 
 def test_frontend_docx_download_does_not_use_spa_navigation():
