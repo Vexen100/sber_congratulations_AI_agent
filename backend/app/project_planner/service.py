@@ -87,7 +87,9 @@ def _detail(run: ProjectPlannerRun) -> ProjectPlannerRunDetail:
         report=report,
         warnings=list(run.warnings_json or []),
         assumptions=list(run.assumptions_json or []),
-        artifacts=[_artifact_out(item) for item in sorted(run.artifacts or [], key=lambda item: item.id)],
+        artifacts=[
+            _artifact_out(item) for item in sorted(run.artifacts or [], key=lambda item: item.id)
+        ],
     )
 
 

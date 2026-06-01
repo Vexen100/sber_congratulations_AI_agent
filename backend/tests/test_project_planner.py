@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import datetime as dt
 import json
-from pathlib import Path
 import zipfile
+from pathlib import Path
 
 import httpx
 import pytest
@@ -14,7 +14,11 @@ from app.core.config import settings
 from app.db.session import get_session
 from app.llm.provider import LLMResponse
 from app.main import create_app
-from app.project_planner.docx_export import _clean_text, _generated_at_text, export_project_report_docx
+from app.project_planner.docx_export import (
+    _clean_text,
+    _generated_at_text,
+    export_project_report_docx,
+)
 from app.project_planner.generator import FALLBACK_VALIDATION_WARNING, generate_project_report
 from app.project_planner.llm_normalizer import normalize_llm_project_report_json
 from app.project_planner.mock_generator import build_mock_report
@@ -54,7 +58,9 @@ def _report_json() -> dict:
 
 
 def _report_json_with_roadmap_dates(payload: ProjectPlannerInput, start_date: dt.date) -> dict:
-    raw = build_mock_report(payload, today=start_date - dt.timedelta(days=30)).model_dump(mode="json")
+    raw = build_mock_report(payload, today=start_date - dt.timedelta(days=30)).model_dump(
+        mode="json"
+    )
     for phase_index, phase in enumerate(raw["roadmap"]):
         phase_start = start_date + dt.timedelta(days=phase_index * 10)
         phase_end = phase_start + dt.timedelta(days=9)
@@ -91,7 +97,9 @@ class FakeJsonProvider:
 
     async def generate_text(self, messages: list[dict], **kwargs) -> LLMResponse:  # noqa: ARG002
         self.calls += 1
-        return LLMResponse(content=json.dumps(self.payload, ensure_ascii=False), model_name="fake-json")
+        return LLMResponse(
+            content=json.dumps(self.payload, ensure_ascii=False), model_name="fake-json"
+        )
 
 
 def _build_test_client(db_session):
@@ -233,9 +241,15 @@ def test_docx_export_builds_gantt_rows_when_report_gantt_is_empty(tmp_path, monk
 
 def test_docx_text_cleanup_removes_common_typography_artifacts():
     assert _clean_text("по тестовым , справочникам") == "по тестовым, справочникам"
-    assert _clean_text("по тестовым ,  справочникам .\n  Следующее  !") == "по тестовым, справочникам.\nСледующее!"
+    assert (
+        _clean_text("по тестовым ,  справочникам .\n  Следующее  !")
+        == "по тестовым, справочникам.\nСледующее!"
+    )
     assert _clean_text("HR, , руководители") == "HR, руководители"
-    assert _clean_text("оплата площадок , оборудование призы ,") == "оплата площадок, оборудование призы"
+    assert (
+        _clean_text("оплата площадок , оборудование призы ,")
+        == "оплата площадок, оборудование призы"
+    )
     assert _clean_text("HR- , команда") == "HR-команда"
     assert _clean_text("« текст » и ( значение )") == "«текст» и (значение)"
     assert _clean_text(None) == ""
@@ -263,7 +277,9 @@ def test_docx_export_cleans_messy_core_section_text(tmp_path, monkeypatch):
 
 def test_frontend_docx_download_does_not_use_spa_navigation():
     repo_root = Path(__file__).resolve().parents[2]
-    page_source = (repo_root / "frontend/src/pages/ProjectPlannerPage.tsx").read_text(encoding="utf-8")
+    page_source = (repo_root / "frontend/src/pages/ProjectPlannerPage.tsx").read_text(
+        encoding="utf-8"
+    )
     api_source = (repo_root / "frontend/src/api/projectPlanner.ts").read_text(encoding="utf-8")
     app_source = (repo_root / "frontend/src/App.tsx").read_text(encoding="utf-8")
 
@@ -418,7 +434,9 @@ def test_llm_normalizer_replaces_malformed_resources_with_calculated_structure()
     report = ProjectReport.model_validate(normalized)
 
     assert report.resources.financial_items
-    assert report.resources.financial_total == sum(item.amount for item in report.resources.financial_items)
+    assert report.resources.financial_total == sum(
+        item.amount for item in report.resources.financial_items
+    )
     assert report.resources.material_resources == ["площадка", "оборудование"]
 
 
@@ -498,9 +516,7 @@ async def test_generator_corrects_llm_roadmap_after_user_deadline(monkeypatch):
     assert ROADMAP_DEADLINE_CORRECTION_WARNING in report.warnings
     assert all(phase.end_date <= deadline for phase in report.roadmap)
     assert all(
-        milestone.due_date <= deadline
-        for phase in report.roadmap
-        for milestone in phase.milestones
+        milestone.due_date <= deadline for phase in report.roadmap for milestone in phase.milestones
     )
     assert report.gantt
     assert all(row.phase and row.period and "█" in row.timeline for row in report.gantt)
@@ -535,9 +551,7 @@ async def test_generator_corrects_llm_roadmap_starting_before_current_date(monke
         for milestone in phase.milestones
     )
     assert all(
-        milestone.due_date <= deadline
-        for phase in report.roadmap
-        for milestone in phase.milestones
+        milestone.due_date <= deadline for phase in report.roadmap for milestone in phase.milestones
     )
     assert report.gantt
     assert all(row.phase and row.period and "█" in row.timeline for row in report.gantt)
@@ -679,8 +693,8 @@ async def test_generator_falls_back_on_provider_error_without_retrying_network(m
 
 
 async def test_gigachat_provider_uses_env_model_with_fake_httpx(monkeypatch):
-    from app.llm.gigachat_provider import GigaChatLLMProvider
     import app.llm.gigachat_provider as gigachat_provider
+    from app.llm.gigachat_provider import GigaChatLLMProvider
 
     class FakeResponse:
         def __init__(self, payload: dict) -> None:
@@ -707,10 +721,8 @@ async def test_gigachat_provider_uses_env_model_with_fake_httpx(monkeypatch):
         async def post(self, url: str, headers=None, data=None, json=None):  # noqa: ANN001
             self.calls.append({"url": url, "headers": headers, "data": data, "json": json})
             if url == settings.gigachat_oauth_url:
-                return FakeResponse(
-                    {"access_token": "fake-token", "expires_at": 4_102_444_800_000}
-                )
-            return FakeResponse({"choices": [{"message": {"content": "{\"ok\": true}"}}]})
+                return FakeResponse({"access_token": "fake-token", "expires_at": 4_102_444_800_000})
+            return FakeResponse({"choices": [{"message": {"content": '{"ok": true}'}}]})
 
     monkeypatch.setattr(settings, "gigachat_credentials", "fake-credentials", raising=False)
     monkeypatch.setattr(settings, "gigachat_model", "FakeGigaChatModel", raising=False)

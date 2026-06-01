@@ -4,7 +4,6 @@ import json
 
 from app.project_planner.schemas import ProjectPlannerInput
 
-
 PROJECT_REPORT_JSON_SKELETON = {
     "source_input": {
         "idea": "string",

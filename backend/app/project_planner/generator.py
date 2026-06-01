@@ -18,7 +18,6 @@ from app.project_planner.prompts import SYSTEM_PROMPT, build_user_prompt
 from app.project_planner.schemas import ProjectPlannerInput, ProjectReport
 from app.project_planner.validators import validate_project_report
 
-
 logger = logging.getLogger(__name__)
 FALLBACK_VALIDATION_WARNING = (
     "LLM-ответ не соответствовал ожидаемой структуре, использован fallback-генератор. "
@@ -44,7 +43,9 @@ def _extract_json_object(content: str) -> dict:
             raise
         parsed = json.loads(text[start : end + 1])
     if not isinstance(parsed, dict):
-        raise ProjectPlannerGenerationError("LLM returned JSON, but top-level value is not an object")
+        raise ProjectPlannerGenerationError(
+            "LLM returned JSON, but top-level value is not an object"
+        )
     return parsed
 
 
@@ -110,8 +111,10 @@ async def generate_project_report(
                         ),
                     }
                 )
-        except Exception as exc:
-            logger.warning("Project Planner LLM provider failed; using fallback generator.", exc_info=True)
+        except Exception:
+            logger.warning(
+                "Project Planner LLM provider failed; using fallback generator.", exc_info=True
+            )
             break
 
     report = build_mock_report(

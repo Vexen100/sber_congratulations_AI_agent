@@ -84,7 +84,9 @@ def _generated_at_text() -> str:
 
 
 def _write_minimal_docx(report: ProjectReport, path: Path) -> None:
-    gantt_rows = report.gantt if is_gantt_valid(report.gantt) else build_gantt_from_roadmap(report.roadmap)
+    gantt_rows = (
+        report.gantt if is_gantt_valid(report.gantt) else build_gantt_from_roadmap(report.roadmap)
+    )
     paragraphs = [
         "Проектный отчёт",
         report.passport.title,
@@ -235,7 +237,11 @@ def export_project_report_docx(report: ProjectReport, *, run_id: int) -> Path:
             ],
         )
 
-        gantt_rows = report.gantt if is_gantt_valid(report.gantt) else build_gantt_from_roadmap(report.roadmap)
+        gantt_rows = (
+            report.gantt
+            if is_gantt_valid(report.gantt)
+            else build_gantt_from_roadmap(report.roadmap)
+        )
         _add_heading(document, "Gantt-like представление", level=1)
         _add_table(
             document,
@@ -253,7 +259,9 @@ def export_project_report_docx(report: ProjectReport, *, run_id: int) -> Path:
             ],
         )
         _add_paragraph(document, f"Итого: {_format_money(report.resources.financial_total)}")
-        _add_bullets(document, "Материально-технические ресурсы", report.resources.material_resources)
+        _add_bullets(
+            document, "Материально-технические ресурсы", report.resources.material_resources
+        )
         _add_bullets(document, "Информационные ресурсы", report.resources.information_resources)
 
         _add_heading(document, "Команда проекта", level=1)

@@ -10,7 +10,6 @@ from pydantic import ValidationError
 from app.project_planner.budget import estimate_financial_items
 from app.project_planner.schemas import ProjectPlannerInput, ResourcePlan
 
-
 _DATE_RE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
 
 
@@ -142,7 +141,9 @@ def _normalize_roadmap(data: dict[str, Any]) -> None:
                 phase["end_date"] = max(due_dates)
 
 
-def _calculated_resources(payload: ProjectPlannerInput, source: dict[str, Any] | None = None) -> dict[str, Any]:
+def _calculated_resources(
+    payload: ProjectPlannerInput, source: dict[str, Any] | None = None
+) -> dict[str, Any]:
     financial_items = estimate_financial_items(payload)
     resources = ResourcePlan(
         financial_items=financial_items,
@@ -238,7 +239,9 @@ def _normalize_presentation_outline(data: dict[str, Any]) -> None:
         _normalize_list_fields(slide, ("bullets",))
 
 
-def normalize_llm_project_report_json(raw: dict[str, Any], payload: ProjectPlannerInput) -> dict[str, Any]:
+def normalize_llm_project_report_json(
+    raw: dict[str, Any], payload: ProjectPlannerInput
+) -> dict[str, Any]:
     """Repair common LLM JSON shape mistakes without generating missing report sections."""
 
     data = copy.deepcopy(raw)

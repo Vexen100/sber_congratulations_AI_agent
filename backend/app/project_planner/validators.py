@@ -14,19 +14,31 @@ from app.project_planner.schemas import (
 def source_assumptions(payload: ProjectPlannerInput) -> list[str]:
     assumptions: list[str] = []
     if len((payload.idea or "").strip()) < 30:
-        assumptions.append("Идея проекта описана кратко; детализация будет восстановлена по типовым допущениям.")
+        assumptions.append(
+            "Идея проекта описана кратко; детализация будет восстановлена по типовым допущениям."
+        )
     if payload.deadline is None:
         assumptions.append("Дедлайн не указан; для MVP принят горизонт планирования 90 дней.")
     if not (payload.geography or "").strip():
-        assumptions.append("География не указана; применён базовый региональный коэффициент Свердловской области.")
+        assumptions.append(
+            "География не указана; применён базовый региональный коэффициент Свердловской области."
+        )
     if not (payload.stakeholders or "").strip():
-        assumptions.append("Стейкхолдеры не указаны; предполагаются бизнес-заказчик и проектная команда банка.")
+        assumptions.append(
+            "Стейкхолдеры не указаны; предполагаются бизнес-заказчик и проектная команда банка."
+        )
     if not (payload.current_resources or "").strip():
-        assumptions.append("Текущие ресурсы не указаны; команда и ресурсы подобраны как новый проект.")
+        assumptions.append(
+            "Текущие ресурсы не указаны; команда и ресурсы подобраны как новый проект."
+        )
     if not (payload.technology_constraints or "").strip():
-        assumptions.append("Технологические ограничения не указаны; критичных IT-ограничений не предполагается.")
+        assumptions.append(
+            "Технологические ограничения не указаны; критичных IT-ограничений не предполагается."
+        )
     if not (payload.project_accents or "").strip():
-        assumptions.append("Акценты проекта не указаны; концепции сформированы без дополнительного контекста.")
+        assumptions.append(
+            "Акценты проекта не указаны; концепции сформированы без дополнительного контекста."
+        )
     return assumptions
 
 
@@ -38,7 +50,9 @@ def deadline_warnings(payload: ProjectPlannerInput, *, today: dt.date | None = N
     if days < 0:
         return ["Дедлайн находится в прошлом; дорожная карта построена как срочная перепланировка."]
     if days < 30:
-        return ["Срок выглядит нереалистично коротким; часть работ потребуется выполнять параллельно."]
+        return [
+            "Срок выглядит нереалистично коротким; часть работ потребуется выполнять параллельно."
+        ]
     return []
 
 
@@ -106,7 +120,7 @@ def build_clarifications(payload: ProjectPlannerInput) -> ClarificationResponse:
     if payload.questions_asked_count >= max_limit:
         visible_questions: list[ClarificationQuestion] = []
     else:
-        visible_questions = questions[:remaining or default_limit]
+        visible_questions = questions[: remaining or default_limit]
     can_generate = bool(not visible_questions or payload.questions_asked_count >= default_limit)
     if payload.questions_asked_count >= max_limit:
         can_generate = True
@@ -121,8 +135,7 @@ def build_clarifications(payload: ProjectPlannerInput) -> ClarificationResponse:
 
 def _gantt_has_content(report: ProjectReport) -> bool:
     return any(
-        row.phase.strip() and row.period.strip() and row.timeline.strip()
-        for row in report.gantt
+        row.phase.strip() and row.period.strip() and row.timeline.strip() for row in report.gantt
     )
 
 
@@ -136,7 +149,9 @@ def validate_project_report(
     if payload is not None:
         current_date = current_date or dt.date.today()
     if len(report.roadmap) < 4:
-        warnings.append("В дорожной карте меньше 4 фаз; структура была усилена fallback-валидатором.")
+        warnings.append(
+            "В дорожной карте меньше 4 фаз; структура была усилена fallback-валидатором."
+        )
     for phase in report.roadmap:
         if len(phase.milestones) < 3:
             warnings.append(f"В фазе «{phase.name}» меньше 3 контрольных точек.")

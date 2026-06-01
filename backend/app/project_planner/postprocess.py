@@ -10,7 +10,6 @@ from app.project_planner.schemas import (
     RoadmapPhase,
 )
 
-
 ROADMAP_DEADLINE_CORRECTION_WARNING = (
     "Дорожная карта была скорректирована, так как исходный LLM-план выходил "
     "за пользовательский дедлайн."
@@ -23,12 +22,8 @@ ROADMAP_DEADLINE_FALLBACK_WARNING = (
     "LLM-дорожная карта не могла быть безопасно скорректирована под пользовательский дедлайн; "
     "использован fallback-генератор."
 )
-ROADMAP_START_DATE_CORRECTION_WARNING = (
-    "Дорожная карта была скорректирована, так как исходный LLM-план начинался раньше даты генерации."
-)
-ROADMAP_PAST_DEADLINE_FALLBACK_WARNING = (
-    "Пользовательский дедлайн уже прошёл или раньше текущей даты; построен fallback-план с допущениями."
-)
+ROADMAP_START_DATE_CORRECTION_WARNING = "Дорожная карта была скорректирована, так как исходный LLM-план начинался раньше даты генерации."
+ROADMAP_PAST_DEADLINE_FALLBACK_WARNING = "Пользовательский дедлайн уже прошёл или раньше текущей даты; построен fallback-план с допущениями."
 
 
 def _current_date() -> dt.date:

@@ -5,7 +5,6 @@ from typing import Literal
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
-
 EffortLevel = Literal["низкая", "средняя", "высокая", "очень высокая"]
 RunStatus = Literal["running", "success", "fallback", "error"]
 ArtifactType = Literal["docx", "pptx", "defense_script"]

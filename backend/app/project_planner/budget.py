@@ -33,5 +33,7 @@ def budget_warnings(payload: ProjectPlannerInput, estimated_total: float) -> lis
             "или согласовать дополнительное финансирование."
         )
     if not payload.budget:
-        warnings.append("Бюджет не указан пользователем, поэтому смета рассчитана агентом предварительно.")
+        warnings.append(
+            "Бюджет не указан пользователем, поэтому смета рассчитана агентом предварительно."
+        )
     return warnings

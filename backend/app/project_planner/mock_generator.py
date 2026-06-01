@@ -4,7 +4,11 @@ import datetime as dt
 import math
 
 from app.project_planner.budget import budget_warnings, estimate_financial_items
-from app.project_planner.catalogs import ROADMAP_PHASE_TEMPLATES, UNIVERSAL_ROLES, normalize_region_name
+from app.project_planner.catalogs import (
+    ROADMAP_PHASE_TEMPLATES,
+    UNIVERSAL_ROLES,
+    normalize_region_name,
+)
 from app.project_planner.schemas import (
     ConceptOption,
     GanttRow,
@@ -20,7 +24,11 @@ from app.project_planner.schemas import (
     RoadmapPhase,
     SourceInput,
 )
-from app.project_planner.validators import deadline_warnings, source_assumptions, validate_project_report
+from app.project_planner.validators import (
+    deadline_warnings,
+    source_assumptions,
+    validate_project_report,
+)
 
 
 def _clean(value: str | None, fallback: str) -> str:
@@ -143,7 +151,11 @@ def _build_concepts(payload: ProjectPlannerInput, estimated_total: float) -> lis
                 "Провести основной проект с расширенным охватом.",
                 "Сформировать публичный итоговый пакет материалов.",
             ],
-            advantages=["Высокий охват", "Лучше раскрывает ценность", "Сильнее вовлекает аудиторию"],
+            advantages=[
+                "Высокий охват",
+                "Лучше раскрывает ценность",
+                "Сильнее вовлекает аудиторию",
+            ],
             disadvantages=["Выше бюджет", "Больше зависимость от согласований"],
             estimated_cost=round(estimated_total * 1.15, -3),
             effort_level="высокая",
@@ -159,7 +171,11 @@ def _build_concepts(payload: ProjectPlannerInput, estimated_total: float) -> lis
                 "Проверить гипотезы на ограниченном контуре.",
                 "Защитить масштабирование по итогам пилота.",
             ],
-            advantages=["Нестандартное решение", "Быстрая проверка гипотез", "Потенциал масштабирования"],
+            advantages=[
+                "Нестандартное решение",
+                "Быстрая проверка гипотез",
+                "Потенциал масштабирования",
+            ],
             disadvantages=["Выше неопределённость", "Нужна экспертная поддержка"],
             estimated_cost=round(estimated_total * 1.05, -3),
             effort_level="очень высокая",
@@ -208,7 +224,9 @@ def build_mock_report(
                 "Оценить ресурсы и риски реализации.",
                 "Подготовить концепции для защиты и выбрать рекомендуемый вариант.",
             ],
-            target_audience=_clean(payload.stakeholders, "Сотрудники и руководители направлений банка."),
+            target_audience=_clean(
+                payload.stakeholders, "Сотрудники и руководители направлений банка."
+            ),
             success_criteria=[
                 "Согласован паспорт проекта и дорожная карта.",
                 "Ресурсы и роли понятны ответственным участникам.",
@@ -257,10 +275,16 @@ def build_mock_report(
         assumptions=assumptions,
         presentation_outline=[
             PresentationSlide(title="Идея и цель проекта", bullets=[title, "Ожидаемый результат"]),
-            PresentationSlide(title="Дорожная карта", bullets=[phase.name for phase in roadmap[:4]]),
+            PresentationSlide(
+                title="Дорожная карта", bullets=[phase.name for phase in roadmap[:4]]
+            ),
             PresentationSlide(title="Ресурсы и команда", bullets=["Смета", "Роли", "RACI"]),
-            PresentationSlide(title="Три концепции", bullets=[concept.name for concept in concepts]),
-            PresentationSlide(title="Рекомендация", bullets=[concepts[0].name, "Риски и следующие шаги"]),
+            PresentationSlide(
+                title="Три концепции", bullets=[concept.name for concept in concepts]
+            ),
+            PresentationSlide(
+                title="Рекомендация", bullets=[concepts[0].name, "Риски и следующие шаги"]
+            ),
         ],
         defense_script=(
             f"Проект «{title}» предлагается защитить как управляемую инициативу с понятной целью, "

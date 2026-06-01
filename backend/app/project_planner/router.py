@@ -60,8 +60,6 @@ async def download_docx(run_id: int, session: AsyncSession = Depends(get_session
     path = await get_docx_path(session, run_id)
     return FileResponse(
         path,
-        media_type=(
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        ),
+        media_type=("application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
         filename=path.name,
     )
