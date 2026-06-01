@@ -3,6 +3,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import {
   clarifyProjectPlanner,
   createProjectPlannerRun,
+  downloadProjectPlannerDocx,
   getProjectPlannerRun,
   listProjectPlannerRuns
 } from "../api/projectPlanner";
@@ -353,10 +354,14 @@ function ClarificationsBlock({
 
 function HistoryTable({
   runs,
-  onSelect
+  onSelect,
+  onDownload,
+  busy
 }: {
   runs: ProjectPlannerRunSummary[];
   onSelect: (run: ProjectPlannerRunSummary) => void;
+  onDownload: (runId: number) => void;
+  busy: string | null;
 }) {
   return (
     <div className="surface-card">
@@ -388,9 +393,14 @@ function HistoryTable({
                 <td>{formatDateTime(run.created_at)}</td>
                 <td>
                   {run.has_docx ? (
-                    <a className="btn btn-sm btn-outline-success" href={`/api/project-planner/runs/${run.id}/docx`}>
-                      Скачать
-                    </a>
+                    <button
+                      className="btn btn-sm btn-outline-success"
+                      disabled={busy === `docx-${run.id}`}
+                      type="button"
+                      onClick={() => onDownload(run.id)}
+                    >
+                      {busy === `docx-${run.id}` ? "Скачиваю..." : "Скачать"}
+                    </button>
                   ) : (
                     "—"
                   )}
@@ -479,6 +489,17 @@ export default function ProjectPlannerPage() {
       const detail = await getProjectPlannerRun(run.id);
       setSelectedRun(detail);
       window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (error) {
+      setFlash({ type: "danger", text: error instanceof Error ? error.message : String(error) });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function downloadDocx(runId: number) {
+    setBusy(`docx-${runId}`);
+    try {
+      await downloadProjectPlannerDocx(runId);
     } catch (error) {
       setFlash({ type: "danger", text: error instanceof Error ? error.message : String(error) });
     } finally {
@@ -622,9 +643,14 @@ export default function ProjectPlannerPage() {
               <span className="badge text-bg-light">Запуск #{selectedRun.id}</span>
               <span className="badge text-bg-light">Статус: {selectedRun.status}</span>
               {selectedRun.has_docx ? (
-                <a className="btn btn-sm btn-success" href={`/api/project-planner/runs/${selectedRun.id}/docx`}>
-                  Скачать DOCX
-                </a>
+                <button
+                  className="btn btn-sm btn-success"
+                  disabled={busy === `docx-${selectedRun.id}`}
+                  type="button"
+                  onClick={() => downloadDocx(selectedRun.id)}
+                >
+                  {busy === `docx-${selectedRun.id}` ? "Скачиваю..." : "Скачать DOCX"}
+                </button>
               ) : null}
             </div>
           ) : null}
@@ -649,7 +675,7 @@ export default function ProjectPlannerPage() {
       </div>
 
       <div className="mt-4">
-        <HistoryTable runs={runs} onSelect={selectFromHistory} />
+        <HistoryTable runs={runs} onSelect={selectFromHistory} onDownload={downloadDocx} busy={busy} />
         {busy?.startsWith("run-") ? <div className="text-muted mt-2">Загружаю выбранный запуск...</div> : null}
       </div>
     </>
