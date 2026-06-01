@@ -8,7 +8,7 @@ from app.project_planner.schemas import ProjectPlannerInput
 PROJECT_REPORT_JSON_SKELETON = {
     "source_input": {
         "idea": "string",
-        "deadline": "2026-09-01",
+        "deadline": "2026-09-30",
         "budget": 100000,
         "geography": "string",
         "stakeholders": "string",
@@ -127,6 +127,9 @@ SYSTEM_PROMPT = (
     "не используй title или control_points для фаз. "
     "Для milestones используй только title, due_date, description. "
     "Все даты должны быть строками YYYY-MM-DD. "
+    "Roadmap and milestone dates must not be later than the user deadline; "
+    "final phase must end on or before deadline; if deadline is too short, keep dates "
+    "within deadline and add warning/assumption. "
     "Поля-списки возвращай JSON arrays, строковые поля возвращай strings. "
     "Все тексты на русском языке. "
     "Полный JSON skeleton текущей ProjectReport schema:\n"

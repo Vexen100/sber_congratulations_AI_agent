@@ -10,6 +10,10 @@ from app.core.config import settings
 from app.llm.provider import LLMProvider, get_project_planner_llm_provider
 from app.project_planner.llm_normalizer import normalize_llm_project_report_json
 from app.project_planner.mock_generator import build_mock_report
+from app.project_planner.postprocess import (
+    ROADMAP_DEADLINE_FALLBACK_WARNING,
+    postprocess_project_report,
+)
 from app.project_planner.prompts import SYSTEM_PROMPT, build_user_prompt
 from app.project_planner.schemas import ProjectPlannerInput, ProjectReport
 from app.project_planner.validators import validate_project_report
@@ -77,7 +81,14 @@ async def generate_project_report(
             parsed = _extract_json_object(response.content)
             parsed = normalize_llm_project_report_json(parsed, payload)
             report = ProjectReport.model_validate(parsed)
-            report.warnings.extend(validate_project_report(report))
+            report, fallback_warning = postprocess_project_report(report, payload)
+            if fallback_warning:
+                report = build_mock_report(
+                    payload,
+                    extra_warnings=[fallback_warning or ROADMAP_DEADLINE_FALLBACK_WARNING],
+                )
+                return report, "fallback", True
+            report.warnings.extend(validate_project_report(report, payload))
             return report, response.model_name, False
         except (json.JSONDecodeError, ValidationError, ProjectPlannerGenerationError) as exc:
             logger.warning(

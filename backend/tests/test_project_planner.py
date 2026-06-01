@@ -9,14 +9,24 @@ import httpx
 import pytest
 from pydantic import ValidationError
 
+import app.project_planner.postprocess as project_postprocess
 from app.core.config import settings
 from app.db.session import get_session
 from app.llm.provider import LLMResponse
 from app.main import create_app
-from app.project_planner.docx_export import _generated_at_text, export_project_report_docx
+from app.project_planner.docx_export import _clean_text, _generated_at_text, export_project_report_docx
 from app.project_planner.generator import FALLBACK_VALIDATION_WARNING, generate_project_report
 from app.project_planner.llm_normalizer import normalize_llm_project_report_json
 from app.project_planner.mock_generator import build_mock_report
+from app.project_planner.postprocess import (
+    ROADMAP_DEADLINE_CORRECTION_WARNING,
+    ROADMAP_DEADLINE_FALLBACK_WARNING,
+    ROADMAP_PAST_DEADLINE_FALLBACK_WARNING,
+    ROADMAP_SHORT_DEADLINE_WARNING,
+    ROADMAP_START_DATE_CORRECTION_WARNING,
+    build_gantt_from_roadmap,
+    postprocess_project_report,
+)
 from app.project_planner.prompts import (
     PROJECT_REPORT_JSON_SKELETON,
     PROJECT_REPORT_JSON_SKELETON_TEXT,
@@ -41,6 +51,19 @@ def _payload() -> ProjectPlannerInput:
 
 def _report_json() -> dict:
     return build_mock_report(_payload()).model_dump(mode="json")
+
+
+def _report_json_with_roadmap_dates(payload: ProjectPlannerInput, start_date: dt.date) -> dict:
+    raw = build_mock_report(payload, today=start_date - dt.timedelta(days=30)).model_dump(mode="json")
+    for phase_index, phase in enumerate(raw["roadmap"]):
+        phase_start = start_date + dt.timedelta(days=phase_index * 10)
+        phase_end = phase_start + dt.timedelta(days=9)
+        phase["start_date"] = phase_start.isoformat()
+        phase["end_date"] = phase_end.isoformat()
+        for milestone_index, milestone in enumerate(phase["milestones"], start=1):
+            due_date = min(phase_start + dt.timedelta(days=milestone_index * 2), phase_end)
+            milestone["due_date"] = due_date.isoformat()
+    return raw
 
 
 class FakeBadProvider:
@@ -157,6 +180,8 @@ def test_project_planner_prompt_contains_full_json_skeleton_and_short_form_bans(
         "name, start_date, end_date, milestones",
         "title, due_date, description",
         "YYYY-MM-DD",
+        "Roadmap and milestone dates must not be later than the user deadline",
+        "final phase must end on or before deadline",
         "JSON arrays",
         "strings",
     ):
@@ -186,6 +211,26 @@ def test_docx_export_contains_demo_ready_sections(tmp_path, monkeypatch):
     assert "RACI" in text
     assert "Факторы трудоёмкости" in text
     assert "Сценарий защиты" in text
+
+
+def test_docx_export_builds_gantt_rows_when_report_gantt_is_empty(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "project_planner_docx_dir", str(tmp_path), raising=False)
+    report = build_mock_report(_payload())
+    report.gantt = []
+
+    path = export_project_report_docx(report, run_id=44)
+    text = _docx_text(path)
+
+    assert "Gantt-like представление" in text
+    assert report.roadmap[0].name in text
+    assert "█" in text
+
+
+def test_docx_text_cleanup_removes_spaces_before_punctuation():
+    assert _clean_text("по тестовым ,  справочникам .\n  Следующее  !") == (
+        "по тестовым, справочникам.\nСледующее!"
+    )
+    assert _clean_text(None) == ""
 
 
 def test_frontend_docx_download_does_not_use_spa_navigation():
@@ -237,6 +282,53 @@ def test_validate_project_report_warns_on_milestone_count_outside_required_range
 
     assert any("меньше 3 контрольных точек" in warning for warning in warnings)
     assert any("больше 6 контрольных точек" in warning for warning in warnings)
+
+
+def test_validate_project_report_warns_on_deadline_overflow_and_empty_gantt():
+    deadline = dt.date(2026, 9, 1)
+    payload = _payload().model_copy(update={"deadline": deadline})
+    report = build_mock_report(payload, today=dt.date(2026, 7, 1))
+    report.roadmap[0].end_date = deadline + dt.timedelta(days=1)
+    report.roadmap[0].milestones[0].due_date = deadline + dt.timedelta(days=1)
+    report.gantt = []
+
+    warnings = validate_project_report(report, payload)
+
+    assert any("выходит за пользовательский дедлайн" in warning for warning in warnings)
+    assert any("Gantt-like представление не заполнено" in warning for warning in warnings)
+
+
+def test_validate_project_report_warns_on_roadmap_dates_before_current_date():
+    current_date = dt.date(2026, 6, 1)
+    payload = _payload().model_copy(update={"deadline": dt.date(2026, 9, 1)})
+    report = build_mock_report(payload, today=current_date)
+    report.roadmap[0].start_date = current_date - dt.timedelta(days=1)
+    report.roadmap[0].milestones[0].due_date = current_date - dt.timedelta(days=1)
+
+    warnings = validate_project_report(report, payload, current_date=current_date)
+
+    assert any("начинается раньше даты генерации" in warning for warning in warnings)
+    assert any("назначена раньше даты генерации" in warning for warning in warnings)
+
+
+def test_postprocess_rebuilds_empty_gantt_from_roadmap():
+    report = build_mock_report(_payload())
+    report.gantt = []
+
+    processed, fallback_warning = postprocess_project_report(report, _payload())
+
+    assert fallback_warning is None
+    assert len(processed.gantt) == len(report.roadmap)
+    assert all(row.phase and row.period and "█" in row.timeline for row in processed.gantt)
+
+
+def test_build_gantt_from_roadmap_uses_simple_stable_text_bars():
+    report = build_mock_report(_payload())
+
+    rows = build_gantt_from_roadmap(report.roadmap)
+
+    assert len(rows) == len(report.roadmap)
+    assert all(row.phase and row.period and set(row.timeline) <= {"█", "░"} for row in rows)
 
 
 def test_llm_normalizer_converts_source_input_lists_to_strings():
@@ -357,6 +449,134 @@ async def test_generator_normalizes_common_gigachat_shape_errors(monkeypatch):
     assert report.roadmap[0].name == phase["title"]
     assert report.roadmap[0].milestones[0].due_date.isoformat() == due_date
     assert report.resources.financial_items
+
+
+async def test_generator_corrects_llm_roadmap_after_user_deadline(monkeypatch):
+    monkeypatch.setattr(settings, "project_planner_use_mock_llm", False, raising=False)
+    monkeypatch.setattr(settings, "gigachat_retry_count", 0, raising=False)
+    monkeypatch.setattr(project_postprocess, "_current_date", lambda: dt.date(2026, 6, 1))
+    deadline = dt.date(2026, 9, 1)
+    payload = _payload().model_copy(update={"deadline": deadline})
+    raw = _report_json_with_roadmap_dates(payload, dt.date(2026, 8, 1))
+    raw["gantt"] = []
+    provider = FakeJsonProvider(raw)
+
+    report, model_name, used_fallback = await generate_project_report(payload, provider=provider)
+
+    warnings_text = "\n".join(report.warnings)
+    assert used_fallback is False
+    assert model_name == "fake-json"
+    assert provider.calls == 1
+    assert ROADMAP_DEADLINE_CORRECTION_WARNING in report.warnings
+    assert all(phase.end_date <= deadline for phase in report.roadmap)
+    assert all(
+        milestone.due_date <= deadline
+        for phase in report.roadmap
+        for milestone in phase.milestones
+    )
+    assert report.gantt
+    assert all(row.phase and row.period and "█" in row.timeline for row in report.gantt)
+    assert "ValidationError" not in warnings_text
+    assert "Traceback" not in warnings_text
+    assert "Field required" not in warnings_text
+
+
+async def test_generator_corrects_llm_roadmap_starting_before_current_date(monkeypatch):
+    monkeypatch.setattr(settings, "project_planner_use_mock_llm", False, raising=False)
+    monkeypatch.setattr(settings, "gigachat_retry_count", 0, raising=False)
+    current_date = dt.date(2026, 6, 1)
+    monkeypatch.setattr(project_postprocess, "_current_date", lambda: current_date)
+    deadline = dt.date(2026, 9, 1)
+    payload = _payload().model_copy(update={"deadline": deadline})
+    raw = _report_json_with_roadmap_dates(payload, dt.date(2026, 4, 1))
+    raw["gantt"] = [{"phase": "", "period": "", "timeline": ""}]
+    provider = FakeJsonProvider(raw)
+
+    report, model_name, used_fallback = await generate_project_report(payload, provider=provider)
+
+    warnings_text = "\n".join(report.warnings)
+    assert used_fallback is False
+    assert model_name == "fake-json"
+    assert provider.calls == 1
+    assert ROADMAP_START_DATE_CORRECTION_WARNING in report.warnings
+    assert all(phase.start_date >= current_date for phase in report.roadmap)
+    assert all(phase.end_date <= deadline for phase in report.roadmap)
+    assert all(
+        milestone.due_date >= current_date
+        for phase in report.roadmap
+        for milestone in phase.milestones
+    )
+    assert all(
+        milestone.due_date <= deadline
+        for phase in report.roadmap
+        for milestone in phase.milestones
+    )
+    assert report.gantt
+    assert all(row.phase and row.period and "█" in row.timeline for row in report.gantt)
+    assert "ValidationError" not in warnings_text
+    assert "Traceback" not in warnings_text
+    assert "Field required" not in warnings_text
+
+
+async def test_generator_marks_too_short_compressed_deadline(monkeypatch):
+    monkeypatch.setattr(settings, "project_planner_use_mock_llm", False, raising=False)
+    monkeypatch.setattr(settings, "gigachat_retry_count", 0, raising=False)
+    monkeypatch.setattr(project_postprocess, "_current_date", lambda: dt.date(2026, 6, 1))
+    deadline = dt.date(2026, 8, 3)
+    payload = _payload().model_copy(update={"deadline": deadline})
+    raw = _report_json_with_roadmap_dates(payload, dt.date(2026, 8, 1))
+    provider = FakeJsonProvider(raw)
+
+    report, model_name, used_fallback = await generate_project_report(payload, provider=provider)
+
+    assert used_fallback is False
+    assert model_name == "fake-json"
+    assert ROADMAP_DEADLINE_CORRECTION_WARNING in report.warnings
+    assert ROADMAP_SHORT_DEADLINE_WARNING in report.warnings
+    assert all(phase.end_date <= deadline for phase in report.roadmap)
+
+
+async def test_generator_uses_fallback_when_current_date_is_after_deadline(monkeypatch):
+    monkeypatch.setattr(settings, "project_planner_use_mock_llm", False, raising=False)
+    monkeypatch.setattr(settings, "gigachat_retry_count", 0, raising=False)
+    current_date = dt.date(2026, 6, 2)
+    monkeypatch.setattr(project_postprocess, "_current_date", lambda: current_date)
+    deadline = dt.date(2026, 6, 1)
+    payload = _payload().model_copy(update={"deadline": deadline})
+    raw = _report_json_with_roadmap_dates(payload, dt.date(2026, 5, 1))
+    provider = FakeJsonProvider(raw)
+
+    report, model_name, used_fallback = await generate_project_report(payload, provider=provider)
+
+    warnings_text = "\n".join(report.warnings)
+    assert used_fallback is True
+    assert model_name == "fallback"
+    assert provider.calls == 1
+    assert ROADMAP_PAST_DEADLINE_FALLBACK_WARNING in report.warnings
+    assert "ValidationError" not in warnings_text
+    assert "Traceback" not in warnings_text
+    assert "Field required" not in warnings_text
+
+
+async def test_generator_uses_fallback_when_roadmap_start_is_after_deadline(monkeypatch):
+    monkeypatch.setattr(settings, "project_planner_use_mock_llm", False, raising=False)
+    monkeypatch.setattr(settings, "gigachat_retry_count", 0, raising=False)
+    monkeypatch.setattr(project_postprocess, "_current_date", lambda: dt.date(2026, 6, 1))
+    deadline = dt.date(2026, 9, 1)
+    payload = _payload().model_copy(update={"deadline": deadline})
+    raw = _report_json_with_roadmap_dates(payload, deadline + dt.timedelta(days=1))
+    provider = FakeJsonProvider(raw)
+
+    report, model_name, used_fallback = await generate_project_report(payload, provider=provider)
+
+    warnings_text = "\n".join(report.warnings)
+    assert used_fallback is True
+    assert model_name == "fallback"
+    assert provider.calls == 1
+    assert ROADMAP_DEADLINE_FALLBACK_WARNING in report.warnings
+    assert "ValidationError" not in warnings_text
+    assert "Traceback" not in warnings_text
+    assert "Field required" not in warnings_text
 
 
 async def test_generator_falls_back_on_non_normalizable_json_without_traceback(monkeypatch):

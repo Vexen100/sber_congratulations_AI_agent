@@ -119,8 +119,22 @@ def build_clarifications(payload: ProjectPlannerInput) -> ClarificationResponse:
     )
 
 
-def validate_project_report(report: ProjectReport) -> list[str]:
+def _gantt_has_content(report: ProjectReport) -> bool:
+    return any(
+        row.phase.strip() and row.period.strip() and row.timeline.strip()
+        for row in report.gantt
+    )
+
+
+def validate_project_report(
+    report: ProjectReport,
+    payload: ProjectPlannerInput | None = None,
+    *,
+    current_date: dt.date | None = None,
+) -> list[str]:
     warnings: list[str] = []
+    if payload is not None:
+        current_date = current_date or dt.date.today()
     if len(report.roadmap) < 4:
         warnings.append("В дорожной карте меньше 4 фаз; структура была усилена fallback-валидатором.")
     for phase in report.roadmap:
@@ -130,6 +144,22 @@ def validate_project_report(report: ProjectReport) -> list[str]:
             warnings.append(f"В фазе «{phase.name}» больше 6 контрольных точек.")
         if phase.start_date > phase.end_date:
             warnings.append(f"В фазе «{phase.name}» дата старта позже даты окончания.")
+        if payload and current_date and phase.start_date < current_date:
+            warnings.append(f"Фаза «{phase.name}» начинается раньше даты генерации.")
+        if payload and payload.deadline and phase.end_date > payload.deadline:
+            warnings.append(f"Фаза «{phase.name}» выходит за пользовательский дедлайн.")
+        if payload:
+            for milestone in phase.milestones:
+                if current_date and milestone.due_date < current_date:
+                    warnings.append(
+                        f"Контрольная точка «{milestone.title}» назначена раньше даты генерации."
+                    )
+                if payload.deadline and milestone.due_date > payload.deadline:
+                    warnings.append(
+                        f"Контрольная точка «{milestone.title}» выходит за пользовательский дедлайн."
+                    )
+    if report.roadmap and not _gantt_has_content(report):
+        warnings.append("Gantt-like представление не заполнено.")
     if len(report.concepts) != 3:
         warnings.append("Количество концепций отличается от требуемых трёх.")
     names = [item.name.strip().lower() for item in report.concepts]

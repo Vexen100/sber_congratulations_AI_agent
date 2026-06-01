@@ -3,11 +3,13 @@ from __future__ import annotations
 import datetime as dt
 import html
 import logging
+import re
 import zipfile
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from app.core.config import settings
+from app.project_planner.postprocess import build_gantt_from_roadmap, is_gantt_valid
 from app.project_planner.schemas import ProjectReport
 
 logger = logging.getLogger(__name__)
@@ -23,8 +25,28 @@ def _safe_filename(value: str) -> str:
     return clean.strip("_")[:80] or "project_report"
 
 
+def _clean_text(value: object | None) -> str:
+    if value is None:
+        return ""
+    text = str(value).replace("\r\n", "\n").replace("\r", "\n")
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"\s+([,.;:!?])", r"\1", text)
+    return "\n".join(line.strip() for line in text.split("\n")).strip()
+
+
 def _paragraph_xml(text: str) -> str:
-    return f"<w:p><w:r><w:t>{html.escape(text)}</w:t></w:r></w:p>"
+    return f"<w:p><w:r><w:t>{html.escape(_clean_text(text))}</w:t></w:r></w:p>"
+
+
+def _add_heading(document, text: str, *, level: int) -> None:
+    document.add_heading(_clean_text(text), level=level)
+
+
+def _add_paragraph(document, text: object | None, style: str | None = None) -> None:
+    if style:
+        document.add_paragraph(_clean_text(text), style=style)
+    else:
+        document.add_paragraph(_clean_text(text))
 
 
 def _format_date(value: dt.date | None) -> str:
@@ -52,6 +74,7 @@ def _generated_at_text() -> str:
 
 
 def _write_minimal_docx(report: ProjectReport, path: Path) -> None:
+    gantt_rows = report.gantt if is_gantt_valid(report.gantt) else build_gantt_from_roadmap(report.roadmap)
     paragraphs = [
         "Проектный отчёт",
         report.passport.title,
@@ -74,6 +97,8 @@ def _write_minimal_docx(report: ProjectReport, path: Path) -> None:
             f"{phase.name}: {phase.start_date.isoformat()} - {phase.end_date.isoformat()}"
             for phase in report.roadmap
         ],
+        "Gantt-like представление",
+        *[f"{row.phase}: {row.period} | {row.timeline}" for row in gantt_rows],
         "Концепции",
         *[f"{concept.name}: {concept.key_idea}" for concept in report.concepts],
         "Рекомендованная концепция",
@@ -113,23 +138,23 @@ def _write_minimal_docx(report: ProjectReport, path: Path) -> None:
 
 
 def _add_bullets(document, title: str, items: list[str]) -> None:
-    document.add_heading(title, level=2)
+    _add_heading(document, title, level=2)
     if not items:
-        document.add_paragraph("Нет данных.")
+        _add_paragraph(document, "Нет данных.")
         return
     for item in items:
-        document.add_paragraph(item, style="List Bullet")
+        _add_paragraph(document, item, style="List Bullet")
 
 
 def _add_table(document, headers: tuple[str, ...], rows: list[tuple[str, ...]]):
     table = document.add_table(rows=1, cols=len(headers))
     table.style = "Table Grid"
     for cell, title in zip(table.rows[0].cells, headers, strict=True):
-        cell.text = title
+        cell.text = _clean_text(title)
     for values in rows:
         row = table.add_row().cells
         for cell, value in zip(row, values, strict=True):
-            cell.text = value
+            cell.text = _clean_text(value)
     return table
 
 
@@ -143,12 +168,12 @@ def export_project_report_docx(report: ProjectReport, *, run_id: int) -> Path:
         from docx import Document
 
         document = Document()
-        document.add_heading("Проектный отчёт", level=0)
-        document.add_paragraph(report.passport.title)
-        document.add_paragraph(f"Дата генерации: {_generated_at_text()}")
-        document.add_paragraph(PRELIMINARY_NOTICE)
+        _add_heading(document, "Проектный отчёт", level=0)
+        _add_paragraph(document, report.passport.title)
+        _add_paragraph(document, f"Дата генерации: {_generated_at_text()}")
+        _add_paragraph(document, PRELIMINARY_NOTICE)
 
-        document.add_heading("Исходные данные", level=1)
+        _add_heading(document, "Исходные данные", level=1)
         source_rows = [
             ("Идея", report.source_input.idea),
             ("Дедлайн", _format_date(report.source_input.deadline)),
@@ -167,8 +192,8 @@ def export_project_report_docx(report: ProjectReport, *, run_id: int) -> Path:
         _add_bullets(document, "Предупреждения", report.warnings)
         _add_bullets(document, "Допущения", report.assumptions)
 
-        document.add_heading("Паспорт проекта", level=1)
-        document.add_paragraph(report.passport.goal)
+        _add_heading(document, "Паспорт проекта", level=1)
+        _add_paragraph(document, report.passport.goal)
         _add_table(
             document,
             ("Поле", "Значение"),
@@ -182,7 +207,7 @@ def export_project_report_docx(report: ProjectReport, *, run_id: int) -> Path:
         _add_bullets(document, "Риски паспорта проекта", report.passport.risks)
         _add_bullets(document, "Допущения паспорта проекта", report.passport.assumptions)
 
-        document.add_heading("Дорожная карта", level=1)
+        _add_heading(document, "Дорожная карта", level=1)
         _add_table(
             document,
             ("Фаза", "Старт", "Финиш", "Контрольные точки"),
@@ -200,14 +225,15 @@ def export_project_report_docx(report: ProjectReport, *, run_id: int) -> Path:
             ],
         )
 
-        document.add_heading("Gantt-like представление", level=1)
+        gantt_rows = report.gantt if is_gantt_valid(report.gantt) else build_gantt_from_roadmap(report.roadmap)
+        _add_heading(document, "Gantt-like представление", level=1)
         _add_table(
             document,
             ("Фаза", "Период", "Шкала"),
-            [(row.phase, row.period, row.timeline) for row in report.gantt],
+            [(row.phase, row.period, row.timeline) for row in gantt_rows],
         )
 
-        document.add_heading("Ресурсы", level=1)
+        _add_heading(document, "Ресурсы", level=1)
         _add_table(
             document,
             ("Статья", "Сумма", "Комментарий"),
@@ -216,11 +242,11 @@ def export_project_report_docx(report: ProjectReport, *, run_id: int) -> Path:
                 for item in report.resources.financial_items
             ],
         )
-        document.add_paragraph(f"Итого: {_format_money(report.resources.financial_total)}")
+        _add_paragraph(document, f"Итого: {_format_money(report.resources.financial_total)}")
         _add_bullets(document, "Материально-технические ресурсы", report.resources.material_resources)
         _add_bullets(document, "Информационные ресурсы", report.resources.information_resources)
 
-        document.add_heading("Команда проекта", level=1)
+        _add_heading(document, "Команда проекта", level=1)
         _add_table(
             document,
             ("Роль", "Количество", "Компетенции", "Комментарий"),
@@ -235,7 +261,7 @@ def export_project_report_docx(report: ProjectReport, *, run_id: int) -> Path:
             ],
         )
 
-        document.add_heading("RACI", level=1)
+        _add_heading(document, "RACI", level=1)
         _add_table(
             document,
             ("Активность", "R", "A", "C", "I"),
@@ -251,30 +277,30 @@ def export_project_report_docx(report: ProjectReport, *, run_id: int) -> Path:
             ],
         )
 
-        document.add_heading("Три концепции", level=1)
+        _add_heading(document, "Три концепции", level=1)
         for concept in report.concepts:
-            document.add_heading(concept.name, level=2)
-            document.add_paragraph(concept.key_idea)
-            document.add_paragraph(f"Оценка стоимости: {_format_money(concept.estimated_cost)}")
-            document.add_paragraph(f"Трудоёмкость: {concept.effort_level}")
-            document.add_paragraph(f"Отличия: {concept.differences}")
+            _add_heading(document, concept.name, level=2)
+            _add_paragraph(document, concept.key_idea)
+            _add_paragraph(document, f"Оценка стоимости: {_format_money(concept.estimated_cost)}")
+            _add_paragraph(document, f"Трудоёмкость: {concept.effort_level}")
+            _add_paragraph(document, f"Отличия: {concept.differences}")
             _add_bullets(document, "Сценарий", concept.scenario_steps)
             _add_bullets(document, "Преимущества", concept.advantages)
             _add_bullets(document, "Недостатки", concept.disadvantages)
             _add_bullets(document, "Факторы трудоёмкости", concept.effort_factors)
 
-        document.add_heading("Рекомендованная концепция", level=1)
-        document.add_paragraph(report.recommended_concept.concept_name)
-        document.add_paragraph(report.recommended_concept.rationale)
+        _add_heading(document, "Рекомендованная концепция", level=1)
+        _add_paragraph(document, report.recommended_concept.concept_name)
+        _add_paragraph(document, report.recommended_concept.rationale)
         _add_bullets(document, "Риски выбранной концепции", report.recommended_concept.risks)
 
         if report.presentation_outline:
-            document.add_heading("Outline презентации", level=1)
+            _add_heading(document, "Outline презентации", level=1)
             for slide in report.presentation_outline:
                 _add_bullets(document, slide.title, slide.bullets)
         if report.defense_script:
-            document.add_heading("Сценарий защиты", level=1)
-            document.add_paragraph(report.defense_script)
+            _add_heading(document, "Сценарий защиты", level=1)
+            _add_paragraph(document, report.defense_script)
 
         document.save(path)
     except Exception:
