@@ -42,6 +42,15 @@ function currency(value: number | null | undefined): string {
   return new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(value);
 }
 
+function textValue(value: string | null | undefined): string {
+  const text = (value ?? "").trim();
+  return text || "не указано";
+}
+
+function dateValue(value: string | null | undefined): string {
+  return value ? formatDate(value) : "не указано";
+}
+
 function BulletList({ items }: { items: string[] }) {
   if (!items.length) return <div className="text-muted">Нет данных</div>;
   return (
@@ -53,14 +62,58 @@ function BulletList({ items }: { items: string[] }) {
   );
 }
 
+function KeyValueTable({ rows }: { rows: Array<{ label: string; value: string }> }) {
+  return (
+    <div className="table-responsive">
+      <table className="table table-sm table-clean align-middle">
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.label}>
+              <th className="text-nowrap">{row.label}</th>
+              <td>{row.value}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function ReportPreview({ report }: { report: ProjectReport }) {
   return (
     <div className="planner-preview">
+      <div className="surface-card mb-3">
+        <div className="card-header">Исходные данные</div>
+        <div className="card-body">
+          <KeyValueTable
+            rows={[
+              { label: "Идея", value: textValue(report.source_input.idea) },
+              { label: "Дедлайн", value: dateValue(report.source_input.deadline) },
+              { label: "Бюджет", value: currency(report.source_input.budget) },
+              { label: "География", value: textValue(report.source_input.geography) },
+              { label: "Стейкхолдеры", value: textValue(report.source_input.stakeholders) },
+              { label: "Текущие ресурсы", value: textValue(report.source_input.current_resources) },
+              {
+                label: "Технологические ограничения",
+                value: textValue(report.source_input.technology_constraints)
+              },
+              { label: "Акценты проекта", value: textValue(report.source_input.project_accents) }
+            ]}
+          />
+        </div>
+      </div>
+
       <div className="surface-card mb-3">
         <div className="card-header">Паспорт проекта</div>
         <div className="card-body">
           <h3 className="h5">{report.passport.title}</h3>
           <p>{report.passport.goal}</p>
+          <KeyValueTable
+            rows={[
+              { label: "Целевая аудитория", value: report.passport.target_audience },
+              { label: "Актуальность", value: report.passport.relevance_for_ural_bank }
+            ]}
+          />
           <div className="row g-3">
             <div className="col-12 col-lg-6">
               <div className="section-title">Задачи</div>
@@ -69,6 +122,14 @@ function ReportPreview({ report }: { report: ProjectReport }) {
             <div className="col-12 col-lg-6">
               <div className="section-title">Критерии успеха</div>
               <BulletList items={report.passport.success_criteria} />
+            </div>
+            <div className="col-12 col-lg-6">
+              <div className="section-title">Риски</div>
+              <BulletList items={report.passport.risks} />
+            </div>
+            <div className="col-12 col-lg-6">
+              <div className="section-title">Допущения паспорта</div>
+              <BulletList items={report.passport.assumptions} />
             </div>
           </div>
         </div>
@@ -92,7 +153,16 @@ function ReportPreview({ report }: { report: ProjectReport }) {
                   <td>
                     {formatDate(phase.start_date)} - {formatDate(phase.end_date)}
                   </td>
-                  <td>{phase.milestones.map((item) => item.title).join("; ")}</td>
+                  <td>
+                    <ul className="planner-list">
+                      {phase.milestones.map((item) => (
+                        <li key={`${phase.name}:${item.title}`}>
+                          <b>{item.title}</b> · {formatDate(item.due_date)}
+                          <div className="text-muted small">{item.description}</div>
+                        </li>
+                      ))}
+                    </ul>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -115,7 +185,30 @@ function ReportPreview({ report }: { report: ProjectReport }) {
             <div className="card-body">
               <div className="metric-value planner-money">{currency(report.resources.financial_total)}</div>
               <div className="text-muted mb-3">предварительная оценка бюджета</div>
+              <div className="table-responsive mb-3">
+                <table className="table table-sm table-clean align-middle">
+                  <thead>
+                    <tr>
+                      <th>Статья</th>
+                      <th>Сумма</th>
+                      <th>Комментарий</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {report.resources.financial_items.map((item) => (
+                      <tr key={item.category}>
+                        <td>{item.category}</td>
+                        <td>{currency(item.amount)}</td>
+                        <td>{item.comment}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="section-title">Материально-технические ресурсы</div>
               <BulletList items={report.resources.material_resources} />
+              <div className="section-title mt-3">Информационные ресурсы</div>
+              <BulletList items={report.resources.information_resources} />
             </div>
           </div>
         </div>
@@ -127,10 +220,39 @@ function ReportPreview({ report }: { report: ProjectReport }) {
                 <div className="planner-role" key={role.title}>
                   <b>{role.title}</b> · {role.count} чел.
                   <div className="text-muted small">{role.competencies.join(", ")}</div>
+                  <div>{role.assignment_comment}</div>
                 </div>
               ))}
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="surface-card mb-3">
+        <div className="card-header">RACI</div>
+        <div className="card-body table-responsive">
+          <table className="table table-sm table-clean align-middle">
+            <thead>
+              <tr>
+                <th>Активность</th>
+                <th>R</th>
+                <th>A</th>
+                <th>C</th>
+                <th>I</th>
+              </tr>
+            </thead>
+            <tbody>
+              {report.raci.map((item) => (
+                <tr key={item.activity}>
+                  <td className="fw-semibold">{item.activity}</td>
+                  <td>{item.responsible}</td>
+                  <td>{item.accountable}</td>
+                  <td>{item.consulted.join(", ")}</td>
+                  <td>{item.informed.join(", ")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -146,6 +268,15 @@ function ReportPreview({ report }: { report: ProjectReport }) {
                   <div className="text-muted small">
                     Стоимость: {currency(concept.estimated_cost)} · трудоёмкость: {concept.effort_level}
                   </div>
+                  <div className="section-title mt-3">Сценарий</div>
+                  <BulletList items={concept.scenario_steps} />
+                  <div className="section-title mt-3">Преимущества</div>
+                  <BulletList items={concept.advantages} />
+                  <div className="section-title mt-3">Недостатки</div>
+                  <BulletList items={concept.disadvantages} />
+                  <div className="section-title mt-3">Факторы трудоёмкости</div>
+                  <BulletList items={concept.effort_factors} />
+                  <div className="text-muted small mt-3">{concept.differences}</div>
                 </div>
               </div>
             ))}
@@ -153,9 +284,38 @@ function ReportPreview({ report }: { report: ProjectReport }) {
           <div className="planner-recommendation mt-3">
             <b>Рекомендация:</b> {report.recommended_concept.concept_name}.{" "}
             {report.recommended_concept.rationale}
+            <div className="section-title mt-3">Риски выбранной концепции</div>
+            <BulletList items={report.recommended_concept.risks} />
           </div>
         </div>
       </div>
+
+      {report.presentation_outline.length ? (
+        <div className="surface-card mb-3">
+          <div className="card-header">Outline презентации</div>
+          <div className="card-body">
+            <div className="row g-3">
+              {report.presentation_outline.map((slide) => (
+                <div className="col-12 col-lg-6" key={slide.title}>
+                  <div className="planner-concept h-100">
+                    <h4 className="h6">{slide.title}</h4>
+                    <BulletList items={slide.bullets} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {report.defense_script ? (
+        <div className="surface-card mb-3">
+          <div className="card-header">Сценарий защиты</div>
+          <div className="card-body">
+            <p className="mb-0">{report.defense_script}</p>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -259,6 +419,7 @@ export default function ProjectPlannerPage() {
   const [runs, setRuns] = useState<ProjectPlannerRunSummary[]>([]);
   const [flash, setFlash] = useState<PlannerFlash>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [generateWithAssumptions, setGenerateWithAssumptions] = useState(true);
 
   async function refreshHistory() {
     setRuns(await listProjectPlannerRuns());
@@ -299,7 +460,7 @@ export default function ProjectPlannerPage() {
     event.preventDefault();
     setBusy("generate");
     try {
-      const response = await createProjectPlannerRun(input);
+      const response = await createProjectPlannerRun(input, generateWithAssumptions);
       setSelectedRun(response.run);
       setQuestions([]);
       setCanGenerate(false);
@@ -416,6 +577,22 @@ export default function ProjectPlannerPage() {
                   onChange={(event) => updateField("project_accents", event.target.value)}
                   placeholder="Например: учесть фестиваль 2023 года и 185-летие Сбера"
                 />
+
+                <div className="form-check form-switch">
+                  <input
+                    className="form-check-input"
+                    id="planner-generate-with-assumptions"
+                    type="checkbox"
+                    checked={generateWithAssumptions}
+                    onChange={(event) => setGenerateWithAssumptions(event.target.checked)}
+                  />
+                  <label className="form-check-label" htmlFor="planner-generate-with-assumptions">
+                    Генерировать с допущениями
+                  </label>
+                  <div className="form-text">
+                    Если выключить, генерация остановится при нехватке исходных данных.
+                  </div>
+                </div>
 
                 <div className="d-flex gap-2 flex-wrap mt-3">
                   <button
