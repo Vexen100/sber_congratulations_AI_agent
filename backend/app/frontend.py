@@ -20,6 +20,7 @@ _SPA_ROUTES = (
     "/deliveries",
     "/runs",
     "/runs/{path:path}",
+    "/project-planner",
 )
 
 

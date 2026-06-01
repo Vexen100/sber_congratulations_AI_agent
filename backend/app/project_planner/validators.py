@@ -1,0 +1,141 @@
+from __future__ import annotations
+
+import datetime as dt
+
+from app.core.config import settings
+from app.project_planner.schemas import (
+    ClarificationQuestion,
+    ClarificationResponse,
+    ProjectPlannerInput,
+    ProjectReport,
+)
+
+
+def source_assumptions(payload: ProjectPlannerInput) -> list[str]:
+    assumptions: list[str] = []
+    if len((payload.idea or "").strip()) < 30:
+        assumptions.append("Идея проекта описана кратко; детализация будет восстановлена по типовым допущениям.")
+    if payload.deadline is None:
+        assumptions.append("Дедлайн не указан; для MVP принят горизонт планирования 90 дней.")
+    if not (payload.geography or "").strip():
+        assumptions.append("География не указана; применён базовый региональный коэффициент Свердловской области.")
+    if not (payload.stakeholders or "").strip():
+        assumptions.append("Стейкхолдеры не указаны; предполагаются бизнес-заказчик и проектная команда банка.")
+    if not (payload.current_resources or "").strip():
+        assumptions.append("Текущие ресурсы не указаны; команда и ресурсы подобраны как новый проект.")
+    if not (payload.technology_constraints or "").strip():
+        assumptions.append("Технологические ограничения не указаны; критичных IT-ограничений не предполагается.")
+    if not (payload.project_accents or "").strip():
+        assumptions.append("Акценты проекта не указаны; концепции сформированы без дополнительного контекста.")
+    return assumptions
+
+
+def deadline_warnings(payload: ProjectPlannerInput, *, today: dt.date | None = None) -> list[str]:
+    today = today or dt.date.today()
+    if payload.deadline is None:
+        return ["Дедлайн не указан: календарный план построен по типовой длительности MVP."]
+    days = (payload.deadline - today).days
+    if days < 0:
+        return ["Дедлайн находится в прошлом; дорожная карта построена как срочная перепланировка."]
+    if days < 30:
+        return ["Срок выглядит нереалистично коротким; часть работ потребуется выполнять параллельно."]
+    return []
+
+
+def source_data_gaps(payload: ProjectPlannerInput) -> list[str]:
+    gaps: list[str] = []
+    if len((payload.idea or "").strip()) < 30:
+        gaps.append("идея проекта описана короче 30 символов")
+    if payload.deadline is None:
+        gaps.append("не указан дедлайн")
+    if not (payload.geography or "").strip():
+        gaps.append("не указана география")
+    if not (payload.stakeholders or "").strip():
+        gaps.append("не указаны стейкхолдеры")
+    if not (payload.project_accents or "").strip():
+        gaps.append("не указаны акценты проекта")
+    return gaps
+
+
+def build_clarifications(payload: ProjectPlannerInput) -> ClarificationResponse:
+    questions: list[ClarificationQuestion] = []
+    if len((payload.idea or "").strip()) < 30:
+        questions.append(
+            ClarificationQuestion(
+                field="idea",
+                question="Опишите идею проекта чуть подробнее: цель, аудитория и ожидаемый результат.",
+                reason="По ТЗ стартовая идея должна быть достаточно полной для SMART-формулировки.",
+            )
+        )
+    if payload.deadline is None:
+        questions.append(
+            ClarificationQuestion(
+                field="deadline",
+                question="К какой дате нужен готовый результат проекта?",
+                reason="Дедлайн нужен для дорожной карты и проверки реалистичности сроков.",
+            )
+        )
+    if not (payload.geography or "").strip():
+        questions.append(
+            ClarificationQuestion(
+                field="geography",
+                question="В каком регионе Уральского банка планируется проект?",
+                reason="География влияет на тестовый региональный коэффициент бюджета.",
+            )
+        )
+    if not (payload.stakeholders or "").strip():
+        questions.append(
+            ClarificationQuestion(
+                field="stakeholders",
+                question="Кто ключевые стейкхолдеры и кто принимает результат?",
+                reason="Это нужно для команды проекта, RACI и сценария защиты.",
+            )
+        )
+    if not (payload.project_accents or "").strip():
+        questions.append(
+            ClarificationQuestion(
+                field="project_accents",
+                question="Есть ли акценты проекта или контекст, который важно учесть при защите?",
+                reason="Акценты помогают отличить концепции и не потерять важные ограничения заказчика.",
+            )
+        )
+
+    default_limit = int(settings.project_planner_default_clarifying_questions)
+    max_limit = int(settings.project_planner_max_clarifying_questions)
+    remaining = max(default_limit - int(payload.questions_asked_count or 0), 0)
+    if payload.questions_asked_count >= max_limit:
+        visible_questions: list[ClarificationQuestion] = []
+    else:
+        visible_questions = questions[:remaining or default_limit]
+    can_generate = bool(not visible_questions or payload.questions_asked_count >= default_limit)
+    if payload.questions_asked_count >= max_limit:
+        can_generate = True
+
+    return ClarificationResponse(
+        questions=visible_questions,
+        can_generate_with_assumptions=can_generate,
+        default_limit=default_limit,
+        max_limit=max_limit,
+    )
+
+
+def validate_project_report(report: ProjectReport) -> list[str]:
+    warnings: list[str] = []
+    if len(report.roadmap) < 4:
+        warnings.append("В дорожной карте меньше 4 фаз; структура была усилена fallback-валидатором.")
+    for phase in report.roadmap:
+        if len(phase.milestones) < 3:
+            warnings.append(f"В фазе «{phase.name}» меньше 3 контрольных точек.")
+        if len(phase.milestones) > 6:
+            warnings.append(f"В фазе «{phase.name}» больше 6 контрольных точек.")
+        if phase.start_date > phase.end_date:
+            warnings.append(f"В фазе «{phase.name}» дата старта позже даты окончания.")
+    if len(report.concepts) != 3:
+        warnings.append("Количество концепций отличается от требуемых трёх.")
+    names = [item.name.strip().lower() for item in report.concepts]
+    ideas = [item.key_idea.strip().lower() for item in report.concepts]
+    if len(set(names)) != len(names) or len(set(ideas)) != len(ideas):
+        warnings.append("Концепции выглядят похожими; требуется экспертная проверка уникальности.")
+    if not report.raci:
+        warnings.append("RACI-матрица не заполнена.")
+    return warnings

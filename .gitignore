@@ -49,3 +49,4 @@ drafts/
 *.crt
 *.pem
 
+backend/.venv310/

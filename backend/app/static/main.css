@@ -9,6 +9,7 @@
 @import "components/tables.css";
 @import "components/charts.css";
 @import "components/timer.css";
+@import "components/project-planner.css";
 
 @import "utilities/helpers.css";
 @import "utilities/kpi.css";

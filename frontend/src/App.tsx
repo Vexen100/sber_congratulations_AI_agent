@@ -8,6 +8,7 @@ import {
 } from "react";
 
 import { api, postJson } from "./api";
+import ProjectPlannerPage from "./pages/ProjectPlannerPage";
 import type {
   AgentRun,
   Client,
@@ -49,6 +50,7 @@ const navItems = [
   { href: "/events", label: "События" },
   { href: "/greetings", label: "Поздравления" },
   { href: "/deliveries", label: "Доставки" },
+  { href: "/project-planner", label: "Планировщик проектов" },
   { href: "/runs", label: "Запуски агента" }
 ];
 
@@ -1784,6 +1786,8 @@ export default function App() {
     <GreetingsPage refreshKey={refreshKey} onChanged={refresh} setFlash={setFlash} />
   ) : path === "/deliveries" ? (
     <DeliveriesPage refreshKey={refreshKey} />
+  ) : path === "/project-planner" ? (
+    <ProjectPlannerPage />
   ) : path === "/runs" ? (
     <RunsPage refreshKey={refreshKey} onChanged={refresh} setFlash={setFlash} />
   ) : (
