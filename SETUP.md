@@ -121,7 +121,7 @@ Backend теперь обслуживает только React UI. Чтобы о
 
 ```bat
 cd frontend
-npm install
+npm ci
 npm run build
 cd ..
 scripts\run_backend.cmd
@@ -131,11 +131,13 @@ scripts\run_backend.cmd
 
 ```bat
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
 Если React build отсутствует, backend покажет страницу-подсказку с командой `npm run build`.
+
+Для frontend рекомендуется Node `20.14+` и npm `10+`; базовая версия для `nvm` зафиксирована в корневом `.nvmrc`.
 
 ## (Опционально) Регулярный режим (планировщик)
 

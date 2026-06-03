@@ -80,7 +80,7 @@ scripts\run_backend.cmd
 
 - **ОС**: Windows поддерживается из коробки через `.cmd`-скрипты; для Linux/macOS команды нужно адаптировать вручную.
 - **Python**: 3.10+
-- **Node.js/npm**: нужны только для разработки или сборки React UI.
+- **Node.js/npm**: для frontend рекомендуется Node `20.14+` и npm `10+` (см. `.nvmrc` и `frontend/package.json#engines`).
 - **База данных**: SQLite по умолчанию
 
 ## Локальный запуск на Windows
@@ -136,7 +136,7 @@ Dev-режим React:
 
 ```bat
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
@@ -146,7 +146,7 @@ Production-сборка, которую FastAPI начнёт отдавать н
 
 ```bat
 cd frontend
-npm install
+npm ci
 npm run build
 ```
 

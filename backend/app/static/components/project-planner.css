@@ -872,87 +872,6 @@
   vertical-align: middle;
 }
 
-@keyframes planner-rise {
-  from {
-    opacity: 0;
-    transform: translateY(16px) scale(0.988);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.planner-hero,
-.planner-input-shell,
-.planner-side-column,
-.planner-stage-column,
-.planner-history-card,
-.planner-stage-shell,
-.planner-preview-empty {
-  animation: planner-rise 0.52s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.planner-hero {
-  animation-delay: 0.02s;
-}
-
-.planner-input-shell {
-  animation-delay: 0.08s;
-}
-
-.planner-side-column {
-  animation-delay: 0.14s;
-}
-
-.planner-stage-column {
-  animation-delay: 0.2s;
-}
-
-.planner-history-card {
-  animation-delay: 0.26s;
-}
-
-.planner-hero__stat,
-.planner-form-section,
-.planner-stage-shell,
-.planner-panel,
-.planner-question,
-.planner-concept,
-.planner-recommendation,
-.planner-history-card,
-.planner-preview .surface-card {
-  animation: planner-rise 0.58s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.planner-hero__stat:nth-child(1),
-.planner-form-section:nth-child(1),
-.planner-preview .surface-card:nth-child(1) {
-  animation-delay: 0.1s;
-}
-
-.planner-hero__stat:nth-child(2),
-.planner-form-section:nth-child(2),
-.planner-preview .surface-card:nth-child(2) {
-  animation-delay: 0.16s;
-}
-
-.planner-hero__stat:nth-child(3),
-.planner-form-section:nth-child(3),
-.planner-preview .surface-card:nth-child(3) {
-  animation-delay: 0.22s;
-}
-
-.planner-form-section:nth-child(4),
-.planner-preview .surface-card:nth-child(4) {
-  animation-delay: 0.28s;
-}
-
-.planner-form-actions {
-  animation: planner-rise 0.58s cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-delay: 0.34s;
-}
-
 :root[data-theme="dark"] .planner-page {
   --planner-panel-bg: linear-gradient(150deg, rgba(17, 30, 24, 0.98) 0%, rgba(11, 20, 16, 0.96) 100%);
   --planner-panel-bg-soft: linear-gradient(150deg, rgba(15, 27, 22, 0.98) 0%, rgba(10, 18, 14, 0.95) 100%);
@@ -1129,14 +1048,5 @@
 
   .planner-form-actions .btn {
     width: 100%;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .planner-page *,
-  .planner-page *::before,
-  .planner-page *::after {
-    animation: none !important;
-    transition: none !important;
   }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type MouseEvent } from "react";
 
 import {
   clarifyProjectPlanner,
@@ -14,6 +14,7 @@ import type {
   ProjectPlannerRunSummary,
   ProjectReport
 } from "../types/projectPlanner";
+import InfoHint from "../components/InfoHint";
 import { formatDate, formatDateTime } from "../utils";
 
 type PlannerFlash = {
@@ -50,31 +51,6 @@ function textValue(value: string | null | undefined): string {
 
 function dateValue(value: string | null | undefined): string {
   return value ? formatDate(value) : "не указано";
-}
-
-function InfoHint({
-  text,
-  className = "",
-  align = "center"
-}: {
-  text: ReactNode;
-  className?: string;
-  align?: "left" | "center" | "right";
-}) {
-  return (
-    <button
-      type="button"
-      className={`info-hint info-hint--${align} ${className}`.trim()}
-      aria-label={typeof text === "string" ? text : "Пояснение к блоку"}
-    >
-      <span className="info-hint__icon" aria-hidden="true">
-        ?
-      </span>
-      <span className="info-hint__bubble" role="tooltip">
-        {text}
-      </span>
-    </button>
-  );
 }
 
 function BulletList({ items }: { items: string[] }) {

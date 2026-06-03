@@ -8,6 +8,7 @@ import {
 } from "react";
 
 import { api, postJson } from "./api";
+import InfoHint from "./components/InfoHint";
 import ProjectPlannerPage from "./pages/ProjectPlannerPage";
 import type {
   AgentRun,
@@ -171,31 +172,6 @@ function ThemeToggle({ theme, onToggle }: { theme: ThemeMode; onToggle: () => vo
   );
 }
 
-function InfoHint({
-  text,
-  className = "",
-  align = "center"
-}: {
-  text: ReactNode;
-  className?: string;
-  align?: "left" | "center" | "right";
-}) {
-  return (
-    <button
-      type="button"
-      className={`info-hint info-hint--${align} ${className}`.trim()}
-      aria-label={typeof text === "string" ? text : "Пояснение к блоку"}
-    >
-      <span className="info-hint__icon" aria-hidden="true">
-        ?
-      </span>
-      <span className="info-hint__bubble" role="tooltip">
-        {text}
-      </span>
-    </button>
-  );
-}
-
 function MetricCard({
   label,
   value,
@@ -231,7 +207,7 @@ function PageHeader({
 }: {
   eyebrow: string;
   title: ReactNode;
-  subtitle?: ReactNode;
+  subtitle?: string;
   prefix?: ReactNode;
   actions?: ReactNode;
 }) {
@@ -1584,12 +1560,6 @@ function RunsPage({
 }) {
   const state = usePageData<RunsData>(`runs:${refreshKey}`, () => api<RunsData>("/api/ui/runs"));
   const [busy, setBusy] = useState(false);
-  const [now, setNow] = useState(Date.now());
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
 
   async function toggleAutonomy(enabled: boolean) {
     setBusy(true);
@@ -1612,8 +1582,6 @@ function RunsPage({
   if (!state.data) return <ErrorState error="Данные запусков не получены." />;
 
   const data = state.data;
-  const nextRunMs = data.autonomy.next_run_at ? Date.parse(data.autonomy.next_run_at) : null;
-  const countdown = data.autonomy.enabled && nextRunMs ? formatCountdown(Math.max(0, nextRunMs - now)) : "--:--:--";
 
   return (
     <PageShell name="runs">
@@ -1627,10 +1595,7 @@ function RunsPage({
         <div className="col-12 col-md-3">
           <div className="surface-panel metric-card metric-card--action" style={{ paddingTop: ".7rem" }}>
             <div className="agent-control-widget" style={{ marginTop: 0 }}>
-              <div className="countdown-wrapper">
-                <div className="countdown-display">{countdown}</div>
-                <div className="countdown-label">До следующего автозапуска (09:00)</div>
-              </div>
+              <AutonomyCountdown enabled={data.autonomy.enabled} nextRunAt={data.autonomy.next_run_at} />
               <div className="divider" />
               <div className="autonomy-status">
                 <span className={`autonomy-pill ${data.autonomy.enabled ? "autonomy-pill--on" : "autonomy-pill--off"}`}>
@@ -1669,6 +1634,26 @@ function RunsPage({
 
       <RunsTable runs={data.runs} />
     </PageShell>
+  );
+}
+
+function AutonomyCountdown({ enabled, nextRunAt }: { enabled: boolean; nextRunAt: string | null }) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!enabled || !nextRunAt) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [enabled, nextRunAt]);
+
+  const nextRunMs = nextRunAt ? Date.parse(nextRunAt) : null;
+  const countdown = enabled && nextRunMs ? formatCountdown(Math.max(0, nextRunMs - now)) : "--:--:--";
+
+  return (
+    <div className="countdown-wrapper">
+      <div className="countdown-display">{countdown}</div>
+      <div className="countdown-label">До следующего автозапуска (09:00)</div>
+    </div>
   );
 }
 
@@ -1927,7 +1912,7 @@ export default function App() {
   function navigate(nextPath: string) {
     window.history.pushState({}, "", nextPath);
     setPath(window.location.pathname);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo(0, 0);
   }
 
   function refresh() {
