@@ -16,7 +16,10 @@ from app.db.session import get_session
 from app.llm.provider import LLMResponse
 from app.main import create_app
 from app.project_planner import budget_catalog
-from app.project_planner.budget import BUDGET_LLM_OVERWRITE_WARNING
+from app.project_planner.budget import (
+    BUDGET_CONCEPT_COST_ALIGNMENT_WARNING,
+    BUDGET_LLM_OVERWRITE_WARNING,
+)
 from app.project_planner.budget_catalog import (
     CATALOG_EMERGENCY_FALLBACK_WARNING,
     BudgetCatalogError,
@@ -160,10 +163,11 @@ def test_mock_report_is_valid_and_contains_source_input():
     assert not validate_project_report(report)
 
 
-def test_mock_report_does_not_include_llm_budget_overwrite_warning():
+def test_mock_report_does_not_include_llm_budget_path_warnings():
     report = build_mock_report(_payload())
 
     assert BUDGET_LLM_OVERWRITE_WARNING not in report.warnings
+    assert BUDGET_CONCEPT_COST_ALIGNMENT_WARNING not in report.warnings
 
 
 def test_project_planner_prompt_contains_full_json_skeleton_and_short_form_bans():
@@ -332,7 +336,45 @@ def test_budget_resolver_uses_exact_and_default_region_lookup():
     assert exact_item.category == "Техническое обеспечение"
     assert exact_item.amount == 325_000
     assert "регион: ХМАО" in exact_item.comment
+    assert "метод: demo/reference regional coefficient" not in exact_item.comment
     assert not exact_warnings
+
+
+def test_budget_resolver_uses_regional_coefficient_for_known_region_without_exact_row():
+    payload = _payload().model_copy(update={"geography": "Челябинская область"})
+    default_item, _ = resolve_budget_item(
+        "project_management",
+        _payload().model_copy(update={"geography": "Свердловская область"}),
+    )
+
+    item, warnings = resolve_budget_item("project_management", payload)
+    expected_amount = round(
+        default_item.amount
+        * budget_catalog.region_coefficient("Челябинская область")
+        / budget_catalog.region_coefficient("Свердловская область"),
+        -3,
+    )
+
+    assert item.category == "Подготовка и управление проектом"
+    assert item.amount == expected_amount
+    assert "регион: Челябинская область" in item.comment
+    assert "метод: demo/reference regional coefficient" in item.comment
+    assert not any("регион по умолчанию" in warning for warning in warnings)
+
+
+def test_budget_resolver_invalid_default_region_coefficient_uses_safe_fallback(monkeypatch):
+    def fake_region_coefficient(region: str | None) -> float:
+        if region == "Свердловская область":
+            return 0.0
+        return 0.95
+
+    monkeypatch.setattr(budget_catalog, "region_coefficient", fake_region_coefficient)
+    payload = _payload().model_copy(update={"geography": "Челябинская область"})
+
+    resolution = resolve_budget_items(payload)
+
+    assert resolution.used_emergency_fallback is True
+    assert CATALOG_EMERGENCY_FALLBACK_WARNING in resolution.warnings
 
 
 def test_budget_resolver_unknown_region_falls_back_with_warning():
@@ -680,6 +722,9 @@ async def test_generator_overwrites_llm_financial_items_with_backend_resolver(mo
     monkeypatch.setattr(settings, "project_planner_use_mock_llm", False, raising=False)
     monkeypatch.setattr(settings, "gigachat_retry_count", 0, raising=False)
     raw = _report_json()
+    raw["concepts"][0]["estimated_cost"] = 2_500_000
+    raw["concepts"][1]["estimated_cost"] = 3_000_000
+    raw["concepts"][2]["estimated_cost"] = 2_000_000
     raw["resources"]["financial_items"] = [
         {
             "category": "LLM invented category",
@@ -703,6 +748,12 @@ async def test_generator_overwrites_llm_financial_items_with_backend_resolver(mo
         item.amount for item in report.resources.financial_items
     )
     assert report.warnings.count(BUDGET_LLM_OVERWRITE_WARNING) == 1
+    assert report.warnings.count(BUDGET_CONCEPT_COST_ALIGNMENT_WARNING) == 1
+    assert [concept.estimated_cost for concept in report.concepts] == [
+        round(report.resources.financial_total * 1.00, -3),
+        round(report.resources.financial_total * 1.15, -3),
+        round(report.resources.financial_total * 1.15, -3),
+    ]
     assert all("Источник:" in item.comment for item in report.resources.financial_items)
     assert all("дата: 2026-06-01" in item.comment for item in report.resources.financial_items)
     assert all("confidence: test" in item.comment for item in report.resources.financial_items)
@@ -809,6 +860,7 @@ async def test_generator_uses_fallback_when_current_date_is_after_deadline(monke
     assert model_name == "fallback"
     assert provider.calls == 1
     assert ROADMAP_PAST_DEADLINE_FALLBACK_WARNING in report.warnings
+    assert BUDGET_CONCEPT_COST_ALIGNMENT_WARNING not in report.warnings
     assert "ValidationError" not in warnings_text
     assert "Traceback" not in warnings_text
     assert "Field required" not in warnings_text
@@ -830,6 +882,7 @@ async def test_generator_uses_fallback_when_roadmap_start_is_after_deadline(monk
     assert model_name == "fallback"
     assert provider.calls == 1
     assert ROADMAP_DEADLINE_FALLBACK_WARNING in report.warnings
+    assert BUDGET_CONCEPT_COST_ALIGNMENT_WARNING not in report.warnings
     assert "ValidationError" not in warnings_text
     assert "Traceback" not in warnings_text
     assert "Field required" not in warnings_text
@@ -852,6 +905,7 @@ async def test_generator_falls_back_on_non_normalizable_json_without_traceback(m
     assert model_name == "fallback"
     assert provider.calls == 2
     assert FALLBACK_VALIDATION_WARNING in report.warnings
+    assert BUDGET_CONCEPT_COST_ALIGNMENT_WARNING not in report.warnings
     assert "ValidationError" not in warnings_text
     assert "Field required" not in warnings_text
     assert "team" not in warnings_text
@@ -874,6 +928,7 @@ async def test_generator_falls_back_on_invalid_fake_llm(monkeypatch):
     assert "ValidationError" not in warnings_text
     assert "Field required" not in warnings_text
     assert "source_input.stakeholders" not in warnings_text
+    assert BUDGET_CONCEPT_COST_ALIGNMENT_WARNING not in report.warnings
 
 
 async def test_generator_falls_back_without_credentials_when_mock_disabled(monkeypatch):
@@ -886,6 +941,7 @@ async def test_generator_falls_back_without_credentials_when_mock_disabled(monke
     assert model_name == "fallback"
     assert report.passport.title
     assert any("GigaChat не настроен" in warning for warning in report.warnings)
+    assert BUDGET_CONCEPT_COST_ALIGNMENT_WARNING not in report.warnings
 
 
 async def test_generator_falls_back_on_provider_error_without_retrying_network(monkeypatch):
@@ -903,6 +959,7 @@ async def test_generator_falls_back_on_provider_error_without_retrying_network(m
     assert report.passport.title
     warnings_text = "\n".join(report.warnings)
     assert FALLBACK_VALIDATION_WARNING in report.warnings
+    assert BUDGET_CONCEPT_COST_ALIGNMENT_WARNING not in report.warnings
     assert "fake provider is unavailable" not in warnings_text
 
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 import logging
+import math
 from dataclasses import dataclass
 from importlib import resources
 from typing import Any, Mapping
@@ -280,12 +281,35 @@ def _provenance_comment(
     item: BudgetCatalogItem,
     *,
     region: str,
+    method: str | None = None,
 ) -> str:
-    return (
+    comment = (
         f"Источник: {item.source_name}; каталог: {catalog.catalog_name} "
         f"{catalog.catalog_version}; дата: {item.source_date}; регион: {region}; "
         f"confidence: {item.confidence}."
     )
+    if method:
+        comment = comment[:-1] + f"; метод: {method}."
+    return comment
+
+
+def _valid_positive_coefficient(value: float) -> bool:
+    return math.isfinite(float(value)) and float(value) > 0
+
+
+def _derive_region_amount(
+    item: BudgetCatalogItem,
+    *,
+    user_region: str,
+    default_region: str,
+) -> float:
+    user_coefficient = float(region_coefficient(user_region))
+    default_coefficient = float(region_coefficient(default_region))
+    if not _valid_positive_coefficient(user_coefficient) or not _valid_positive_coefficient(
+        default_coefficient
+    ):
+        raise BudgetCatalogError("region coefficient is invalid for derived budget calculation")
+    return round(item.avg_price * user_coefficient / default_coefficient, -3)
 
 
 def resolve_budget_item(
@@ -310,9 +334,19 @@ def resolve_budget_item(
 
     item = _find_item(catalog, category_key=category_key, region=lookup_region)
     used_region = lookup_region
+    derived_amount: float | None = None
+    method: str | None = None
     if item is None:
         item, used_region = _find_default_item(catalog, category_key=category_key)
-        if normalized_region != used_region and known_region:
+        if item is not None and known_region:
+            derived_amount = _derive_region_amount(
+                item,
+                user_region=normalized_region,
+                default_region=catalog.default_region,
+            )
+            used_region = normalized_region
+            method = "demo/reference regional coefficient"
+        elif normalized_region != used_region and known_region:
             _append_unique(
                 warnings,
                 f"Для части статей бюджета использован регион по умолчанию «{used_region}».",
@@ -329,8 +363,13 @@ def resolve_budget_item(
     return (
         FinancialItem(
             category=item.category_name,
-            amount=round(item.avg_price, -3),
-            comment=_provenance_comment(catalog, item, region=used_region),
+            amount=derived_amount if derived_amount is not None else round(item.avg_price, -3),
+            comment=_provenance_comment(
+                catalog,
+                item,
+                region=used_region,
+                method=method,
+            ),
         ),
         warnings,
     )

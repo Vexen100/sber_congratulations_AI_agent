@@ -93,6 +93,7 @@ async def generate_project_report(
             report = apply_backend_budget_resolution(
                 report,
                 payload,
+                align_concept_costs=True,
                 warn_on_overwrite=True,
             )
             report.warnings.extend(validate_project_report(report, payload))
