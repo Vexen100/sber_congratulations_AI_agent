@@ -3,12 +3,19 @@ from __future__ import annotations
 import datetime as dt
 
 from app.core.config import settings
+from app.project_planner.domain_playbooks import (
+    HIGH_CONFIDENCE_THRESHOLD,
+    contains_controlled_keyword,
+    select_playbook,
+)
 from app.project_planner.schemas import (
     ClarificationQuestion,
     ClarificationResponse,
     ProjectPlannerInput,
     ProjectReport,
 )
+
+RECOMMENDED_CONCEPT_MISMATCH_WARNING = "Рекомендованная концепция отсутствует в списке концепций."
 
 
 def source_assumptions(payload: ProjectPlannerInput) -> list[str]:
@@ -139,6 +146,98 @@ def _gantt_has_content(report: ProjectReport) -> bool:
     )
 
 
+def _normalized(value: str) -> str:
+    return " ".join(value.strip().lower().replace("ё", "е").split())
+
+
+def _report_text(report: ProjectReport) -> str:
+    chunks: list[str] = [
+        report.passport.title,
+        report.passport.goal,
+        report.passport.target_audience,
+        report.passport.relevance_for_ural_bank,
+        *report.passport.tasks,
+        *report.passport.success_criteria,
+        *report.passport.risks,
+        *report.resources.material_resources,
+        *report.resources.information_resources,
+        report.recommended_concept.concept_name,
+        report.recommended_concept.rationale,
+        *report.recommended_concept.risks,
+        report.defense_script or "",
+    ]
+    for role in report.team:
+        chunks.extend([role.title, role.assignment_comment, *role.competencies])
+    for item in report.raci:
+        chunks.extend(
+            [
+                item.activity,
+                item.responsible,
+                item.accountable,
+                *item.consulted,
+                *item.informed,
+            ]
+        )
+    for concept in report.concepts:
+        chunks.extend(
+            [
+                concept.name,
+                concept.key_idea,
+                concept.differences,
+                *concept.scenario_steps,
+                *concept.advantages,
+                *concept.disadvantages,
+                *concept.effort_factors,
+            ]
+        )
+    for slide in report.presentation_outline:
+        chunks.extend([slide.title, *slide.bullets])
+    return "\n".join(chunks)
+
+
+def _recommended_concept_matches(report: ProjectReport) -> bool:
+    recommended = _normalized(report.recommended_concept.concept_name)
+    return bool(
+        recommended
+        and any(_concept_name_matches(recommended, concept.name) for concept in report.concepts)
+    )
+
+
+def _concept_name_matches(normalized_recommended: str, concept_name: str) -> bool:
+    normalized_name = _normalized(concept_name)
+    if normalized_recommended == normalized_name:
+        return True
+    if not normalized_name.startswith(normalized_recommended):
+        return False
+    suffix = normalized_name[len(normalized_recommended) :].lstrip()
+    return suffix.startswith(("—", "-", ":", "("))
+
+
+def _domain_expected_keyword_warning(
+    report: ProjectReport,
+    payload: ProjectPlannerInput,
+) -> str | None:
+    playbook, classification = select_playbook(payload)
+    if classification.project_type not in {"it_service", "event"}:
+        return None
+    if classification.confidence < HIGH_CONFIDENCE_THRESHOLD:
+        return None
+    expected_keywords = playbook.expected_keywords
+    if not expected_keywords:
+        return None
+
+    text = _report_text(report)
+    found = [keyword for keyword in expected_keywords if contains_controlled_keyword(text, keyword)]
+    minimum_found = max(2, len(expected_keywords) // 2)
+    if len(found) >= minimum_found:
+        return None
+    missing = [keyword for keyword in expected_keywords if keyword not in found]
+    return (
+        f"Отчёт для типа проекта «{playbook.display_name}» слабо отражает доменные признаки: "
+        f"{', '.join(missing[:6])}."
+    )
+
+
 def validate_project_report(
     report: ProjectReport,
     payload: ProjectPlannerInput | None = None,
@@ -181,6 +280,12 @@ def validate_project_report(
     ideas = [item.key_idea.strip().lower() for item in report.concepts]
     if len(set(names)) != len(names) or len(set(ideas)) != len(ideas):
         warnings.append("Концепции выглядят похожими; требуется экспертная проверка уникальности.")
+    if not _recommended_concept_matches(report):
+        warnings.append(RECOMMENDED_CONCEPT_MISMATCH_WARNING)
     if not report.raci:
         warnings.append("RACI-матрица не заполнена.")
+    if payload:
+        domain_warning = _domain_expected_keyword_warning(report, payload)
+        if domain_warning:
+            warnings.append(domain_warning)
     return warnings

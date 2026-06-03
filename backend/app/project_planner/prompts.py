@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 
+from app.project_planner.domain_playbooks import build_playbook_prompt_context
 from app.project_planner.schemas import ProjectPlannerInput
 
 PROJECT_REPORT_JSON_SKELETON = {
@@ -138,9 +139,11 @@ SYSTEM_PROMPT = (
 
 def build_user_prompt(payload: ProjectPlannerInput) -> str:
     data = payload.model_dump(mode="json", by_alias=True)
+    playbook_context = build_playbook_prompt_context(payload)
     return (
         "Сформируй проектный отчёт MVP. Требования: минимум 4 фазы, 3-6 контрольных "
         "точек на фазу, ровно 3 разные концепции, RACI по фазам, предупреждения и "
         "допущения. Исходные данные:\n"
-        f"{json.dumps(data, ensure_ascii=False, indent=2)}"
+        f"{json.dumps(data, ensure_ascii=False, indent=2)}\n\n"
+        f"{playbook_context}"
     )

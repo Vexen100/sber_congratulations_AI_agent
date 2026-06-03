@@ -4,11 +4,8 @@ import datetime as dt
 import math
 
 from app.project_planner.budget import budget_warnings, estimate_financial_items
-from app.project_planner.catalogs import (
-    ROADMAP_PHASE_TEMPLATES,
-    UNIVERSAL_ROLES,
-    normalize_region_name,
-)
+from app.project_planner.catalogs import normalize_region_name
+from app.project_planner.domain_playbooks import DomainPlaybook, select_playbook
 from app.project_planner.schemas import (
     ConceptOption,
     GanttRow,
@@ -65,15 +62,22 @@ def _phase_dates(today: dt.date, deadline: dt.date, count: int) -> list[tuple[dt
     return dates
 
 
-def _build_roadmap(payload: ProjectPlannerInput, today: dt.date) -> list[RoadmapPhase]:
+def _build_roadmap(
+    payload: ProjectPlannerInput,
+    today: dt.date,
+    playbook: DomainPlaybook,
+) -> list[RoadmapPhase]:
     effective_deadline = _effective_deadline(payload, today)
-    phase_dates = _phase_dates(today, effective_deadline, len(ROADMAP_PHASE_TEMPLATES))
+    phase_dates = _phase_dates(today, effective_deadline, len(playbook.phases))
     phases: list[RoadmapPhase] = []
-    for template, (start, end) in zip(ROADMAP_PHASE_TEMPLATES, phase_dates, strict=True):
+    for template, (start, end) in zip(playbook.phases, phase_dates, strict=True):
         interval_days = max((end - start).days, 1)
         milestones: list[Milestone] = []
-        for index, title in enumerate(template["milestones"], start=1):
-            due = min(start + dt.timedelta(days=round(interval_days * index / 4)), end)
+        for index, title in enumerate(template.milestones, start=1):
+            due = min(
+                start + dt.timedelta(days=round(interval_days * index / len(template.milestones))),
+                end,
+            )
             milestones.append(
                 Milestone(
                     title=title,
@@ -83,7 +87,7 @@ def _build_roadmap(payload: ProjectPlannerInput, today: dt.date) -> list[Roadmap
             )
         phases.append(
             RoadmapPhase(
-                name=template["name"],
+                name=template.name,
                 start_date=start,
                 end_date=end,
                 milestones=milestones,
@@ -105,84 +109,72 @@ def _build_gantt(roadmap: list[RoadmapPhase]) -> list[GanttRow]:
     return rows
 
 
-def _build_team() -> list[ProjectRole]:
-    return [ProjectRole(**item) for item in UNIVERSAL_ROLES]
+def _build_team(playbook: DomainPlaybook) -> list[ProjectRole]:
+    return [
+        ProjectRole(
+            title=role.title,
+            count=role.count,
+            competencies=list(role.competencies),
+            assignment_comment=role.assignment_comment,
+        )
+        for role in playbook.roles
+    ]
 
 
-def _build_raci(roadmap: list[RoadmapPhase]) -> list[RaciItem]:
+def _build_raci(roadmap: list[RoadmapPhase], playbook: DomainPlaybook) -> list[RaciItem]:
     return [
         RaciItem(
-            activity=phase.name,
-            responsible="Руководитель проекта",
-            accountable="Бизнес-заказчик",
-            consulted=["Финансовый аналитик", "Коммуникационный менеджер"],
-            informed=["Координатор проекта", "Команда проекта"],
+            activity=(
+                playbook.raci_activities[index]
+                if index < len(playbook.raci_activities)
+                else phase.name
+            ),
+            responsible=playbook.raci_defaults.responsible,
+            accountable=playbook.raci_defaults.accountable,
+            consulted=list(playbook.raci_defaults.consulted),
+            informed=list(playbook.raci_defaults.informed),
         )
-        for phase in roadmap
+        for index, phase in enumerate(roadmap)
     ]
 
 
-def _build_concepts(payload: ProjectPlannerInput, estimated_total: float) -> list[ConceptOption]:
+def _concept_cost_multiplier(effort_level: str) -> float:
+    normalized = " ".join(effort_level.strip().lower().split())
+    if normalized == "низкая":
+        return 0.90
+    if normalized == "высокая" or normalized == "очень высокая":
+        return 1.15
+    return 1.00
+
+
+def _build_concepts(
+    payload: ProjectPlannerInput,
+    estimated_total: float,
+    playbook: DomainPlaybook,
+) -> list[ConceptOption]:
     base_title = _title_from_idea(payload.idea)
     region = normalize_region_name(payload.geography)
-    return [
-        ConceptOption(
-            name="Базовая управляемая концепция",
-            key_idea=f"Реализовать «{base_title}» через понятный поэтапный план с минимальным риском.",
-            scenario_steps=[
-                "Зафиксировать цели и участников.",
-                "Подготовить ресурсы и коммуникации.",
-                "Провести основной этап проекта.",
-                "Собрать обратную связь и защитить результат.",
-            ],
-            advantages=["Низкий риск", "Понятная управляемость", "Быстрый старт"],
-            disadvantages=["Ограниченная креативность", "Меньше нестандартных механик"],
-            estimated_cost=round(estimated_total * 0.92, -3),
-            effort_level="средняя",
-            effort_factors=["типовая команда", "умеренные согласования", "контроль бюджета"],
-            differences="Фокус на надёжной реализации и управляемом объёме работ.",
-        ),
-        ConceptOption(
-            name="Расширенная вовлекающая концепция",
-            key_idea=f"Сделать проект заметным для аудитории в регионе {region} через коммуникации и участие стейкхолдеров.",
-            scenario_steps=[
-                "Собрать ожидания ключевых групп.",
-                "Запустить серию коммуникаций и вовлекающих активностей.",
-                "Провести основной проект с расширенным охватом.",
-                "Сформировать публичный итоговый пакет материалов.",
-            ],
-            advantages=[
-                "Высокий охват",
-                "Лучше раскрывает ценность",
-                "Сильнее вовлекает аудиторию",
-            ],
-            disadvantages=["Выше бюджет", "Больше зависимость от согласований"],
-            estimated_cost=round(estimated_total * 1.15, -3),
-            effort_level="высокая",
-            effort_factors=["широкий охват", "коммуникации", "дополнительные подрядчики"],
-            differences="Отличается каналами охвата и более активной работой с целевой аудиторией.",
-        ),
-        ConceptOption(
-            name="Инновационная пилотная концепция",
-            key_idea="Собрать MVP-формат с пилотной механикой, которую можно масштабировать после защиты.",
-            scenario_steps=[
-                "Выбрать пилотный сегмент аудитории.",
-                "Собрать быстрый прототип решения.",
-                "Проверить гипотезы на ограниченном контуре.",
-                "Защитить масштабирование по итогам пилота.",
-            ],
-            advantages=[
-                "Нестандартное решение",
-                "Быстрая проверка гипотез",
-                "Потенциал масштабирования",
-            ],
-            disadvantages=["Выше неопределённость", "Нужна экспертная поддержка"],
-            estimated_cost=round(estimated_total * 1.05, -3),
-            effort_level="очень высокая",
-            effort_factors=["пилотирование", "IT/методическая поддержка", "экспертная оценка"],
-            differences="Отличается пилотной логикой и возможностью масштабирования после проверки.",
-        ),
-    ]
+    concepts: list[ConceptOption] = []
+    for pattern in playbook.concept_patterns:
+        key_idea = pattern.key_idea.replace("инициативу", f"«{base_title}»")
+        key_idea = key_idea.replace("аудитории", f"аудитории в регионе {region}")
+        concepts.append(
+            ConceptOption(
+                name=pattern.name,
+                key_idea=key_idea,
+                scenario_steps=list(pattern.scenario_steps),
+                advantages=list(pattern.advantages),
+                disadvantages=list(pattern.disadvantages),
+                estimated_cost=round(
+                    estimated_total * _concept_cost_multiplier(pattern.effort_level),
+                    -3,
+                ),
+                effort_level=pattern.effort_level,
+                effort_factors=list(pattern.effort_factors),
+                differences=pattern.differences,
+            )
+        )
+    return concepts
 
 
 def build_mock_report(
@@ -193,8 +185,9 @@ def build_mock_report(
     extra_assumptions: list[str] | None = None,
 ) -> ProjectReport:
     today = today or dt.date.today()
+    playbook, _classification = select_playbook(payload)
     title = _title_from_idea(payload.idea)
-    roadmap = _build_roadmap(payload, today)
+    roadmap = _build_roadmap(payload, today, playbook)
     financial_items = estimate_financial_items(payload)
     estimated_total = float(sum(item.amount for item in financial_items))
     assumptions = source_assumptions(payload) + list(extra_assumptions or [])
@@ -203,7 +196,7 @@ def build_mock_report(
         + budget_warnings(payload, estimated_total)
         + list(extra_warnings or [])
     )
-    concepts = _build_concepts(payload, estimated_total)
+    concepts = _build_concepts(payload, estimated_total, playbook)
     report = ProjectReport(
         source_input=SourceInput(
             idea=_clean(payload.idea, "Проектная инициатива требует уточнения."),
@@ -237,11 +230,7 @@ def build_mock_report(
                 "Проект поддерживает управляемое развитие внутренних инициатив Уральского банка, "
                 "повышает прозрачность планирования и качество коммуникаций."
             ),
-            risks=[
-                "Недостаток исходных данных может снизить точность оценок.",
-                "Сжатые сроки повышают нагрузку на согласования.",
-                "Бюджет требует экспертной проверки перед запуском.",
-            ],
+            risks=list(playbook.risks),
             assumptions=assumptions,
         ),
         roadmap=roadmap,
@@ -249,24 +238,16 @@ def build_mock_report(
         resources=ResourcePlan(
             financial_items=financial_items,
             financial_total=estimated_total,
-            material_resources=[
-                "Рабочее пространство или площадка проекта",
-                "Оборудование для встреч и презентаций",
-                "Средства коммуникации и хранения материалов",
-            ],
-            information_resources=[
-                "Шаблон паспорта проекта",
-                "Список стейкхолдеров и контактных лиц",
-                "Регламенты согласования и критерии приёмки",
-            ],
+            material_resources=list(playbook.material_resources),
+            information_resources=list(playbook.information_resources),
         ),
-        team=_build_team(),
-        raci=_build_raci(roadmap),
+        team=_build_team(playbook),
+        raci=_build_raci(roadmap, playbook),
         concepts=concepts,
         recommended_concept=RecommendedConcept(
             concept_name=concepts[0].name,
             rationale=(
-                "Для MVP рекомендуется базовая управляемая концепция: она быстрее запускается, "
+                f"Для MVP рекомендуется «{concepts[0].name}»: она быстрее запускается, "
                 "даёт понятную структуру защиты и снижает риск перерасхода бюджета."
             ),
             risks=["Может потребоваться усилить креативную часть после обратной связи заказчика."],

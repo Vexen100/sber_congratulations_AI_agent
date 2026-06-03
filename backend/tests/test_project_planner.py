@@ -10,6 +10,7 @@ import httpx
 import pytest
 from pydantic import ValidationError
 
+import app.project_planner.domain_playbooks as domain_playbooks
 import app.project_planner.postprocess as project_postprocess
 from app.core.config import settings
 from app.db.session import get_session
@@ -33,6 +34,16 @@ from app.project_planner.docx_export import (
     _generated_at_text,
     export_project_report_docx,
 )
+from app.project_planner.domain_playbooks import (
+    GENERAL_PROJECT_TYPE,
+    HIGH_CONFIDENCE_THRESHOLD,
+    DomainPlaybookError,
+    build_playbook_prompt_context,
+    classify_project_type,
+    load_domain_playbooks,
+    parse_domain_playbooks,
+    select_playbook,
+)
 from app.project_planner.generator import FALLBACK_VALIDATION_WARNING, generate_project_report
 from app.project_planner.llm_normalizer import normalize_llm_project_report_json
 from app.project_planner.mock_generator import build_mock_report
@@ -49,9 +60,14 @@ from app.project_planner.prompts import (
     PROJECT_REPORT_JSON_SKELETON,
     PROJECT_REPORT_JSON_SKELETON_TEXT,
     SYSTEM_PROMPT,
+    build_user_prompt,
 )
 from app.project_planner.schemas import ProjectPlannerInput, ProjectReport
-from app.project_planner.validators import build_clarifications, validate_project_report
+from app.project_planner.validators import (
+    RECOMMENDED_CONCEPT_MISMATCH_WARNING,
+    build_clarifications,
+    validate_project_report,
+)
 
 
 def _payload() -> ProjectPlannerInput:
@@ -67,6 +83,35 @@ def _payload() -> ProjectPlannerInput:
     )
 
 
+def _it_service_payload() -> ProjectPlannerInput:
+    return ProjectPlannerInput(
+        idea=(
+            "Запустить внутренний сервис регистрации инициатив с маршрутизацией заявок, "
+            "пилотом и поддержкой пользователей"
+        ),
+        deadline=dt.date.today() + dt.timedelta(days=120),
+        budget=2_000_000,
+        geography="Челябинская область",
+        stakeholders="Product owner, ИТ, ИБ, support/admin, руководители направлений",
+        current_resources="Команда бизнес-анализа и тестовый MVP-контур",
+        technology_constraints=(
+            "Внутренний контур банка, интеграции, QA/testing, ограничения SaaS и ИБ"
+        ),
+        project_accents="Сделать пилот на одном направлении и подготовить масштабирование",
+    )
+
+
+def _general_payload() -> ProjectPlannerInput:
+    return ProjectPlannerInput(
+        idea="Подготовить управляемую инициативу для внутреннего согласования",
+        deadline=dt.date.today() + dt.timedelta(days=90),
+        geography="Свердловская область",
+        stakeholders="Бизнес-заказчик и проектная команда",
+        current_resources="Базовая команда проекта",
+        project_accents="Собрать понятный MVP-план",
+    )
+
+
 def _report_json() -> dict:
     return build_mock_report(_payload()).model_dump(mode="json")
 
@@ -75,6 +120,14 @@ def _budget_catalog_json() -> dict:
     return json.loads(
         resources.files(budget_catalog.CATALOG_RESOURCE_PACKAGE)
         .joinpath(budget_catalog.CATALOG_RESOURCE_NAME)
+        .read_text(encoding="utf-8")
+    )
+
+
+def _domain_playbooks_json() -> dict:
+    return json.loads(
+        resources.files(domain_playbooks.PLAYBOOK_RESOURCE_PACKAGE)
+        .joinpath(domain_playbooks.PLAYBOOK_RESOURCE_NAME)
         .read_text(encoding="utf-8")
     )
 
@@ -223,6 +276,243 @@ def test_project_planner_prompt_contains_full_json_skeleton_and_short_form_bans(
         "strings",
     ):
         assert instruction in SYSTEM_PROMPT
+
+
+def test_domain_playbooks_load_validate_and_stay_compact():
+    playbooks = load_domain_playbooks()
+
+    assert set(playbooks) == {"it_service", "event", "general"}
+    for project_type, playbook in playbooks.items():
+        assert playbook.project_type == project_type
+        assert len(playbook.prompt_context_summary) <= 700
+        assert len(playbook.prompt_context_summary) <= 1200
+        assert len(playbook.phases) >= 4
+        assert len(playbook.roles) >= 3
+        assert len(playbook.concept_patterns) == 3
+        assert playbook.raci_defaults.responsible
+        assert playbook.raci_defaults.accountable
+        assert playbook.raci_defaults.consulted
+        assert playbook.raci_defaults.informed
+
+
+def test_domain_playbooks_validation_rejects_missing_raci_defaults():
+    data = _domain_playbooks_json()
+    data["playbooks"][0].pop("raci_defaults")
+
+    with pytest.raises(DomainPlaybookError):
+        parse_domain_playbooks(data)
+
+
+def test_domain_playbooks_validation_rejects_malformed_raci_defaults():
+    data = _domain_playbooks_json()
+    data["playbooks"][0]["raci_defaults"]["consulted"] = []
+
+    with pytest.raises(DomainPlaybookError):
+        parse_domain_playbooks(data)
+
+
+def test_domain_playbooks_validation_rejects_unknown_raci_role():
+    data = _domain_playbooks_json()
+    data["playbooks"][0]["raci_defaults"]["responsible"] = "Несуществующая роль"
+
+    with pytest.raises(DomainPlaybookError):
+        parse_domain_playbooks(data)
+
+
+def test_domain_playbook_safe_fallback_keeps_mock_and_prompt_valid(monkeypatch, caplog):
+    def fail_load():
+        raise DomainPlaybookError("broken test playbook")
+
+    domain_playbooks.load_domain_playbooks_safe.cache_clear()
+    monkeypatch.setattr(domain_playbooks, "load_domain_playbooks", fail_load)
+    caplog.set_level("WARNING")
+    try:
+        report = build_mock_report(_payload())
+        prompt = build_user_prompt(_payload())
+    finally:
+        domain_playbooks.load_domain_playbooks_safe.cache_clear()
+
+    ProjectReport.model_validate(report.model_dump())
+    warnings_text = "\n".join(report.warnings)
+    assert "- project_type: general" in prompt
+    assert "safe general fallback" in caplog.text
+    assert "Traceback" not in warnings_text
+    assert "ValidationError" not in warnings_text
+    assert "Field required" not in warnings_text
+
+
+def test_domain_playbook_classifier_detects_it_service_scenario():
+    classification = classify_project_type(_it_service_payload())
+    playbook, selected_classification = select_playbook(_it_service_payload())
+
+    controlled_keywords = set(playbook.strong_keywords) | set(playbook.support_keywords)
+    assert classification.project_type == "it_service"
+    assert classification.confidence >= HIGH_CONFIDENCE_THRESHOLD
+    assert selected_classification == classification
+    assert playbook.project_type == "it_service"
+    assert set(classification.matched_keywords) <= controlled_keywords
+    assert "маршрутизацией заявок" not in classification.matched_keywords
+
+
+def test_domain_playbook_classifier_detects_event_scenario():
+    classification = classify_project_type(_payload())
+
+    assert classification.project_type == "event"
+    assert "фестиваль" in classification.matched_keywords
+
+
+def test_domain_playbook_classifier_uses_boundaries_for_short_keywords():
+    flexible = classify_project_type(ProjectPlannerInput(idea="Гибкая инициатива для команды"))
+    it_service = classify_project_type(ProjectPlannerInput(idea="ИБ и внутренний контур"))
+
+    assert flexible.project_type == GENERAL_PROJECT_TYPE
+    assert it_service.project_type == "it_service"
+    assert "иб" in {keyword.lower() for keyword in it_service.matched_keywords}
+
+
+@pytest.mark.parametrize(
+    "idea",
+    (
+        "Сделать сервис",
+        "Организовать регистрацию",
+        "Сделать сервис регистрации",
+        "Уточнить внутреннюю инициативу",
+    ),
+)
+def test_domain_playbook_classifier_keeps_low_confidence_inputs_general(idea):
+    classification = classify_project_type(ProjectPlannerInput(idea=idea))
+
+    assert classification.project_type == GENERAL_PROJECT_TYPE
+    assert classification.confidence == 0
+    assert classification.matched_keywords == ()
+
+
+def test_build_mock_report_uses_it_service_playbook_hints():
+    report = build_mock_report(_it_service_payload())
+    text = "\n".join(
+        [
+            *(role.title for role in report.team),
+            *(report.resources.material_resources),
+            *(report.resources.information_resources),
+            *(report.passport.risks),
+            *(phase.name for phase in report.roadmap),
+            *(concept.name for concept in report.concepts),
+        ]
+    )
+    normalized_text = text.lower()
+
+    for expected in ("Специалист ИБ", "QA/testing"):
+        assert expected in text
+    for expected_stem in ("интеграц", "контур", "пилот"):
+        assert expected_stem in normalized_text
+    assert "Support/admin" in text or "support/admin" in text
+    assert report.raci[0].responsible == "Бизнес-аналитик"
+    assert report.raci[0].accountable == "Product owner сервиса"
+    assert "Специалист ИБ" in report.raci[0].consulted
+    assert not validate_project_report(report)
+
+
+def test_build_mock_report_uses_event_playbook_hints():
+    report = build_mock_report(_payload())
+    text = "\n".join(
+        [
+            *(role.title for role in report.team),
+            *(report.resources.material_resources),
+            *(report.resources.information_resources),
+            *(report.passport.risks),
+            *(phase.name for phase in report.roadmap),
+            *(concept.name for concept in report.concepts),
+        ]
+    )
+    normalized_text = text.lower()
+
+    for expected in ("Программный менеджер", "Площадка"):
+        assert expected in text
+    for expected_stem in ("логист", "подрядчик", "программ"):
+        assert expected_stem in normalized_text
+    assert "event safety" in text or "безопасность мероприятия" in text
+    assert report.raci[0].responsible == "Программный менеджер"
+    assert report.raci[0].accountable == "Продюсер/руководитель мероприятия"
+    assert "Логистический координатор" in report.raci[0].consulted
+    assert not validate_project_report(report)
+
+
+def test_build_mock_report_general_playbook_remains_valid_and_non_empty():
+    report = build_mock_report(_general_payload())
+
+    assert report.team[0].title == "Руководитель проекта"
+    assert report.resources.material_resources
+    assert report.resources.information_resources
+    assert report.passport.risks
+    assert len(report.concepts) == 3
+    assert report.raci[0].responsible == "Руководитель проекта"
+    assert report.raci[0].accountable == "Бизнес-заказчик"
+    assert not validate_project_report(report)
+
+
+def test_user_prompt_includes_compact_playbook_context_without_full_json_dump():
+    prompt = build_user_prompt(_it_service_payload())
+    context = build_playbook_prompt_context(_it_service_payload())
+
+    assert "Domain playbook context" in prompt
+    assert "- project_type: it_service" in prompt
+    assert "- confidence:" in prompt
+    assert "IT-сервис: уточнить" in prompt
+    assert len(context) <= 1400
+    assert '"playbooks"' not in prompt
+    assert "matched_keywords" not in prompt
+    assert PROJECT_REPORT_JSON_SKELETON_TEXT in SYSTEM_PROMPT
+
+
+def test_validate_project_report_warns_on_recommended_concept_mismatch():
+    report = build_mock_report(_payload())
+    report.recommended_concept.concept_name = "Несуществующая концепция"
+
+    warnings = validate_project_report(report)
+
+    assert RECOMMENDED_CONCEPT_MISMATCH_WARNING in warnings
+
+
+@pytest.mark.parametrize(
+    "concept_name",
+    (
+        "Концепция C — модификация портала",
+        "Концепция C - модификация портала",
+        "Концепция C: модификация портала",
+        "Концепция C (модификация портала)",
+    ),
+)
+def test_validate_project_report_accepts_narrow_recommended_concept_prefix(concept_name):
+    report = build_mock_report(_general_payload())
+    report.concepts[0].name = concept_name
+    report.concepts[1].name = "Концепция A"
+    report.concepts[2].name = "Концепция B"
+    report.recommended_concept.concept_name = "Концепция C"
+
+    warnings = validate_project_report(report)
+
+    assert RECOMMENDED_CONCEPT_MISMATCH_WARNING not in warnings
+
+
+def test_validate_project_report_adds_single_compact_high_confidence_domain_warning():
+    report = build_mock_report(_general_payload())
+
+    warnings = validate_project_report(report, _it_service_payload())
+    domain_warnings = [
+        warning for warning in warnings if "слабо отражает доменные признаки" in warning
+    ]
+
+    assert len(domain_warnings) == 1
+    assert "IT-сервис" in domain_warnings[0]
+    assert len(domain_warnings[0]) < 220
+
+
+def test_validate_project_report_does_not_add_domain_noise_for_general_low_confidence():
+    report = build_mock_report(_general_payload())
+
+    warnings = validate_project_report(report, ProjectPlannerInput(idea="Сделать сервис"))
+
+    assert not any("доменные признаки" in warning for warning in warnings)
 
 
 def test_budget_catalog_loads_from_package_resource():
@@ -725,6 +1015,7 @@ async def test_generator_overwrites_llm_financial_items_with_backend_resolver(mo
     raw["concepts"][0]["estimated_cost"] = 2_500_000
     raw["concepts"][1]["estimated_cost"] = 3_000_000
     raw["concepts"][2]["estimated_cost"] = 2_000_000
+    raw["concepts"][2]["effort_level"] = "очень высокая"
     raw["resources"]["financial_items"] = [
         {
             "category": "LLM invented category",
