@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 import zipfile
+from importlib import resources
 from pathlib import Path
 
 import httpx
@@ -14,6 +15,16 @@ from app.core.config import settings
 from app.db.session import get_session
 from app.llm.provider import LLMResponse
 from app.main import create_app
+from app.project_planner import budget_catalog
+from app.project_planner.budget import BUDGET_LLM_OVERWRITE_WARNING
+from app.project_planner.budget_catalog import (
+    CATALOG_EMERGENCY_FALLBACK_WARNING,
+    BudgetCatalogError,
+    load_builtin_budget_catalog,
+    parse_budget_catalog,
+    resolve_budget_item,
+    resolve_budget_items,
+)
 from app.project_planner.docx_export import (
     _clean_text,
     _generated_at_text,
@@ -55,6 +66,14 @@ def _payload() -> ProjectPlannerInput:
 
 def _report_json() -> dict:
     return build_mock_report(_payload()).model_dump(mode="json")
+
+
+def _budget_catalog_json() -> dict:
+    return json.loads(
+        resources.files(budget_catalog.CATALOG_RESOURCE_PACKAGE)
+        .joinpath(budget_catalog.CATALOG_RESOURCE_NAME)
+        .read_text(encoding="utf-8")
+    )
 
 
 def _report_json_with_roadmap_dates(payload: ProjectPlannerInput, start_date: dt.date) -> dict:
@@ -141,6 +160,12 @@ def test_mock_report_is_valid_and_contains_source_input():
     assert not validate_project_report(report)
 
 
+def test_mock_report_does_not_include_llm_budget_overwrite_warning():
+    report = build_mock_report(_payload())
+
+    assert BUDGET_LLM_OVERWRITE_WARNING not in report.warnings
+
+
 def test_project_planner_prompt_contains_full_json_skeleton_and_short_form_bans():
     ProjectReport.model_validate(PROJECT_REPORT_JSON_SKELETON)
 
@@ -196,6 +221,157 @@ def test_project_planner_prompt_contains_full_json_skeleton_and_short_form_bans(
         assert instruction in SYSTEM_PROMPT
 
 
+def test_budget_catalog_loads_from_package_resource():
+    catalog = load_builtin_budget_catalog()
+
+    assert catalog.catalog_name == "Project Planner demo/reference budget catalog"
+    assert catalog.catalog_version == "v1"
+    assert catalog.default_region == "Свердловская область"
+    assert {item.category_key for item in catalog.items} >= {
+        "project_management",
+        "contractors_expertise",
+        "marketing_communications",
+        "technical_support",
+        "risk_reserve",
+        "other",
+    }
+
+
+def test_budget_catalog_validation_rejects_invalid_data():
+    catalog = load_builtin_budget_catalog()
+    broken = {
+        "catalog_name": catalog.catalog_name,
+        "catalog_version": catalog.catalog_version,
+        "default_region": catalog.default_region,
+        "currency": "USD",
+        "source_name": catalog.source_name,
+        "source_date": catalog.source_date,
+        "items": [],
+    }
+
+    with pytest.raises(BudgetCatalogError):
+        parse_budget_catalog(broken)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    (
+        ("avg_price", -1),
+        ("aliases", "оборудование"),
+        ("source_date", "01.06.2026"),
+    ),
+)
+def test_budget_catalog_validation_rejects_invalid_item_values(field, value):
+    data = _budget_catalog_json()
+    data["items"][0][field] = value
+
+    with pytest.raises(BudgetCatalogError):
+        parse_budget_catalog(data)
+
+
+@pytest.mark.parametrize(
+    ("min_price", "avg_price", "max_price"),
+    (
+        (300_000, 280_000, 320_000),
+        (200_000, 280_000, 250_000),
+    ),
+)
+def test_budget_catalog_validation_rejects_invalid_min_avg_max(
+    min_price,
+    avg_price,
+    max_price,
+):
+    data = _budget_catalog_json()
+    data["items"][0]["min_price"] = min_price
+    data["items"][0]["avg_price"] = avg_price
+    data["items"][0]["max_price"] = max_price
+
+    with pytest.raises(BudgetCatalogError):
+        parse_budget_catalog(data)
+
+
+def test_budget_catalog_validation_requires_default_row_for_standard_categories():
+    data = _budget_catalog_json()
+    data["items"] = [
+        item
+        for item in data["items"]
+        if not (item["category_key"] == "contractors_expertise" and item["region"] == "default")
+    ]
+
+    with pytest.raises(BudgetCatalogError):
+        parse_budget_catalog(data)
+
+
+def test_budget_catalog_invalid_load_falls_back_safely(monkeypatch):
+    def fail_load():
+        raise BudgetCatalogError("broken test catalog")
+
+    monkeypatch.setattr(budget_catalog, "load_builtin_budget_catalog", fail_load)
+
+    resolution = resolve_budget_items(_payload())
+
+    warnings_text = "\n".join(resolution.warnings)
+    assert resolution.used_emergency_fallback is True
+    assert resolution.financial_items
+    assert CATALOG_EMERGENCY_FALLBACK_WARNING in resolution.warnings
+    assert "Traceback" not in warnings_text
+    assert "broken test catalog" not in warnings_text
+
+
+def test_budget_resolver_uses_exact_and_default_region_lookup():
+    default_payload = _payload().model_copy(update={"geography": "Свердловская область"})
+    exact_payload = _payload().model_copy(update={"geography": "ХМАО"})
+
+    default_item, default_warnings = resolve_budget_item("technical_support", default_payload)
+    exact_item, exact_warnings = resolve_budget_item("technical_support", exact_payload)
+
+    assert default_item.category == "Техническое обеспечение"
+    assert default_item.amount == 260_000
+    assert "регион: Свердловская область" in default_item.comment
+    assert not default_warnings
+    assert exact_item.category == "Техническое обеспечение"
+    assert exact_item.amount == 325_000
+    assert "регион: ХМАО" in exact_item.comment
+    assert not exact_warnings
+
+
+def test_budget_resolver_unknown_region_falls_back_with_warning():
+    payload = _payload().model_copy(update={"geography": "Лунная база"})
+
+    resolution = resolve_budget_items(payload)
+
+    assert resolution.financial_items
+    assert any("Регион «Лунная база» не найден" in warning for warning in resolution.warnings)
+    assert all(
+        "регион: Свердловская область" in item.comment for item in resolution.financial_items
+    )
+
+
+def test_budget_resolver_maps_alias_and_unknown_category_to_other():
+    payload = _payload()
+
+    alias_item, alias_warnings = resolve_budget_item("оборудование", payload)
+    unknown_resolution = resolve_budget_items(payload, categories=("совсем неизвестная статья",))
+
+    assert alias_item.category == "Техническое обеспечение"
+    assert not alias_warnings
+    assert len(unknown_resolution.financial_items) == 1
+    assert unknown_resolution.financial_items[0].category == "Прочие расходы"
+    assert any("Категория бюджета" in warning for warning in unknown_resolution.warnings)
+
+
+def test_budget_resolver_comments_contain_compact_provenance():
+    resolution = resolve_budget_items(_payload())
+
+    assert resolution.financial_items
+    for item in resolution.financial_items:
+        assert "Источник:" in item.comment
+        assert "каталог: Project Planner demo/reference budget catalog v1" in item.comment
+        assert "дата: 2026-06-01" in item.comment
+        assert "регион:" in item.comment
+        assert "confidence: test" in item.comment
+
+
 def test_docx_export_creates_zip_document(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "project_planner_docx_dir", str(tmp_path), raising=False)
     report = build_mock_report(_payload())
@@ -223,6 +399,9 @@ def test_docx_export_contains_demo_ready_sections(tmp_path, monkeypatch):
         "Оценка является предварительной, сформирована по тестовым справочникам "
         "и требует экспертной проверки перед запуском проекта MVP."
     ) in text
+    assert "Источник:" in text
+    assert "дата: 2026-06-01" in text
+    assert "confidence: test" in text
     assert " ," not in text
 
 
@@ -495,6 +674,41 @@ async def test_generator_normalizes_common_gigachat_shape_errors(monkeypatch):
     assert report.roadmap[0].name == phase["title"]
     assert report.roadmap[0].milestones[0].due_date.isoformat() == due_date
     assert report.resources.financial_items
+
+
+async def test_generator_overwrites_llm_financial_items_with_backend_resolver(monkeypatch):
+    monkeypatch.setattr(settings, "project_planner_use_mock_llm", False, raising=False)
+    monkeypatch.setattr(settings, "gigachat_retry_count", 0, raising=False)
+    raw = _report_json()
+    raw["resources"]["financial_items"] = [
+        {
+            "category": "LLM invented category",
+            "amount": 1,
+            "comment": "LLM generated this value",
+        }
+    ]
+    raw["resources"]["financial_total"] = 1
+    provider = FakeJsonProvider(raw)
+
+    report, model_name, used_fallback = await generate_project_report(_payload(), provider=provider)
+
+    warnings_text = "\n".join(report.warnings)
+    assert used_fallback is False
+    assert model_name == "fake-json"
+    assert provider.calls == 1
+    assert all(
+        item.category != "LLM invented category" for item in report.resources.financial_items
+    )
+    assert report.resources.financial_total == sum(
+        item.amount for item in report.resources.financial_items
+    )
+    assert report.warnings.count(BUDGET_LLM_OVERWRITE_WARNING) == 1
+    assert all("Источник:" in item.comment for item in report.resources.financial_items)
+    assert all("дата: 2026-06-01" in item.comment for item in report.resources.financial_items)
+    assert all("confidence: test" in item.comment for item in report.resources.financial_items)
+    assert "Traceback" not in warnings_text
+    assert "ValidationError" not in warnings_text
+    assert "Field required" not in warnings_text
 
 
 async def test_generator_corrects_llm_roadmap_after_user_deadline(monkeypatch):
