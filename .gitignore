@@ -50,3 +50,6 @@ drafts/
 *.pem
 
 backend/.venv310/
+
+# TypeScript incremental build cache
+*.tsbuildinfo
