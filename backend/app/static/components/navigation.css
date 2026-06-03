@@ -1,60 +1,91 @@
 .nav-stack {
-display: grid;
-gap: .5rem;
+  display: grid;
+  gap: 0.5rem;
 }
+
 .nav-chip {
-display: flex;
-align-items: center;
-justify-content: space-between;
-gap: .75rem;
-padding: .85rem 1rem;
-border-radius: 16px;
-color: var(--text);
-background: transparent;
-border: 1px solid transparent;
-transition: all .18s ease;
-font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-radius: 16px;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid transparent;
+  transition: all 0.18s ease;
+  font-weight: 600;
 }
+
 .nav-chip:hover {
-background: rgba(18, 161, 80, 0.06);
-border-color: rgba(18, 161, 80, 0.12);
-color: var(--primary-dark);
+  background: var(--primary-soft-hover);
+  border-color: var(--primary-border-soft);
+  color: var(--primary-dark);
 }
+
 .nav-chip.active {
-background: linear-gradient(135deg, rgba(18, 161, 80, 0.14), rgba(18, 161, 80, 0.06));
-border-color: rgba(18, 161, 80, 0.18);
-color: var(--primary-dark);
-box-shadow: none;
+  background: linear-gradient(135deg, var(--primary-soft-active), var(--primary-soft-hover));
+  border-color: var(--primary-border-strong);
+  color: var(--primary-dark);
+  box-shadow: none;
 }
+
 .nav-chip small {
-color: var(--muted);
-font-weight: 500;
+  color: var(--muted);
+  font-weight: 500;
 }
+
 .nav-chip.active small {
-color: rgba(11, 125, 61, 0.78);
+  color: var(--primary-dark);
 }
+
 .delivery-pill {
-display: inline-flex;
-align-items: center;
-gap: .35rem;
-padding: .45rem 16px;
-border-radius: 16px;
-background: var(--primary-soft);
-color: var(--primary-dark);
-font-weight: 700;
-font-size: .85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 16px;
+  border-radius: 16px;
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+  font-weight: 700;
+  font-size: 0.85rem;
 }
 
 .sidebar-brand-wrap {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: .5rem .25rem 1rem;
+  padding: 0.5rem 0.25rem 1rem;
+}
+
+.sidebar-brand-logo-frame {
+  position: relative;
+  width: 100%;
+  max-width: 220px;
+  aspect-ratio: 288 / 79;
 }
 
 .sidebar-brand-logo {
-  display: block;
+  position: absolute;
+  inset: 0;
   width: 100%;
-  max-width: 220px;
-  height: auto;
+  height: 100%;
+  object-fit: contain;
+  transition: opacity 0.24s ease;
+}
+
+.sidebar-brand-logo--light {
+  opacity: 1;
+}
+
+.sidebar-brand-logo--dark {
+  opacity: 0;
+}
+
+:root[data-theme="dark"] .sidebar-brand-logo--light {
+  opacity: 0;
+}
+
+:root[data-theme="dark"] .sidebar-brand-logo--dark {
+  opacity: 1;
 }

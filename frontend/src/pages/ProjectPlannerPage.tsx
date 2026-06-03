@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type MouseEvent } from "react";
+import { useEffect, useState, type FormEvent, type MouseEvent, type ReactNode } from "react";
 
 import {
   clarifyProjectPlanner,
@@ -50,6 +50,31 @@ function textValue(value: string | null | undefined): string {
 
 function dateValue(value: string | null | undefined): string {
   return value ? formatDate(value) : "не указано";
+}
+
+function InfoHint({
+  text,
+  className = "",
+  align = "center"
+}: {
+  text: ReactNode;
+  className?: string;
+  align?: "left" | "center" | "right";
+}) {
+  return (
+    <button
+      type="button"
+      className={`info-hint info-hint--${align} ${className}`.trim()}
+      aria-label={typeof text === "string" ? text : "Пояснение к блоку"}
+    >
+      <span className="info-hint__icon" aria-hidden="true">
+        ?
+      </span>
+      <span className="info-hint__bubble" role="tooltip">
+        {text}
+      </span>
+    </button>
+  );
 }
 
 function BulletList({ items }: { items: string[] }) {
@@ -329,7 +354,7 @@ function ClarificationsBlock({
   canGenerate: boolean;
 }) {
   return (
-    <div className="surface-panel">
+    <div className="surface-panel planner-panel planner-panel--clarify">
       <div className="section-title">Уточняющие вопросы</div>
       {questions.length ? (
         <div className="d-grid gap-2 mt-3">
@@ -364,7 +389,7 @@ function HistoryTable({
   busy: string | null;
 }) {
   return (
-    <div className="surface-card">
+    <div className="surface-card planner-history-card">
       <div className="card-header">История запусков</div>
       <div className="card-body table-responsive">
         <table className="table table-sm table-clean align-middle">
@@ -510,169 +535,237 @@ export default function ProjectPlannerPage() {
   }
 
   const report = selectedRun?.report ?? null;
+  const docxRuns = runs.filter((run) => run.has_docx).length;
 
   return (
-    <>
-      <div className="d-flex align-items-center justify-content-between mb-3">
-        <div className="page-intro">
-          <h2 className="mb-1">Планировщик проектов</h2>
-          <div className="text-muted">Форма → уточнения → ProjectReport → DOCX.</div>
+    <div className="planner-page">
+      <section className="planner-hero">
+        <div className="planner-hero__content">
+          <div className="planner-hero__eyebrow">ProjectReport Studio</div>
+          <div className="page-intro planner-hero__intro">
+            <div className="planner-hero__title-row">
+              <h2 className="mb-1">Планировщик проектов</h2>
+              <InfoHint
+                text="Один экран для сбора вводных, уточняющих вопросов, истории запусков и итогового проектного пакета."
+                className="planner-hero__hint"
+                align="left"
+              />
+            </div>
+            <div className="planner-hero__copy">Форма → уточнения → ProjectReport → DOCX.</div>
+          </div>
+          <div className="planner-hero__workflow" aria-label="Этапы работы">
+            <span>Brief</span>
+            <span>Clarify</span>
+            <span>Structure</span>
+            <span>Export</span>
+          </div>
         </div>
-      </div>
+        <div className="planner-hero__stats" aria-label="Сводка планировщика">
+          <div className="planner-hero__stat">
+            <span>Уточнения</span>
+            <strong>{questions.length}</strong>
+          </div>
+          <div className="planner-hero__stat">
+            <span>Запуски</span>
+            <strong>{runs.length}</strong>
+          </div>
+          <div className="planner-hero__stat">
+            <span>DOCX</span>
+            <strong>{docxRuns}</strong>
+          </div>
+        </div>
+      </section>
       {flash ? <div className={`alert alert-${flash.type}`}>{flash.text}</div> : null}
 
-      <div className="row g-4">
-        <div className="col-12 col-xl-5">
-          <div className="surface-card">
-            <div className="card-header">Исходные данные</div>
-            <div className="card-body">
-              <form className="planner-form" onSubmit={generate}>
-                <label className="form-label">Суть идеи проекта</label>
-                <textarea
-                  className="form-control"
-                  rows={5}
-                  value={input.idea}
-                  onChange={(event) => updateField("idea", event.target.value)}
-                  placeholder="Например: провести фестиваль талантов в Уральском банке до 12 ноября"
-                />
-
-                <div className="row g-2">
-                  <div className="col-12 col-md-6">
-                    <label className="form-label">Желаемая конечная дата</label>
-                    <input
-                      className="form-control"
-                      type="date"
-                      value={input.deadline ?? ""}
-                      onChange={(event) => updateField("deadline", asNullable(event.target.value))}
-                    />
-                  </div>
-                  <div className="col-12 col-md-6">
-                    <label className="form-label">Бюджет</label>
-                    <input
-                      className="form-control"
-                      type="number"
-                      min={0}
-                      value={input.budget ?? ""}
-                      onChange={(event) =>
-                        updateField("budget", event.target.value ? Number(event.target.value) : null)
-                      }
-                    />
-                  </div>
-                </div>
-
-                <label className="form-label">География</label>
-                <input
-                  className="form-control"
-                  value={input.geography ?? ""}
-                  onChange={(event) => updateField("geography", event.target.value)}
-                  placeholder="Свердловская область, ХМАО, ЯНАО..."
-                />
-
-                <label className="form-label">Стейкхолдеры</label>
-                <textarea
-                  className="form-control"
-                  rows={2}
-                  value={input.stakeholders ?? ""}
-                  onChange={(event) => updateField("stakeholders", event.target.value)}
-                />
-
-                <label className="form-label">Текущие ресурсы</label>
-                <textarea
-                  className="form-control"
-                  rows={2}
-                  value={input.current_resources ?? ""}
-                  onChange={(event) => updateField("current_resources", event.target.value)}
-                />
-
-                <label className="form-label">Технологические ограничения</label>
-                <textarea
-                  className="form-control"
-                  rows={2}
-                  value={input.technology_constraints ?? ""}
-                  onChange={(event) => updateField("technology_constraints", event.target.value)}
-                />
-
-                <label className="form-label">Акценты проекта / дополнительный контекст</label>
-                <textarea
-                  className="form-control"
-                  rows={3}
-                  value={input.project_accents ?? ""}
-                  onChange={(event) => updateField("project_accents", event.target.value)}
-                  placeholder="Например: учесть фестиваль 2023 года и 185-летие Сбера"
-                />
-
-                <div className="form-check form-switch">
-                  <input
-                    className="form-check-input"
-                    id="planner-generate-with-assumptions"
-                    type="checkbox"
-                    checked={generateWithAssumptions}
-                    onChange={(event) => setGenerateWithAssumptions(event.target.checked)}
-                  />
-                  <label className="form-check-label" htmlFor="planner-generate-with-assumptions">
-                    Генерировать с допущениями
-                  </label>
-                  <div className="form-text">
-                    Если выключить, генерация остановится при нехватке исходных данных.
-                  </div>
-                </div>
-
-                <div className="d-flex gap-2 flex-wrap mt-3">
-                  <button
-                    type="button"
-                    className="btn btn-outline-success"
-                    disabled={busy === "clarify" || busy === "generate"}
-                    onClick={clarify}
-                  >
-                    {busy === "clarify" ? "Проверяю..." : "Получить вопросы"}
-                  </button>
-                  <button className="btn btn-success" disabled={busy === "generate"}>
-                    {busy === "generate" ? "Генерирую..." : "Сгенерировать отчёт"}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-
-          <div className="mt-4">
-            <ClarificationsBlock questions={questions} canGenerate={canGenerate} />
+      <section className="planner-input-shell">
+        <div className="planner-input-shell__head">
+          <div className="planner-input-shell__eyebrow">Input canvas</div>
+          <div className="planner-input-shell__title-row">
+            <h3 className="planner-input-shell__title">Исходные данные</h3>
+            <InfoHint
+              text="Вводные разбиты на четыре самостоятельных модуля, чтобы ими было легче пользоваться как стартовой точкой для всей проектной сессии."
+              className="planner-input-shell__hint"
+              align="left"
+            />
           </div>
         </div>
 
-        <div className="col-12 col-xl-7">
-          {selectedRun ? (
-            <div className="planner-result-actions mb-3">
-              <span className="badge text-bg-light">Запуск #{selectedRun.id}</span>
-              <span className="badge text-bg-light">Статус: {selectedRun.status}</span>
-              {selectedRun.has_docx ? (
-                <button
-                  className="btn btn-sm btn-success"
-                  disabled={busy === `docx-${selectedRun.id}`}
-                  type="button"
-                  onClick={(event) => handleDownloadDocx(event, selectedRun.id)}
-                >
-                  {busy === `docx-${selectedRun.id}` ? "Скачиваю..." : "Скачать DOCX"}
-                </button>
+        <form className="planner-form" onSubmit={generate}>
+          <div className="planner-form-section">
+            <div className="planner-form-section__title">Идея и контур</div>
+            <label className="form-label">Суть идеи проекта</label>
+            <textarea
+              className="form-control"
+              rows={5}
+              value={input.idea}
+              onChange={(event) => updateField("idea", event.target.value)}
+              placeholder="Например: провести фестиваль талантов в Уральском банке до 12 ноября"
+            />
+          </div>
+
+          <div className="planner-form-section">
+            <div className="planner-form-section__title">Ограничения и масштаб</div>
+            <div className="row g-2">
+              <div className="col-12 col-md-6">
+                <label className="form-label">Желаемая конечная дата</label>
+                <input
+                  className="form-control"
+                  type="date"
+                  value={input.deadline ?? ""}
+                  onChange={(event) => updateField("deadline", asNullable(event.target.value))}
+                />
+              </div>
+              <div className="col-12 col-md-6">
+                <label className="form-label">Бюджет</label>
+                <input
+                  className="form-control"
+                  type="number"
+                  min={0}
+                  value={input.budget ?? ""}
+                  onChange={(event) => updateField("budget", event.target.value ? Number(event.target.value) : null)}
+                />
+              </div>
+            </div>
+            <label className="form-label">География</label>
+            <input
+              className="form-control"
+              value={input.geography ?? ""}
+              onChange={(event) => updateField("geography", event.target.value)}
+              placeholder="Свердловская область, ХМАО, ЯНАО..."
+            />
+          </div>
+
+          <div className="planner-form-section">
+            <div className="planner-form-section__title">Организационный контекст</div>
+            <label className="form-label">Стейкхолдеры</label>
+            <textarea
+              className="form-control"
+              rows={2}
+              value={input.stakeholders ?? ""}
+              onChange={(event) => updateField("stakeholders", event.target.value)}
+            />
+
+            <label className="form-label">Текущие ресурсы</label>
+            <textarea
+              className="form-control"
+              rows={2}
+              value={input.current_resources ?? ""}
+              onChange={(event) => updateField("current_resources", event.target.value)}
+            />
+
+            <label className="form-label">Технологические ограничения</label>
+            <textarea
+              className="form-control"
+              rows={2}
+              value={input.technology_constraints ?? ""}
+              onChange={(event) => updateField("technology_constraints", event.target.value)}
+            />
+
+            <label className="form-label">Акценты проекта / дополнительный контекст</label>
+            <textarea
+              className="form-control"
+              rows={3}
+              value={input.project_accents ?? ""}
+              onChange={(event) => updateField("project_accents", event.target.value)}
+              placeholder="Например: учесть фестиваль 2023 года и 185-летие Сбера"
+            />
+          </div>
+
+          <div className="planner-form-section planner-form-section--toggle">
+            <div className="planner-form-section__title">Режим генерации</div>
+            <div className="form-check form-switch">
+              <input
+                className="form-check-input"
+                id="planner-generate-with-assumptions"
+                type="checkbox"
+                checked={generateWithAssumptions}
+                onChange={(event) => setGenerateWithAssumptions(event.target.checked)}
+              />
+              <label className="form-check-label" htmlFor="planner-generate-with-assumptions">
+                Генерировать с допущениями
+              </label>
+              <div className="form-text">
+                Если выключить, генерация остановится при нехватке исходных данных.
+              </div>
+            </div>
+          </div>
+
+          <div className="d-flex gap-2 flex-wrap mt-3 planner-form-actions">
+            <button
+              type="button"
+              className="btn btn-outline-success"
+              disabled={busy === "clarify" || busy === "generate"}
+              onClick={clarify}
+            >
+              {busy === "clarify" ? "Проверяю..." : "Получить вопросы"}
+            </button>
+            <button className="btn btn-success" disabled={busy === "generate"}>
+              {busy === "generate" ? "Генерирую..." : "Сгенерировать отчёт"}
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <div className="row g-4 planner-layout">
+        <div className="col-12 col-xl-4 planner-side-column">
+          <ClarificationsBlock questions={questions} canGenerate={canGenerate} />
+        </div>
+
+        <div className="col-12 col-xl-8 planner-stage-column">
+          <section className="planner-stage-shell">
+            <div className="planner-stage-shell__head">
+              <div>
+                <div className="planner-stage-shell__eyebrow">Output canvas</div>
+                <div className="planner-stage-shell__title-row">
+                  <h3 className="planner-stage-shell__title">Проектный пакет</h3>
+                  <InfoHint
+                    text={
+                      selectedRun
+                        ? "Финальная зона просмотра, проверки допущений и выгрузки итогового документа."
+                        : "Здесь появится собранный пакет: паспорт проекта, дорожная карта, ресурсы, команда и DOCX."
+                    }
+                    className="planner-stage-shell__hint"
+                    align="left"
+                  />
+                </div>
+              </div>
+              {selectedRun ? (
+                <div className="planner-result-actions planner-result-actions--elevated">
+                  <span className="badge text-bg-light">Запуск #{selectedRun.id}</span>
+                  <span className="badge text-bg-light">Статус: {selectedRun.status}</span>
+                  {selectedRun.has_docx ? (
+                    <button
+                      className="btn btn-sm btn-success"
+                      disabled={busy === `docx-${selectedRun.id}`}
+                      type="button"
+                      onClick={(event) => handleDownloadDocx(event, selectedRun.id)}
+                    >
+                      {busy === `docx-${selectedRun.id}` ? "Скачиваю..." : "Скачать DOCX"}
+                    </button>
+                  ) : null}
+                </div>
               ) : null}
             </div>
-          ) : null}
 
-          {selectedRun?.warnings.length ? (
-            <div className="alert alert-warning">
-              <b>Warnings:</b> {selectedRun.warnings.join(" ")}
-            </div>
-          ) : null}
-          {selectedRun?.assumptions.length ? (
-            <div className="alert alert-info">
-              <b>Assumptions:</b> {selectedRun.assumptions.join(" ")}
-            </div>
-          ) : null}
+            {selectedRun?.warnings.length ? (
+              <div className="alert alert-warning">
+                <b>Warnings:</b> {selectedRun.warnings.join(" ")}
+              </div>
+            ) : null}
+            {selectedRun?.assumptions.length ? (
+              <div className="alert alert-info">
+                <b>Assumptions:</b> {selectedRun.assumptions.join(" ")}
+              </div>
+            ) : null}
 
-          {report ? (
-            <ReportPreview report={report} />
-          ) : (
-            <div className="surface-panel empty-state">Preview появится после генерации или выбора запуска.</div>
-          )}
+            {report ? (
+              <ReportPreview report={report} />
+            ) : (
+              <div className="surface-panel empty-state planner-preview-empty">
+                Preview появится после генерации или выбора запуска.
+              </div>
+            )}
+          </section>
         </div>
       </div>
 
@@ -680,6 +773,6 @@ export default function ProjectPlannerPage() {
         <HistoryTable runs={runs} onSelect={selectFromHistory} onDownload={handleDownloadDocx} busy={busy} />
         {busy?.startsWith("run-") ? <div className="text-muted mt-2">Загружаю выбранный запуск...</div> : null}
       </div>
-    </>
+    </div>
   );
 }
