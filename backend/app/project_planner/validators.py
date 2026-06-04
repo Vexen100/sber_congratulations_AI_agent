@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime as dt
 
 from app.core.config import settings
+from app.project_planner.constraint_guardrails import validate_concept_constraints
 from app.project_planner.domain_playbooks import (
     HIGH_CONFIDENCE_THRESHOLD,
     contains_controlled_keyword,
@@ -294,4 +295,5 @@ def validate_project_report(
         domain_warning = _domain_expected_keyword_warning(report, payload)
         if domain_warning:
             warnings.append(domain_warning)
+        warnings.extend(validate_concept_constraints(report, payload))
     return warnings

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 
+from app.project_planner.constraint_guardrails import build_constraint_prompt_context
 from app.project_planner.domain_playbooks import build_playbook_prompt_context
 from app.project_planner.schemas import ProjectPlannerInput
 
@@ -140,10 +141,14 @@ SYSTEM_PROMPT = (
 def build_user_prompt(payload: ProjectPlannerInput) -> str:
     data = payload.model_dump(mode="json", by_alias=True)
     playbook_context = build_playbook_prompt_context(payload)
+    constraint_context = build_constraint_prompt_context(payload)
+    extra_context = "\n\n".join(
+        context for context in (playbook_context, constraint_context) if context
+    )
     return (
         "Сформируй проектный отчёт MVP. Требования: минимум 4 фазы, 3-6 контрольных "
         "точек на фазу, ровно 3 разные концепции, RACI по фазам, предупреждения и "
         "допущения. Исходные данные:\n"
         f"{json.dumps(data, ensure_ascii=False, indent=2)}\n\n"
-        f"{playbook_context}"
+        f"{extra_context}"
     )
