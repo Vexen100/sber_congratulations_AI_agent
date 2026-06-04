@@ -11,6 +11,26 @@ from app.project_planner.budget import estimate_financial_items
 from app.project_planner.schemas import ProjectPlannerInput, ResourcePlan
 
 _DATE_RE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
+_EFFORT_LEVEL_ALIASES = {
+    "низкая": "низкая",
+    "низкий": "низкая",
+    "низкое": "низкая",
+    "средняя": "средняя",
+    "средний": "средняя",
+    "среднее": "средняя",
+    "умеренная": "средняя",
+    "умеренный": "средняя",
+    "умеренно": "средняя",
+    "высокая": "высокая",
+    "высокий": "высокая",
+    "высокое": "высокая",
+    "очень высокая": "очень высокая",
+    "очень высокий": "очень высокая",
+    "low": "низкая",
+    "medium": "средняя",
+    "high": "высокая",
+    "very high": "очень высокая",
+}
 
 
 def _is_scalar(value: Any) -> bool:
@@ -54,6 +74,13 @@ def _safe_string_list(value: Any) -> list[str] | None:
     if isinstance(normalized, list) and all(isinstance(item, str) for item in normalized):
         return normalized
     return None
+
+
+def _normalize_effort_level(value: Any) -> Any:
+    if not isinstance(value, str):
+        return value
+    normalized = " ".join(value.strip().lower().replace("ё", "е").split())
+    return _EFFORT_LEVEL_ALIASES.get(normalized, value)
 
 
 def _extract_iso_date(value: Any) -> str | None:
@@ -224,6 +251,8 @@ def _normalize_concepts(data: dict[str, Any]) -> None:
         )
         if "differences" in concept:
             concept["differences"] = _list_to_string(concept["differences"])
+        if "effort_level" in concept:
+            concept["effort_level"] = _normalize_effort_level(concept["effort_level"])
 
 
 def _normalize_recommended_concept(data: dict[str, Any]) -> None:

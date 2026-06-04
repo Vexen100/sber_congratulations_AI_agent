@@ -951,6 +951,58 @@ def test_llm_normalizer_replaces_malformed_resources_with_calculated_structure()
     assert report.resources.material_resources == ["площадка", "оборудование"]
 
 
+def test_llm_normalizer_normalizes_effort_level_synonyms():
+    raw = _report_json()
+    raw["concepts"][0]["effort_level"] = "умеренная"
+    raw["concepts"][1]["effort_level"] = "medium"
+    raw["concepts"][2]["effort_level"] = "very high"
+
+    normalized = normalize_llm_project_report_json(raw, _payload())
+    report = ProjectReport.model_validate(normalized)
+
+    assert [concept.effort_level for concept in report.concepts] == [
+        "средняя",
+        "средняя",
+        "очень высокая",
+    ]
+
+
+def test_llm_normalizer_canonicalizes_effort_level_case_and_spaces():
+    raw = _report_json()
+    raw["concepts"][0]["effort_level"] = "Средняя"
+    raw["concepts"][1]["effort_level"] = "ОЧЕНЬ   ВЫСОКАЯ"
+    raw["concepts"][2]["effort_level"] = "низкая "
+
+    normalized = normalize_llm_project_report_json(raw, _payload())
+    report = ProjectReport.model_validate(normalized)
+
+    assert [concept.effort_level for concept in report.concepts] == [
+        "средняя",
+        "очень высокая",
+        "низкая",
+    ]
+
+
+def test_llm_normalizer_does_not_invent_missing_effort_level():
+    raw = _report_json()
+    raw["concepts"][0].pop("effort_level")
+
+    normalized = normalize_llm_project_report_json(raw, _payload())
+
+    assert "effort_level" not in normalized["concepts"][0]
+
+
+def test_llm_normalizer_leaves_unknown_effort_level_for_validation_failure():
+    raw = _report_json()
+    raw["concepts"][0]["effort_level"] = "умеренно высокая"
+
+    normalized = normalize_llm_project_report_json(raw, _payload())
+
+    assert normalized["concepts"][0]["effort_level"] == "умеренно высокая"
+    with pytest.raises(ValidationError):
+        ProjectReport.model_validate(normalized)
+
+
 def test_llm_normalizer_does_not_invent_missing_core_sections():
     raw = _report_json()
     raw.pop("team")
@@ -1006,6 +1058,29 @@ async def test_generator_normalizes_common_gigachat_shape_errors(monkeypatch):
     assert report.roadmap[0].name == phase["title"]
     assert report.roadmap[0].milestones[0].due_date.isoformat() == due_date
     assert report.resources.financial_items
+
+
+async def test_generator_normalizes_effort_level_synonym_on_first_attempt(monkeypatch):
+    monkeypatch.setattr(settings, "project_planner_use_mock_llm", False, raising=False)
+    monkeypatch.setattr(settings, "gigachat_retry_count", 2, raising=False)
+    raw = _report_json()
+    raw["concepts"][2]["effort_level"] = "умеренная"
+    provider = FakeJsonProvider(raw)
+
+    report, model_name, used_fallback = await generate_project_report(
+        _payload(),
+        provider=provider,
+    )
+
+    warnings_text = "\n".join(report.warnings)
+    assert used_fallback is False
+    assert model_name == "fake-json"
+    assert provider.calls == 1
+    assert report.concepts[2].effort_level == "средняя"
+    assert FALLBACK_VALIDATION_WARNING not in report.warnings
+    assert "Traceback" not in warnings_text
+    assert "ValidationError" not in warnings_text
+    assert "Field required" not in warnings_text
 
 
 async def test_generator_overwrites_llm_financial_items_with_backend_resolver(monkeypatch):
