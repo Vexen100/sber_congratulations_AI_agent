@@ -50,6 +50,8 @@ from app.project_planner.mock_generator import build_mock_report
 from app.project_planner.postprocess import (
     ROADMAP_DEADLINE_CORRECTION_WARNING,
     ROADMAP_DEADLINE_FALLBACK_WARNING,
+    ROADMAP_HORIZON_UTILIZATION_WARNING,
+    ROADMAP_LATE_START_VALIDATION_WARNING,
     ROADMAP_PAST_DEADLINE_FALLBACK_WARNING,
     ROADMAP_SHORT_DEADLINE_WARNING,
     ROADMAP_START_DATE_CORRECTION_WARNING,
@@ -145,6 +147,38 @@ def _report_json_with_roadmap_dates(payload: ProjectPlannerInput, start_date: dt
             due_date = min(phase_start + dt.timedelta(days=milestone_index * 2), phase_end)
             milestone["due_date"] = due_date.isoformat()
     return raw
+
+
+def _report_json_with_roadmap_window(
+    payload: ProjectPlannerInput,
+    start_date: dt.date,
+    *,
+    phase_days: int = 6,
+) -> dict:
+    raw = build_mock_report(payload, today=start_date - dt.timedelta(days=30)).model_dump(
+        mode="json"
+    )
+    for phase_index, phase in enumerate(raw["roadmap"]):
+        phase_start = start_date + dt.timedelta(days=phase_index * phase_days)
+        phase_end = phase_start + dt.timedelta(days=phase_days - 1)
+        phase["start_date"] = phase_start.isoformat()
+        phase["end_date"] = phase_end.isoformat()
+        for milestone_index, milestone in enumerate(phase["milestones"], start=1):
+            due_date = min(phase_start + dt.timedelta(days=milestone_index), phase_end)
+            milestone["due_date"] = due_date.isoformat()
+    return raw
+
+
+def _assert_roadmap_within_bounds(
+    report: ProjectReport,
+    *,
+    current_date: dt.date,
+    deadline: dt.date,
+) -> None:
+    for phase in report.roadmap:
+        assert current_date <= phase.start_date <= phase.end_date <= deadline
+        for milestone in phase.milestones:
+            assert phase.start_date <= milestone.due_date <= phase.end_date
 
 
 class FakeBadProvider:
@@ -866,6 +900,48 @@ def test_validate_project_report_warns_on_roadmap_dates_before_current_date():
     assert any("назначена раньше даты генерации" in warning for warning in warnings)
 
 
+def test_validate_project_report_warns_on_late_roadmap_start():
+    current_date = dt.date(2026, 6, 4)
+    deadline = dt.date(2026, 10, 4)
+    payload = _payload().model_copy(update={"deadline": deadline})
+    report = ProjectReport.model_validate(
+        _report_json_with_roadmap_dates(payload, dt.date(2026, 9, 1))
+    )
+
+    warnings = validate_project_report(report, payload, current_date=current_date)
+
+    assert ROADMAP_LATE_START_VALIDATION_WARNING in warnings
+
+
+def test_validate_project_report_does_not_warn_on_late_start_without_payload():
+    payload = _payload().model_copy(update={"deadline": dt.date(2026, 10, 4)})
+    report = ProjectReport.model_validate(
+        _report_json_with_roadmap_dates(payload, dt.date(2026, 9, 1))
+    )
+
+    warnings = validate_project_report(report)
+
+    assert ROADMAP_LATE_START_VALIDATION_WARNING not in warnings
+
+
+def test_validate_project_report_does_not_warn_on_late_start_with_explicit_start_month():
+    current_date = dt.date(2026, 6, 4)
+    deadline = dt.date(2026, 10, 4)
+    payload = _payload().model_copy(
+        update={
+            "deadline": deadline,
+            "project_accents": "Нужно начать в сентябре после бюджетного комитета.",
+        }
+    )
+    report = ProjectReport.model_validate(
+        _report_json_with_roadmap_dates(payload, dt.date(2026, 9, 1))
+    )
+
+    warnings = validate_project_report(report, payload, current_date=current_date)
+
+    assert ROADMAP_LATE_START_VALIDATION_WARNING not in warnings
+
+
 def test_postprocess_rebuilds_empty_gantt_from_roadmap():
     report = build_mock_report(_payload())
     report.gantt = []
@@ -875,6 +951,140 @@ def test_postprocess_rebuilds_empty_gantt_from_roadmap():
     assert fallback_warning is None
     assert len(processed.gantt) == len(report.roadmap)
     assert all(row.phase and row.period and "█" in row.timeline for row in processed.gantt)
+
+
+def test_postprocess_adjusts_late_roadmap_start_to_available_horizon():
+    current_date = dt.date(2026, 6, 4)
+    deadline = dt.date(2026, 10, 4)
+    payload = _it_service_payload().model_copy(update={"deadline": deadline})
+    report = ProjectReport.model_validate(
+        _report_json_with_roadmap_window(payload, dt.date(2026, 9, 1))
+    )
+    report.gantt = []
+
+    processed, fallback_warning = postprocess_project_report(
+        report,
+        payload,
+        current_date=current_date,
+    )
+
+    assert fallback_warning is None
+    assert processed.warnings.count(ROADMAP_HORIZON_UTILIZATION_WARNING) == 1
+    assert processed.roadmap[0].start_date == current_date
+    _assert_roadmap_within_bounds(processed, current_date=current_date, deadline=deadline)
+    assert processed.gantt
+    assert processed.gantt[0].phase == processed.roadmap[0].name
+    assert all(row.phase and row.period and "█" in row.timeline for row in processed.gantt)
+
+
+def test_postprocess_adjusts_late_roadmap_start_with_standalone_month_only():
+    current_date = dt.date(2026, 6, 4)
+    deadline = dt.date(2026, 10, 4)
+    payload = _payload().model_copy(
+        update={
+            "deadline": deadline,
+            "project_accents": "Отчётность и коммуникации подготовить в сентябре.",
+        }
+    )
+    report = ProjectReport.model_validate(
+        _report_json_with_roadmap_window(payload, dt.date(2026, 9, 1))
+    )
+
+    processed, fallback_warning = postprocess_project_report(
+        report,
+        payload,
+        current_date=current_date,
+    )
+
+    assert fallback_warning is None
+    assert ROADMAP_HORIZON_UTILIZATION_WARNING in processed.warnings
+    assert processed.roadmap[0].start_date == current_date
+    _assert_roadmap_within_bounds(processed, current_date=current_date, deadline=deadline)
+
+
+def test_postprocess_does_not_adjust_roadmap_start_within_threshold():
+    current_date = dt.date(2026, 6, 4)
+    deadline = dt.date(2026, 10, 4)
+    start_date = dt.date(2026, 6, 20)
+    payload = _payload().model_copy(update={"deadline": deadline})
+    report = ProjectReport.model_validate(_report_json_with_roadmap_dates(payload, start_date))
+
+    processed, fallback_warning = postprocess_project_report(
+        report,
+        payload,
+        current_date=current_date,
+    )
+
+    assert fallback_warning is None
+    assert ROADMAP_HORIZON_UTILIZATION_WARNING not in processed.warnings
+    assert processed.roadmap[0].start_date == start_date
+
+
+def test_postprocess_does_not_adjust_horizon_without_deadline():
+    current_date = dt.date(2026, 6, 4)
+    start_date = dt.date(2026, 9, 1)
+    payload = _payload().model_copy(update={"deadline": None})
+    report = ProjectReport.model_validate(_report_json_with_roadmap_dates(payload, start_date))
+
+    processed, fallback_warning = postprocess_project_report(
+        report,
+        payload,
+        current_date=current_date,
+    )
+
+    assert fallback_warning is None
+    assert ROADMAP_HORIZON_UTILIZATION_WARNING not in processed.warnings
+    assert processed.roadmap[0].start_date == start_date
+
+
+def test_postprocess_does_not_adjust_horizon_for_short_available_period():
+    current_date = dt.date(2026, 6, 4)
+    deadline = dt.date(2026, 7, 10)
+    start_date = dt.date(2026, 7, 1)
+    payload = _payload().model_copy(update={"deadline": deadline})
+    report = ProjectReport.model_validate(_report_json_with_roadmap_dates(payload, start_date))
+
+    processed, fallback_warning = postprocess_project_report(
+        report,
+        payload,
+        current_date=current_date,
+    )
+
+    assert fallback_warning is None
+    assert ROADMAP_HORIZON_UTILIZATION_WARNING not in processed.warnings
+    assert processed.roadmap[0].start_date == start_date
+
+
+def test_postprocess_does_not_adjust_horizon_with_explicit_start_month():
+    current_date = dt.date(2026, 6, 4)
+    deadline = dt.date(2026, 10, 4)
+    start_date = dt.date(2026, 9, 1)
+    payload = _payload().model_copy(
+        update={
+            "deadline": deadline,
+            "project_accents": "Начать в сентябре после согласования пилота.",
+        }
+    )
+    report = ProjectReport.model_validate(_report_json_with_roadmap_dates(payload, start_date))
+
+    processed, fallback_warning = postprocess_project_report(
+        report,
+        payload,
+        current_date=current_date,
+    )
+
+    assert fallback_warning is None
+    assert ROADMAP_HORIZON_UTILIZATION_WARNING not in processed.warnings
+    assert processed.roadmap[0].start_date == start_date
+
+
+def test_mock_report_does_not_get_horizon_utilization_warning():
+    report = build_mock_report(
+        _payload().model_copy(update={"deadline": dt.date(2026, 10, 4)}),
+        today=dt.date(2026, 6, 4),
+    )
+
+    assert ROADMAP_HORIZON_UTILIZATION_WARNING not in report.warnings
 
 
 def test_build_gantt_from_roadmap_uses_simple_stable_text_bars():
@@ -1125,6 +1335,34 @@ async def test_generator_overwrites_llm_financial_items_with_backend_resolver(mo
     assert all("confidence: test" in item.comment for item in report.resources.financial_items)
     assert "Traceback" not in warnings_text
     assert "ValidationError" not in warnings_text
+    assert "Field required" not in warnings_text
+
+
+async def test_generator_adjusts_late_roadmap_start_to_available_horizon(monkeypatch):
+    monkeypatch.setattr(settings, "project_planner_use_mock_llm", False, raising=False)
+    monkeypatch.setattr(settings, "gigachat_retry_count", 0, raising=False)
+    current_date = dt.date(2026, 6, 4)
+    monkeypatch.setattr(project_postprocess, "_current_date", lambda: current_date)
+    deadline = dt.date(2026, 10, 4)
+    payload = _it_service_payload().model_copy(update={"deadline": deadline})
+    raw = _report_json_with_roadmap_window(payload, dt.date(2026, 9, 1))
+    raw["gantt"] = [{"phase": "stale", "period": "stale", "timeline": "stale"}]
+    provider = FakeJsonProvider(raw)
+
+    report, model_name, used_fallback = await generate_project_report(payload, provider=provider)
+
+    warnings_text = "\n".join(report.warnings)
+    assert used_fallback is False
+    assert model_name == "fake-json"
+    assert provider.calls == 1
+    assert report.warnings.count(ROADMAP_HORIZON_UTILIZATION_WARNING) == 1
+    assert report.roadmap[0].start_date == current_date
+    _assert_roadmap_within_bounds(report, current_date=current_date, deadline=deadline)
+    assert report.gantt
+    assert report.gantt[0].phase == report.roadmap[0].name
+    assert all(row.phase and row.period and "█" in row.timeline for row in report.gantt)
+    assert "ValidationError" not in warnings_text
+    assert "Traceback" not in warnings_text
     assert "Field required" not in warnings_text
 
 

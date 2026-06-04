@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import re
 
 from app.project_planner.schemas import (
     GanttRow,
@@ -24,6 +25,24 @@ ROADMAP_DEADLINE_FALLBACK_WARNING = (
 )
 ROADMAP_START_DATE_CORRECTION_WARNING = "Дорожная карта была скорректирована, так как исходный LLM-план начинался раньше даты генерации."
 ROADMAP_PAST_DEADLINE_FALLBACK_WARNING = "Пользовательский дедлайн уже прошёл или раньше текущей даты; построен fallback-план с допущениями."
+ROADMAP_HORIZON_UTILIZATION_WARNING = "Дорожная карта была скорректирована, так как исходный LLM-план использовал только позднюю часть доступного срока."
+ROADMAP_LATE_START_VALIDATION_WARNING = (
+    "Дорожная карта использует только позднюю часть доступного срока; требуется проверка плана."
+)
+
+_DATE_PATTERN = r"(?:\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}\.\d{1,2}\.\d{4}\b)"
+_MONTH_PATTERN = (
+    r"\b(?:январь|января|январе|февраль|февраля|феврале|март|марта|марте|"
+    r"апрель|апреля|апреле|май|мая|мае|июнь|июня|июне|июль|июля|июле|"
+    r"август|августа|августе|сентябрь|сентября|сентябре|октябрь|октября|"
+    r"октябре|ноябрь|ноября|ноябре|декабрь|декабря|декабре)\b"
+)
+_START_WORD_PATTERN = r"(?:начать|старт(?:овать)?|запуск\s+с|приступить|после)"
+_START_MARKER_PATTERN = re.compile(
+    rf"(?:\b{_START_WORD_PATTERN}\b[\w\s,.:;()/-]{{0,40}}(?:{_DATE_PATTERN}|{_MONTH_PATTERN})"
+    rf"|\bс\s+(?:{_DATE_PATTERN}|{_MONTH_PATTERN}))",
+    re.IGNORECASE,
+)
 
 
 def _current_date() -> dt.date:
@@ -33,6 +52,24 @@ def _current_date() -> dt.date:
 def _append_warning(report: ProjectReport, warning: str) -> None:
     if warning not in report.warnings:
         report.warnings.append(warning)
+
+
+def _normalized_text(value: str | None) -> str:
+    return " ".join((value or "").strip().lower().replace("ё", "е").split())
+
+
+def _has_explicit_start_marker(payload: ProjectPlannerInput) -> bool:
+    text = "\n".join(
+        _normalized_text(value)
+        for value in (
+            payload.idea,
+            payload.current_resources,
+            payload.technology_constraints,
+            payload.project_accents,
+        )
+        if value
+    )
+    return bool(text and _START_MARKER_PATTERN.search(text))
 
 
 def _needs_deadline_correction(report: ProjectReport, deadline: dt.date) -> bool:
@@ -51,6 +88,28 @@ def _needs_start_date_correction(report: ProjectReport, current_date: dt.date) -
         if any(milestone.due_date < current_date for milestone in phase.milestones):
             return True
     return False
+
+
+def should_adjust_late_roadmap_start(
+    report: ProjectReport,
+    payload: ProjectPlannerInput,
+    current_date: dt.date,
+) -> bool:
+    if payload.deadline is None or not report.roadmap:
+        return False
+    deadline = payload.deadline
+    if current_date > deadline:
+        return False
+    available_days = (deadline - current_date).days
+    if available_days < 45:
+        return False
+    if _has_explicit_start_marker(payload):
+        return False
+
+    roadmap_start = min(phase.start_date for phase in report.roadmap)
+    delay_days = (roadmap_start - current_date).days
+    threshold_days = max(14, int(available_days * 0.25))
+    return delay_days > threshold_days
 
 
 def _is_gantt_row_filled(row: GanttRow) -> bool:
@@ -178,12 +237,53 @@ def enforce_roadmap_deadline(
     return processed, None
 
 
+def enforce_roadmap_horizon_utilization(
+    report: ProjectReport,
+    payload: ProjectPlannerInput,
+    *,
+    current_date: dt.date | None = None,
+) -> ProjectReport:
+    current_date = current_date or _current_date()
+    if not should_adjust_late_roadmap_start(report, payload, current_date):
+        return report
+    if payload.deadline is None:
+        return report
+
+    processed = report.model_copy(deep=True)
+    phase_dates = _compressed_phase_dates(current_date, payload.deadline, len(processed.roadmap))
+    if not phase_dates:
+        return report
+
+    compressed_phases: list[RoadmapPhase] = []
+    for phase, (phase_start, phase_end) in zip(processed.roadmap, phase_dates, strict=True):
+        if phase_start > phase_end:
+            return report
+        compressed_phases.append(
+            phase.model_copy(
+                update={
+                    "start_date": phase_start,
+                    "end_date": phase_end,
+                    "milestones": _compressed_milestones(
+                        phase.milestones,
+                        phase_start,
+                        phase_end,
+                    ),
+                },
+            )
+        )
+    processed.roadmap = compressed_phases
+    processed.gantt = build_gantt_from_roadmap(processed.roadmap)
+    _append_warning(processed, ROADMAP_HORIZON_UTILIZATION_WARNING)
+    return processed
+
+
 def postprocess_project_report(
     report: ProjectReport,
     payload: ProjectPlannerInput,
     *,
     current_date: dt.date | None = None,
 ) -> tuple[ProjectReport, str | None]:
+    current_date = current_date or _current_date()
     processed, fallback_warning = enforce_roadmap_deadline(
         report.model_copy(deep=True),
         payload,
@@ -191,6 +291,11 @@ def postprocess_project_report(
     )
     if fallback_warning:
         return processed, fallback_warning
+    processed = enforce_roadmap_horizon_utilization(
+        processed,
+        payload,
+        current_date=current_date,
+    )
     if processed.roadmap and not is_gantt_valid(processed.gantt):
         processed.gantt = build_gantt_from_roadmap(processed.roadmap)
     return processed, None

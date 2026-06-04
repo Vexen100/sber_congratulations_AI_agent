@@ -8,6 +8,10 @@ from app.project_planner.domain_playbooks import (
     contains_controlled_keyword,
     select_playbook,
 )
+from app.project_planner.postprocess import (
+    ROADMAP_LATE_START_VALIDATION_WARNING,
+    should_adjust_late_roadmap_start,
+)
 from app.project_planner.schemas import (
     ClarificationQuestion,
     ClarificationResponse,
@@ -284,6 +288,8 @@ def validate_project_report(
         warnings.append(RECOMMENDED_CONCEPT_MISMATCH_WARNING)
     if not report.raci:
         warnings.append("RACI-матрица не заполнена.")
+    if payload and current_date and should_adjust_late_roadmap_start(report, payload, current_date):
+        warnings.append(ROADMAP_LATE_START_VALIDATION_WARNING)
     if payload:
         domain_warning = _domain_expected_keyword_warning(report, payload)
         if domain_warning:
