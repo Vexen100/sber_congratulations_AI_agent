@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime as dt
 import re
 
+from app.project_planner.milestone_guardrails import ensure_minimum_milestone_density
 from app.project_planner.schemas import (
     GanttRow,
     Milestone,
@@ -296,6 +297,7 @@ def postprocess_project_report(
         payload,
         current_date=current_date,
     )
+    processed = ensure_minimum_milestone_density(processed)
     if processed.roadmap and not is_gantt_valid(processed.gantt):
         processed.gantt = build_gantt_from_roadmap(processed.roadmap)
     return processed, None
