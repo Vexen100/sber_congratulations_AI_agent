@@ -69,6 +69,25 @@ def _string_to_list(value: Any) -> Any:
     return value
 
 
+def _list_to_scalar_string(value: Any) -> Any:
+    if isinstance(value, str):
+        return value
+    if not isinstance(value, list):
+        return value
+    parts: list[str] = []
+    for item in value:
+        if item is None:
+            continue
+        if not isinstance(item, str):
+            return value
+        text = item.strip()
+        if text:
+            parts.append(text)
+    if not parts:
+        return value
+    return ", ".join(parts)
+
+
 def _safe_string_list(value: Any) -> list[str] | None:
     normalized = _string_to_list(value)
     if isinstance(normalized, list) and all(isinstance(item, str) for item in normalized):
@@ -235,6 +254,10 @@ def _normalize_raci(data: dict[str, Any]) -> None:
     if not isinstance(raci, list):
         return
     for item in raci:
+        if isinstance(item, dict):
+            for field in ("responsible", "accountable"):
+                if field in item:
+                    item[field] = _list_to_scalar_string(item[field])
         _normalize_list_fields(item, ("consulted", "informed"))
 
 

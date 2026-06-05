@@ -1122,6 +1122,55 @@ def test_llm_normalizer_converts_role_and_raci_strings_to_lists():
     assert report.raci[0].informed == ["Команда проекта"]
 
 
+def test_llm_normalizer_converts_raci_scalar_lists_to_strings():
+    raw = _report_json()
+    raw["raci"][0]["responsible"] = ["Продюсер/руководитель мероприятия"]
+    raw["raci"][0]["accountable"] = ["Программный менеджер", "Логистика"]
+    raw["raci"][1]["responsible"] = ["", "HR", None, "ИБ"]
+    raw["raci"][1]["consulted"] = "HR; Финансы"
+    raw["raci"][1]["informed"] = "Команда проекта"
+
+    normalized = normalize_llm_project_report_json(raw, _payload())
+    report = ProjectReport.model_validate(normalized)
+
+    assert report.raci[0].responsible == "Продюсер/руководитель мероприятия"
+    assert report.raci[0].accountable == "Программный менеджер, Логистика"
+    assert report.raci[1].responsible == "HR, ИБ"
+    assert report.raci[1].consulted == ["HR", "Финансы"]
+    assert report.raci[1].informed == ["Команда проекта"]
+
+
+def test_llm_normalizer_leaves_invalid_raci_scalar_values_for_validation_failure():
+    raw_empty = _report_json()
+    raw_empty["raci"][0]["responsible"] = []
+    normalized_empty = normalize_llm_project_report_json(raw_empty, _payload())
+
+    assert normalized_empty["raci"][0]["responsible"] == []
+    with pytest.raises(ValidationError):
+        ProjectReport.model_validate(normalized_empty)
+
+    raw_dict = _report_json()
+    raw_dict["raci"][0]["accountable"] = {"role": "Программный менеджер"}
+    normalized_dict = normalize_llm_project_report_json(raw_dict, _payload())
+
+    assert normalized_dict["raci"][0]["accountable"] == {"role": "Программный менеджер"}
+    with pytest.raises(ValidationError):
+        ProjectReport.model_validate(normalized_dict)
+
+
+def test_llm_normalizer_does_not_invent_missing_raci_scalar_fields():
+    raw = _report_json()
+    raw["raci"][0].pop("responsible")
+    raw["raci"][0].pop("accountable")
+
+    normalized = normalize_llm_project_report_json(raw, _payload())
+
+    assert "responsible" not in normalized["raci"][0]
+    assert "accountable" not in normalized["raci"][0]
+    with pytest.raises(ValidationError):
+        ProjectReport.model_validate(normalized)
+
+
 def test_llm_normalizer_repairs_roadmap_aliases_and_milestone_dates():
     raw = _report_json()
     phase = raw["roadmap"][0]
@@ -1287,6 +1336,29 @@ async def test_generator_normalizes_effort_level_synonym_on_first_attempt(monkey
     assert model_name == "fake-json"
     assert provider.calls == 1
     assert report.concepts[2].effort_level == "средняя"
+    assert FALLBACK_VALIDATION_WARNING not in report.warnings
+    assert "Traceback" not in warnings_text
+    assert "ValidationError" not in warnings_text
+    assert "Field required" not in warnings_text
+
+
+async def test_generator_normalizes_raci_scalar_list_on_first_attempt(monkeypatch):
+    monkeypatch.setattr(settings, "project_planner_use_mock_llm", False, raising=False)
+    monkeypatch.setattr(settings, "gigachat_retry_count", 2, raising=False)
+    raw = _report_json()
+    raw["raci"][4]["responsible"] = ["Продюсер/руководитель мероприятия"]
+    provider = FakeJsonProvider(raw)
+
+    report, model_name, used_fallback = await generate_project_report(
+        _payload(),
+        provider=provider,
+    )
+
+    warnings_text = "\n".join(report.warnings)
+    assert used_fallback is False
+    assert model_name == "fake-json"
+    assert provider.calls == 1
+    assert report.raci[4].responsible == "Продюсер/руководитель мероприятия"
     assert FALLBACK_VALIDATION_WARNING not in report.warnings
     assert "Traceback" not in warnings_text
     assert "ValidationError" not in warnings_text
