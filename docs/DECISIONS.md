@@ -91,3 +91,20 @@ _Удалено_ (переменная `DELIVERY_SCHEDULE_MODE` больше н�
 - **Причина**: нужен одновременно более продуктовый email-канал и устойчивый demo-flow без падений на неполных контактах.
 - **Файлы**: `backend/app/services/email_rendering.py`, `backend/app/services/sender.py`, `backend/app/services/due_sender.py`.
 
+## 16) Project Planner как отдельный модуль
+
+- **Решение**: Project Planner живёт отдельно от агента поздравлений: собственные схемы, service/router, run history, DOCX/PPTX exports, validators и fallback generator.
+- **Причина**: проектные отчёты имеют другой контракт, lifecycle и quality guardrails; смешивать их с поздравительным pipeline не нужно.
+- **Файлы**: `backend/app/project_planner/*`, `frontend/src/pages/ProjectPlannerPage.tsx`.
+
+## 17) Reference Packs только как prompt-context
+
+- **Решение**: curated JSON Reference Packs выбираются по region/keywords и добавляются только в prompt context. Они не мутируют `ProjectReport`, budget totals, roadmap, concepts, resources или warnings.
+- **Причина**: локальные knowledge packs должны повышать контекст генерации без скрытого изменения расчётов и без импорта невалидированных customer data в модель отчёта.
+- **Файлы**: `backend/app/project_planner/reference_packs.py`, `backend/app/project_planner/reference_pack_store.py`, `scripts/project_planner_reference_pack.py`.
+
+## 18) PPTX export из сохранённого ProjectReport
+
+- **Решение**: PPTX строится on-demand из сохранённого результата Project Planner run через `python-pptx`; export не создаёт новый run, не пишет generated `.pptx` в репозиторий и не вызывает GigaChat.
+- **Причина**: скачивание презентации должно быть воспроизводимым и не зависеть от внешней модели после завершения run.
+- **Файлы**: `backend/app/project_planner/pptx_export.py`, `backend/app/project_planner/router.py`.

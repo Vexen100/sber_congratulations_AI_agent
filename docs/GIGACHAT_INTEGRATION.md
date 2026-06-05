@@ -45,6 +45,10 @@ GIGACHAT_CREDENTIALS=<ваш_ключ_авторизации>
 
 Настройки старого агента поздравлений (`LLM_MODE`, `IMAGE_MODE`) при этом не меняются автоматически. Для Project Planner ответы Lite/Pro проходят retry, JSON-нормализацию, Pydantic-валидацию и backend guardrails; если структура ответа не подходит, используется fallback generator с коротким пользовательским предупреждением.
 
+Reference Packs, если установлены, добавляются в Project Planner prompt как компактный curated JSON context. В v1 они не меняют напрямую `ProjectReport`, budget totals, roadmap, concepts, resources или warnings.
+
+DOCX и PPTX exports строятся из сохранённого результата run. Скачивание export-файлов не выполняет новый вызов GigaChat.
+
 ## Что ещё проверить
 
 - `GIGACHAT_CREDENTIALS` задан в `backend/.env`, а сам файл не попал в Git.

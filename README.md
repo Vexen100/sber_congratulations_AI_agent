@@ -34,7 +34,7 @@
 - **Постоянное улучшение**: менеджерский feedback (оценка 1–5 и комментарий); `training_verdict=accepted|rejected` для дообучения выставляется автоматически по оценке (4–5 приняты, иначе отклонены) и сохраняется в БД.
 - **Веб-интерфейс**: просмотр клиентов/событий/поздравлений/доставок, создание клиента, ручной триггер, запуск агента.
 - **Ручные кампании для реальной базы**: можно создать единичное ручное событие или быструю demo-кампанию для импортированных клиентов, чтобы агент сгенерировал поздравления не только по ДР/праздникам.
-- **Project Planner**: отдельная страница `/project-planner` для генерации проектного паспорта, дорожной карты, ресурсов, RACI, preview и DOCX-отчёта в mock/offline или GigaChat-режиме.
+- **Project Planner**: отдельная страница `/project-planner` для генерации структурированного проектного отчёта, preview/history, DOCX-отчёта, on-demand PPTX-презентации и работы с локальными Reference Packs в mock/offline или GigaChat-режиме.
 - **Тесты**: базовая проверка детектора событий и идемпотентной отправки.
 
 ## Архитектура (упрощённо)
@@ -140,7 +140,7 @@ npm install
 npm run dev
 ```
 
-В dev-режиме Vite проксирует `/api`, `/data` и `/static` на backend. Для полноценной работы UI, включая скачивание DOCX из Project Planner, backend должен быть запущен на `http://127.0.0.1:8001`.
+В dev-режиме Vite проксирует `/api`, `/data` и `/static` на backend. Для полноценной работы UI, включая Project Planner exports и Reference Packs, backend должен быть запущен на `http://127.0.0.1:8001`.
 
 Production-сборка, которую FastAPI начнёт отдавать на `/`, `/clients`, `/events`, `/greetings`, `/deliveries`, `/runs`:
 
@@ -167,11 +167,15 @@ npm run build
 
 ## Project Planner
 
-Project Planner доступен в React UI на `/project-planner`. Пользователь вводит идею проекта, дедлайн, географию, стейкхолдеров и акценты; модуль возвращает уточняющие вопросы, позволяет включить простую опцию «генерировать с допущениями», создаёт run, показывает preview/history и отдаёт DOCX через `/api/project-planner/runs/{run_id}/docx`.
+Project Planner доступен в React UI на `/project-planner`. Пользователь вводит идею проекта, дедлайн, географию, стейкхолдеров и акценты; модуль возвращает уточняющие вопросы, позволяет включить опцию «генерировать с допущениями», создаёт run и показывает preview/history.
 
-DOCX-отчёт включает исходные данные, паспорт проекта, дорожную карту, Gantt-like таблицу, ресурсы и предварительный бюджет, команду, RACI, варианты концепций, рекомендованную концепцию, риски/предупреждения, outline презентации и defense script.
+Доступные выгрузки:
+- **DOCX export**: полный отчёт через `/api/project-planner/runs/{run_id}/docx`.
+- **PPTX export**: управленческая презентация через `/api/project-planner/runs/{run_id}/pptx`, генерируется on-demand из сохранённого `ProjectReport` без нового вызова GigaChat и без хранения generated `.pptx` в репозитории.
 
-Для локального демо Project Planner работает без сети и GigaChat credentials:
+DOCX-отчёт включает исходные данные, паспорт проекта, дорожную карту, Gantt-like таблицу, ресурсы и предварительный бюджет, команду, RACI, варианты концепций, рекомендованную концепцию, риски/предупреждения, outline презентации и defense script. PPTX — это краткая executive pitch-презентация, а не копия полного отчёта; export использует `python-pptx`.
+
+В локальном режиме Project Planner работает без сети и GigaChat credentials:
 
 ```env
 PROJECT_PLANNER_USE_MOCK_LLM=true
@@ -179,7 +183,31 @@ PROJECT_PLANNER_USE_MOCK_LLM=true
 
 Чтобы попробовать GigaChat-провайдер именно для Project Planner, выставьте `PROJECT_PLANNER_USE_MOCK_LLM=false` и настройте `GIGACHAT_CREDENTIALS` в `backend/.env`. Секреты не коммитятся; `.env` должен оставаться локальным.
 
-Ограничения текущей версии: используются тестовые справочники и предварительная бюджетная оценка; нет поиска рыночных цен, загрузки каталогов, PPTX, RAG и RBAC для Project Planner.
+Backend применяет защитные слои к результату LLM: JSON-normalization, нормализацию `effort_level` и RACI scalar fields, budget resolver на встроенном справочном каталоге, hard constraint guardrails, roadmap deadline/start/horizon guardrails, milestone density guardrail, validators и короткие пользовательские warnings.
+
+Reference Packs — локальные curated JSON knowledge packs для Project Planner. В v1 они используются только как prompt-context: не мутируют `ProjectReport`, не меняют напрямую budget totals, roadmap, concepts, resources или warnings. Selection основан на region/keywords. UI поддерживает JSON upload, validation, install, replace-on-confirm, template download и selection preview; CLI поддерживает validate/install/list:
+
+```bat
+python scripts\project_planner_reference_pack.py validate path\to\pack.json
+python scripts\project_planner_reference_pack.py install path\to\pack.json [--target-dir PATH] [--filename NAME] [--replace]
+python scripts\project_planner_reference_pack.py list [--target-dir PATH]
+```
+
+Установленные packs лежат в `backend/data/project_planner/reference_packs`. Не коммитьте real/customer packs, если они не были специально подготовлены для репозитория. Upload в v1 только JSON-only: PDF/DOCX/XLSX parsing, RAG, embeddings, web search и автоматический поиск рыночных цен не реализованы.
+
+Основные API Project Planner:
+- `POST /api/project-planner/clarifications`
+- `POST /api/project-planner/runs`
+- `GET /api/project-planner/runs`
+- `GET /api/project-planner/runs/{run_id}`
+- `GET /api/project-planner/runs/{run_id}/docx`
+- `GET /api/project-planner/runs/{run_id}/pptx`
+- `GET /api/project-planner/reference-packs`
+- `POST /api/project-planner/reference-packs/selection-preview`
+- `POST /api/project-planner/reference-packs/validate`
+- `POST /api/project-planner/reference-packs/install`
+
+Ограничения текущей версии: бюджетная оценка предварительная и требует экспертной проверки; нет PDF export, PDF/DOCX/XLSX import, поиска рыночных цен, web search, RAG/embeddings и RBAC для Project Planner.
 
 ## Переменные окружения
 
@@ -273,6 +301,20 @@ VECTOR_DB_PATH=./data/chroma_feedback
 cd backend
 .venv\Scripts\activate
 pytest -q
+```
+
+Проверки качества backend:
+
+```bat
+ruff check .
+black --check .
+pytest
+```
+
+Если менялись scripts:
+
+```bat
+ruff check backend scripts/project_planner_reference_pack.py
 ```
 
 Только unit-тесты (без маркера `integration`):
