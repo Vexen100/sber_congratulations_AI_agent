@@ -4,6 +4,7 @@ import json
 
 from app.project_planner.constraint_guardrails import build_constraint_prompt_context
 from app.project_planner.domain_playbooks import build_playbook_prompt_context
+from app.project_planner.reference_packs import build_reference_pack_prompt_context
 from app.project_planner.schemas import ProjectPlannerInput
 
 PROJECT_REPORT_JSON_SKELETON = {
@@ -142,8 +143,9 @@ def build_user_prompt(payload: ProjectPlannerInput) -> str:
     data = payload.model_dump(mode="json", by_alias=True)
     playbook_context = build_playbook_prompt_context(payload)
     constraint_context = build_constraint_prompt_context(payload)
+    reference_context = build_reference_pack_prompt_context(payload)
     extra_context = "\n\n".join(
-        context for context in (playbook_context, constraint_context) if context
+        context for context in (playbook_context, constraint_context, reference_context) if context
     )
     return (
         "Сформируй проектный отчёт MVP. Требования: минимум 4 фазы, 3-6 контрольных "
