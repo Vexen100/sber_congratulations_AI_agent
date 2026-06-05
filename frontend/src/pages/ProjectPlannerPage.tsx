@@ -5,6 +5,7 @@ import {
   clarifyProjectPlanner,
   createProjectPlannerRun,
   downloadProjectPlannerDocx,
+  downloadProjectPlannerPptx,
   getProjectPlannerRun,
   installProjectPlannerReferencePack,
   listProjectPlannerReferencePacks,
@@ -537,12 +538,14 @@ function ReferencePacksBlock({
 function HistoryTable({
   runs,
   onSelect,
-  onDownload,
+  onDownloadDocx,
+  onDownloadPptx,
   busy
 }: {
   runs: ProjectPlannerRunSummary[];
   onSelect: (run: ProjectPlannerRunSummary) => void;
-  onDownload: (event: MouseEvent<HTMLButtonElement>, runId: number) => void;
+  onDownloadDocx: (event: MouseEvent<HTMLButtonElement>, runId: number) => void;
+  onDownloadPptx: (event: MouseEvent<HTMLButtonElement>, runId: number) => void;
   busy: string | null;
 }) {
   return (
@@ -557,6 +560,7 @@ function HistoryTable({
               <th>Статус</th>
               <th>Дата</th>
               <th>DOCX</th>
+              <th>PPTX</th>
             </tr>
           </thead>
           <tbody>
@@ -579,9 +583,23 @@ function HistoryTable({
                       className="btn btn-sm btn-outline-success"
                       disabled={busy === `docx-${run.id}`}
                       type="button"
-                      onClick={(event) => onDownload(event, run.id)}
+                      onClick={(event) => onDownloadDocx(event, run.id)}
                     >
                       {busy === `docx-${run.id}` ? "Скачиваю..." : "Скачать"}
+                    </button>
+                  ) : (
+                    "—"
+                  )}
+                </td>
+                <td>
+                  {run.has_docx ? (
+                    <button
+                      className="btn btn-sm btn-outline-success"
+                      disabled={busy === `pptx-${run.id}`}
+                      type="button"
+                      onClick={(event) => onDownloadPptx(event, run.id)}
+                    >
+                      {busy === `pptx-${run.id}` ? "Скачиваю..." : "Скачать"}
                     </button>
                   ) : (
                     "—"
@@ -591,7 +609,7 @@ function HistoryTable({
             ))}
             {runs.length === 0 ? (
               <tr>
-                <td colSpan={5} className="empty-state">
+                <td colSpan={6} className="empty-state">
                   Запусков пока нет.
                 </td>
               </tr>
@@ -702,6 +720,19 @@ export default function ProjectPlannerPage() {
     setBusy(`docx-${runId}`);
     try {
       await downloadProjectPlannerDocx(runId);
+    } catch (error) {
+      setFlash({ type: "danger", text: error instanceof Error ? error.message : String(error) });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function handleDownloadPptx(event: MouseEvent<HTMLButtonElement>, runId: number) {
+    event.preventDefault();
+    event.stopPropagation();
+    setBusy(`pptx-${runId}`);
+    try {
+      await downloadProjectPlannerPptx(runId);
     } catch (error) {
       setFlash({ type: "danger", text: error instanceof Error ? error.message : String(error) });
     } finally {
@@ -972,14 +1003,24 @@ export default function ProjectPlannerPage() {
               <span className="badge text-bg-light">Запуск #{selectedRun.id}</span>
               <span className="badge text-bg-light">Статус: {selectedRun.status}</span>
               {selectedRun.has_docx ? (
-                <button
-                  className="btn btn-sm btn-success"
-                  disabled={busy === `docx-${selectedRun.id}`}
-                  type="button"
-                  onClick={(event) => handleDownloadDocx(event, selectedRun.id)}
-                >
-                  {busy === `docx-${selectedRun.id}` ? "Скачиваю..." : "Скачать DOCX"}
-                </button>
+                <>
+                  <button
+                    className="btn btn-sm btn-success"
+                    disabled={busy === `docx-${selectedRun.id}`}
+                    type="button"
+                    onClick={(event) => handleDownloadDocx(event, selectedRun.id)}
+                  >
+                    {busy === `docx-${selectedRun.id}` ? "Скачиваю..." : "Скачать DOCX"}
+                  </button>
+                  <button
+                    className="btn btn-sm btn-outline-success"
+                    disabled={busy === `pptx-${selectedRun.id}`}
+                    type="button"
+                    onClick={(event) => handleDownloadPptx(event, selectedRun.id)}
+                  >
+                    {busy === `pptx-${selectedRun.id}` ? "Скачиваю..." : "Скачать PPTX"}
+                  </button>
+                </>
               ) : null}
             </div>
           ) : null}
@@ -1004,7 +1045,13 @@ export default function ProjectPlannerPage() {
       </div>
 
       <div className="mt-4">
-        <HistoryTable runs={runs} onSelect={selectFromHistory} onDownload={handleDownloadDocx} busy={busy} />
+        <HistoryTable
+          runs={runs}
+          onSelect={selectFromHistory}
+          onDownloadDocx={handleDownloadDocx}
+          onDownloadPptx={handleDownloadPptx}
+          busy={busy}
+        />
         {busy?.startsWith("run-") ? <div className="text-muted mt-2">Загружаю выбранный запуск...</div> : null}
       </div>
     </>

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import datetime as dt
+import logging
 from pathlib import Path
 
 from fastapi import HTTPException
+from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -19,6 +21,8 @@ from app.project_planner.schemas import (
     ProjectReport,
 )
 from app.project_planner.validators import source_data_gaps
+
+logger = logging.getLogger(__name__)
 
 
 def _now() -> dt.datetime:
@@ -207,6 +211,23 @@ async def get_project_planner_run(
     run_id: int,
 ) -> ProjectPlannerRunDetail:
     return _detail(await get_project_planner_run_model(session, run_id))
+
+
+async def get_project_report_for_export(session: AsyncSession, run_id: int) -> ProjectReport:
+    run = await get_project_planner_run_model(session, run_id)
+    if not run.result_json:
+        raise HTTPException(status_code=404, detail="Отчёт для запуска не найден.")
+    try:
+        return ProjectReport.model_validate(run.result_json)
+    except ValidationError as exc:
+        logger.warning(
+            "Stored Project Planner report is invalid for export: run_id=%s",
+            run_id,
+            exc_info=True,
+        )
+        raise HTTPException(
+            status_code=404, detail="Сохранённый отчёт недоступен для экспорта."
+        ) from exc
 
 
 async def get_docx_path(session: AsyncSession, run_id: int) -> Path:

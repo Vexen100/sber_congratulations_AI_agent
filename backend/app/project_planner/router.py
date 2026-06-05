@@ -3,10 +3,11 @@ from __future__ import annotations
 import json
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_session
+from app.project_planner.pptx_export import PPTX_MEDIA_TYPE, export_project_report_pptx
 from app.project_planner.reference_pack_store import (
     ReferencePackInstallError,
     install_reference_pack_data,
@@ -38,6 +39,7 @@ from app.project_planner.service import (
     create_project_planner_run,
     get_docx_path,
     get_project_planner_run,
+    get_project_report_for_export,
     list_project_planner_runs,
 )
 from app.project_planner.validators import build_clarifications
@@ -173,4 +175,17 @@ async def download_docx(run_id: int, session: AsyncSession = Depends(get_session
         path,
         media_type=("application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
         filename=path.name,
+    )
+
+
+@router.get("/runs/{run_id}/pptx")
+async def download_pptx(run_id: int, session: AsyncSession = Depends(get_session)) -> Response:
+    report = await get_project_report_for_export(session, run_id)
+    content = export_project_report_pptx(report)
+    return Response(
+        content=content,
+        media_type=PPTX_MEDIA_TYPE,
+        headers={
+            "Content-Disposition": f'attachment; filename="project-planner-run-{run_id}.pptx"'
+        },
     )
