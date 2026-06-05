@@ -13,7 +13,11 @@ from app.db.session import get_session
 from app.main import create_app
 from app.project_planner.mock_generator import build_mock_report
 from app.project_planner.models import ProjectArtifact, ProjectPlannerRun, ProjectRequest
-from app.project_planner.pptx_export import PPTX_MEDIA_TYPE, export_project_report_pptx
+from app.project_planner.pptx_export import (
+    BUDGET_CAVEAT,
+    PPTX_MEDIA_TYPE,
+    export_project_report_pptx,
+)
 from app.project_planner.schemas import ProjectPlannerInput, ProjectReport
 
 
@@ -53,6 +57,16 @@ def _slide_count(content: bytes) -> int:
                 if name.startswith("ppt/slides/slide") and name.endswith(".xml")
             ]
         )
+
+
+def _assert_no_technical_dump(xml: str) -> None:
+    assert "Traceback" not in xml
+    assert "ValidationError" not in xml
+    assert "Field required" not in xml
+    assert "backend" not in xml
+    assert "demo/reference" not in xml
+    assert "Project Planner demo/reference budget catalog v1" not in xml
+    assert "Источник: Встроенный demo/reference каталог MVP; каталог:" not in xml
 
 
 def _build_test_client(db_session):
@@ -119,27 +133,78 @@ def test_pptx_export_contains_key_project_sections():
     xml = _slide_xml_text(content)
 
     assert report.passport.title in xml
-    assert "Рекомендуемая концепция" in xml
+    assert "Презентация для защиты проекта" in xml
+    assert "Проектная инициатива" in xml
+    assert "Зачем проект нужен" in xml
+    assert "Предлагаемое решение" in xml
+    assert "Рекомендуем к реализации" in xml
+    assert "Почему этот вариант" in xml
+    assert "Как реализуем" in xml
+    assert "Инвестиции и ресурсы" in xml
+    assert "Что нужно для запуска" in xml
+    assert "Следующий шаг" in xml
+    assert "Утвердить концепцию, ответственных и бюджетную рамку." in xml
+    assert "Полная матрица RACI — в DOCX." in xml
+    assert "Следующий шаг: утвердить концепцию" not in xml
+    assert "Закрываем презентацию решением" not in xml
     assert report.recommended_concept.concept_name in xml
-    assert "Дорожная карта" in xml
     assert report.roadmap[0].name in xml
-    assert "Ресурсы и бюджет" in xml
-    assert "Итого" in xml
+    assert BUDGET_CAVEAT in xml
+    _assert_no_technical_dump(xml)
 
 
 def test_pptx_export_truncates_long_text_without_technical_dump():
     report = _report()
+    report.passport.title = (
+        "Очень длинное название проектной инициативы для защиты руководителю " * 20
+    )
     report.passport.goal = "Очень длинное описание цели проекта " * 80
     report.concepts[0].advantages = ["Слишком длинное преимущество " * 80]
+    report.concepts[0].disadvantages = ["Слишком длинный риск выбранной концепции " * 80]
+    report.roadmap[0].milestones[0].title = "Очень длинная контрольная точка дорожной карты " * 30
+    report.raci[0].activity = "Очень длинная активность матрицы ответственности " * 30
+    report.raci[0].responsible = "Очень длинная ответственная роль " * 20
+    report.raci[0].accountable = "Очень длинная accountable роль " * 20
 
     content = export_project_report_pptx(report)
     xml = _slide_xml_text(content)
 
     assert content.startswith(b"PK")
-    assert "..." in xml
-    assert "Traceback" not in xml
-    assert "ValidationError" not in xml
-    assert "Field required" not in xml
+    assert _slide_count(content) <= 7
+    assert "…" in xml
+    _assert_no_technical_dump(xml)
+
+
+def test_pptx_export_highlights_recommended_concept_prefix_match():
+    report = _report()
+    report.concepts[0].name = "Концепция C — модификация портала"
+    report.recommended_concept.concept_name = "Концепция C"
+
+    content = export_project_report_pptx(report)
+    xml = _slide_xml_text(content)
+
+    assert "Концепция C — модификация портала" in xml
+    assert "Рекомендуемый вариант" in xml
+    assert "Рекомендуем к реализации" in xml
+    _assert_no_technical_dump(xml)
+
+
+def test_pptx_export_deduplicates_slide_need_success_criteria():
+    report = _report()
+    report.passport.success_criteria = [
+        "Достижение охвата целевой аудитории",
+        "Получение положительных отзывов о мероприятии",
+        "Достижение охвата целевой аудитории",
+        "Получение положительных отзывов о мероприятии",
+    ]
+
+    content = export_project_report_pptx(report)
+    xml = _slide_xml_text(content)
+
+    assert xml.count("Достижение охвата целевой аудитории") == 1
+    assert xml.count("Получение положительных отзывов о мероприятии") == 1
+    assert "Детальные критерии — в DOCX." in xml
+    _assert_no_technical_dump(xml)
 
 
 async def test_project_planner_pptx_endpoint_returns_existing_run_presentation(
