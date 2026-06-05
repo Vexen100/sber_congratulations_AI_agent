@@ -8,8 +8,8 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+import app.project_planner.reference_packs as reference_packs
 from app.project_planner.reference_packs import (
-    DEFAULT_REFERENCE_PACK_DIR,
     ReferencePack,
     load_reference_packs,
     parse_reference_pack,
@@ -21,7 +21,7 @@ class ReferencePackInstallError(ValueError):
 
 
 def reference_pack_directory() -> Path:
-    return DEFAULT_REFERENCE_PACK_DIR
+    return reference_packs.DEFAULT_REFERENCE_PACK_DIR
 
 
 def sanitize_reference_pack_filename(pack_name: str) -> str:
@@ -53,6 +53,10 @@ def _validate_target_filename(filename: str) -> str:
 
 def validate_reference_pack_file(path: Path) -> ReferencePack:
     raw = json.loads(Path(path).read_text(encoding="utf-8"))
+    return validate_reference_pack_data(raw)
+
+
+def validate_reference_pack_data(raw: dict[str, Any]) -> ReferencePack:
     return parse_reference_pack(raw)
 
 
@@ -92,14 +96,13 @@ def reference_pack_to_dict(pack: ReferencePack) -> dict[str, Any]:
     return result
 
 
-def install_reference_pack(
-    source_path: Path,
+def _install_parsed_reference_pack(
+    pack: ReferencePack,
     *,
     target_dir: Path | None = None,
     filename: str | None = None,
     replace: bool = False,
 ) -> Path:
-    pack = validate_reference_pack_file(source_path)
     output_filename = (
         _validate_target_filename(filename)
         if filename is not None
@@ -140,6 +143,38 @@ def install_reference_pack(
                 pass
         raise
     return target
+
+
+def install_reference_pack(
+    source_path: Path,
+    *,
+    target_dir: Path | None = None,
+    filename: str | None = None,
+    replace: bool = False,
+) -> Path:
+    pack = validate_reference_pack_file(source_path)
+    return _install_parsed_reference_pack(
+        pack,
+        target_dir=target_dir,
+        filename=filename,
+        replace=replace,
+    )
+
+
+def install_reference_pack_data(
+    raw: dict[str, Any],
+    *,
+    target_dir: Path | None = None,
+    filename: str | None = None,
+    replace: bool = False,
+) -> Path:
+    pack = validate_reference_pack_data(raw)
+    return _install_parsed_reference_pack(
+        pack,
+        target_dir=target_dir,
+        filename=filename,
+        replace=replace,
+    )
 
 
 def list_installed_reference_packs(

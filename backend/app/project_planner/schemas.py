@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import datetime as dt
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
@@ -211,3 +211,25 @@ class ReferencePackListResponse(BaseModel):
 
 class ReferencePackSelectionPreviewResponse(ReferencePackListResponse):
     reference_context_length: int
+
+
+class ReferencePackValidateRequest(BaseModel):
+    pack: dict[str, Any]
+
+
+class ReferencePackUploadRequest(BaseModel):
+    pack: dict[str, Any]
+    filename: str | None = None
+    replace: bool = False
+
+
+class ReferencePackValidateResponse(BaseModel):
+    item: ReferencePackMetadata
+    suggested_filename: str
+    valid: bool = True
+
+
+class ReferencePackUploadResponse(BaseModel):
+    item: ReferencePackMetadata
+    stored_filename: str
+    installed: bool = True

@@ -11,10 +11,12 @@ import pytest
 from app.project_planner.reference_pack_store import (
     ReferencePackInstallError,
     install_reference_pack,
+    install_reference_pack_data,
     list_installed_reference_packs,
     reference_pack_directory,
     reference_pack_to_dict,
     sanitize_reference_pack_filename,
+    validate_reference_pack_data,
     validate_reference_pack_file,
 )
 from app.project_planner.reference_packs import (
@@ -135,6 +137,13 @@ def test_validate_reference_pack_file_accepts_valid_json(tmp_path):
     assert pack.scope.regions == ("Свердловская область",)
 
 
+def test_validate_reference_pack_data_accepts_valid_raw_pack():
+    pack = validate_reference_pack_data(_pack())
+
+    assert pack.pack_name == "ural_bank_internal_events"
+    assert pack.scope.keywords == ("фестиваль",)
+
+
 def test_validate_reference_pack_file_rejects_invalid_json(tmp_path):
     source = tmp_path / "broken.json"
     source.write_text("{not-json", encoding="utf-8")
@@ -165,6 +174,17 @@ def test_install_invalid_source_does_not_create_target_directory(tmp_path):
     assert not (target_dir / "ural_bank_internal_events.json").exists()
 
 
+def test_install_invalid_raw_pack_does_not_create_target_directory(tmp_path):
+    data = _pack()
+    data["facts"] = []
+    target_dir = tmp_path / "installed"
+
+    with pytest.raises(ReferencePackError):
+        install_reference_pack_data(data, target_dir=target_dir)
+
+    assert not target_dir.exists()
+
+
 def test_install_creates_target_dir_and_writes_normalized_json(tmp_path):
     source = _write_json(tmp_path / "source.json", _pack(unknown=True))
     target_dir = tmp_path / "installed"
@@ -192,6 +212,18 @@ def test_install_creates_target_dir_and_writes_normalized_json(tmp_path):
         "budget_notes",
     ]
     assert load_reference_packs(target_dir)[0].pack_name == "ural_bank_internal_events"
+
+
+def test_install_reference_pack_data_writes_normalized_json(tmp_path):
+    target_dir = tmp_path / "installed"
+
+    target = install_reference_pack_data(_pack(unknown=True), target_dir=target_dir)
+
+    assert target == target_dir / "ural_bank_internal_events.json"
+    data = json.loads(target.read_text(encoding="utf-8"))
+    assert "unknown_field" not in data
+    assert data["pack_name"] == "ural_bank_internal_events"
+    assert target.read_text(encoding="utf-8").endswith("\n")
 
 
 def test_reference_pack_to_dict_omits_empty_optional_arrays(tmp_path):

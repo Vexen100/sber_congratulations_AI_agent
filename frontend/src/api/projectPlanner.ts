@@ -6,7 +6,9 @@ import type {
   ProjectPlannerRunResponse,
   ProjectPlannerRunSummary,
   ReferencePackListResponse,
-  ReferencePackSelectionPreviewResponse
+  ReferencePackSelectionPreviewResponse,
+  ReferencePackUploadResponse,
+  ReferencePackValidateResponse
 } from "../types/projectPlanner";
 
 export function clarifyProjectPlanner(input: ProjectPlannerInput): Promise<ClarificationResponse> {
@@ -42,6 +44,26 @@ export function previewProjectPlannerReferencePackSelection(
     "/api/project-planner/reference-packs/selection-preview",
     input
   );
+}
+
+export function validateProjectPlannerReferencePack(
+  pack: Record<string, unknown>
+): Promise<ReferencePackValidateResponse> {
+  return postJson<ReferencePackValidateResponse>("/api/project-planner/reference-packs/validate", {
+    pack
+  });
+}
+
+export function installProjectPlannerReferencePack(
+  pack: Record<string, unknown>,
+  filename?: string | null,
+  replace = false
+): Promise<ReferencePackUploadResponse> {
+  return postJson<ReferencePackUploadResponse>("/api/project-planner/reference-packs/install", {
+    pack,
+    filename,
+    replace
+  });
 }
 
 function filenameFromContentDisposition(value: string | null, runId: number | string): string {

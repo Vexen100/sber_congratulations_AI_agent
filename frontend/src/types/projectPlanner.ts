@@ -140,3 +140,25 @@ export type ReferencePackListResponse = {
 export type ReferencePackSelectionPreviewResponse = ReferencePackListResponse & {
   reference_context_length: number;
 };
+
+export type ReferencePackValidateRequest = {
+  pack: Record<string, unknown>;
+};
+
+export type ReferencePackUploadRequest = {
+  pack: Record<string, unknown>;
+  filename?: string | null;
+  replace?: boolean;
+};
+
+export type ReferencePackValidateResponse = {
+  item: ReferencePackMetadata;
+  suggested_filename: string;
+  valid: boolean;
+};
+
+export type ReferencePackUploadResponse = {
+  item: ReferencePackMetadata;
+  stored_filename: string;
+  installed: boolean;
+};

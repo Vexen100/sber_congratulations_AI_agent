@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type MouseEvent } from "react";
+import { useEffect, useState, type ChangeEvent, type FormEvent, type MouseEvent } from "react";
 
 import { ApiError } from "../api";
 import {
@@ -6,9 +6,11 @@ import {
   createProjectPlannerRun,
   downloadProjectPlannerDocx,
   getProjectPlannerRun,
+  installProjectPlannerReferencePack,
   listProjectPlannerReferencePacks,
   listProjectPlannerRuns,
-  previewProjectPlannerReferencePackSelection
+  previewProjectPlannerReferencePackSelection,
+  validateProjectPlannerReferencePack
 } from "../api/projectPlanner";
 import type {
   ClarificationQuestion,
@@ -18,12 +20,18 @@ import type {
   ProjectReport,
   ReferencePackListResponse,
   ReferencePackMetadata,
-  ReferencePackSelectionPreviewResponse
+  ReferencePackSelectionPreviewResponse,
+  ReferencePackValidateResponse
 } from "../types/projectPlanner";
 import { formatDate, formatDateTime } from "../utils";
 
 type PlannerFlash = {
   type: "success" | "danger";
+  text: string;
+} | null;
+
+type ReferencePackNotice = {
+  type: "success" | "warning";
   text: string;
 } | null;
 
@@ -37,6 +45,34 @@ const emptyInput: ProjectPlannerInput = {
   technology_constraints: "",
   project_accents: "",
   questions_asked_count: 0
+};
+
+const referencePackTemplate = {
+  pack_name: "demo_project_reference_pack",
+  pack_version: "v1",
+  source_name: "Название локального справочника",
+  source_date: "2026-06-01",
+  confidence: "demo",
+  scope: {
+    project_types: ["event"],
+    regions: ["Свердловская область"],
+    keywords: ["фестиваль", "мероприятие"]
+  },
+  facts: [
+    {
+      title: "Ключевой факт",
+      text: "Короткий проверенный факт или ограничение контекста проекта."
+    }
+  ],
+  constraints: ["Не раскрывать чувствительные данные в публичных материалах."],
+  concept_guidelines: {
+    prefer: ["внутренние каналы коммуникации"],
+    avoid: ["несогласованные публичные каналы"]
+  },
+  resource_notes: ["Указать доступные внутренние ресурсы без ценовых оценок."],
+  budget_notes: [
+    "Budget notes are non-price assumptions; financial estimate is calculated by backend budget catalog."
+  ]
 };
 
 function asNullable(value: string): string | null {
@@ -373,15 +409,31 @@ function ReferencePackItem({ pack }: { pack: ReferencePackMetadata }) {
 function ReferencePacksBlock({
   installed,
   preview,
+  validation,
+  notice,
   error,
   busy,
-  onPreview
+  uploadBusy,
+  canReplace,
+  onPreview,
+  onUploadFile,
+  onInstall,
+  onReplace,
+  onDownloadTemplate
 }: {
   installed: ReferencePackListResponse | null;
   preview: ReferencePackSelectionPreviewResponse | null;
+  validation: ReferencePackValidateResponse | null;
+  notice: ReferencePackNotice;
   error: string | null;
   busy: boolean;
+  uploadBusy: boolean;
+  canReplace: boolean;
   onPreview: () => void;
+  onUploadFile: (event: ChangeEvent<HTMLInputElement>) => void;
+  onInstall: () => void;
+  onReplace: () => void;
+  onDownloadTemplate: () => void;
 }) {
   return (
     <div className="surface-panel">
@@ -393,6 +445,7 @@ function ReferencePacksBlock({
       </div>
 
       {error ? <div className="alert alert-warning mt-3 mb-0">{error}</div> : null}
+      {notice ? <div className={`alert alert-${notice.type} mt-3 mb-0`}>{notice.text}</div> : null}
 
       <div className="mt-3">
         {installed ? (
@@ -430,6 +483,53 @@ function ReferencePacksBlock({
           )}
         </div>
       ) : null}
+
+      <div className="mt-3">
+        <div className="section-title">Загрузка JSON-справочника</div>
+        <div className="d-flex gap-2 flex-wrap">
+          <label className="btn btn-sm btn-outline-secondary mb-0">
+            {uploadBusy ? "Проверяю..." : "Загрузить JSON-справочник"}
+            <input
+              accept=".json,application/json"
+              className="d-none"
+              disabled={uploadBusy}
+              type="file"
+              onChange={onUploadFile}
+            />
+          </label>
+          <button className="btn btn-sm btn-outline-secondary" type="button" onClick={onDownloadTemplate}>
+            Скачать шаблон JSON
+          </button>
+        </div>
+
+        {validation ? (
+          <div className="planner-question mt-3">
+            <b>{validation.item.pack_name}</b>
+            <div className="text-muted small">
+              версия: {validation.item.pack_version} · дата источника:{" "}
+              {formatDate(validation.item.source_date)} · confidence: {validation.item.confidence}
+            </div>
+            <div className="text-muted small">
+              facts: {validation.item.facts_count} · suggested filename: {validation.suggested_filename}
+            </div>
+            <div className="d-flex gap-2 flex-wrap mt-2">
+              <button className="btn btn-sm btn-success" disabled={uploadBusy} type="button" onClick={onInstall}>
+                {uploadBusy ? "Устанавливаю..." : "Установить справочник"}
+              </button>
+              {canReplace ? (
+                <button
+                  className="btn btn-sm btn-outline-danger"
+                  disabled={uploadBusy}
+                  type="button"
+                  onClick={onReplace}
+                >
+                  Заменить существующий
+                </button>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -516,6 +616,10 @@ export default function ProjectPlannerPage() {
   const [referencePreview, setReferencePreview] =
     useState<ReferencePackSelectionPreviewResponse | null>(null);
   const [referencePackError, setReferencePackError] = useState<string | null>(null);
+  const [referenceUploadPack, setReferenceUploadPack] = useState<Record<string, unknown> | null>(null);
+  const [referenceValidation, setReferenceValidation] = useState<ReferencePackValidateResponse | null>(null);
+  const [referenceUploadNotice, setReferenceUploadNotice] = useState<ReferencePackNotice>(null);
+  const [canReplaceReferencePack, setCanReplaceReferencePack] = useState(false);
 
   async function refreshHistory() {
     setRuns(await listProjectPlannerRuns());
@@ -620,6 +724,97 @@ export default function ProjectPlannerPage() {
       setReferencePackError(text);
     } finally {
       setBusy(null);
+    }
+  }
+
+  async function handleReferencePackFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setBusy("reference-packs-upload");
+    setReferencePackError(null);
+    setReferenceUploadNotice(null);
+    setReferenceValidation(null);
+    setReferenceUploadPack(null);
+    setCanReplaceReferencePack(false);
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text) as unknown;
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        throw new Error("Файл не является корректным JSON.");
+      }
+      const pack = parsed as Record<string, unknown>;
+      const validation = await validateProjectPlannerReferencePack(pack);
+      setReferenceUploadPack(pack);
+      setReferenceValidation(validation);
+      setReferenceUploadNotice({
+        type: "success",
+        text: "JSON-справочник прошёл проверку. Можно установить его локально."
+      });
+    } catch (error) {
+      setReferencePackError(
+        error instanceof SyntaxError
+          ? "Файл не является корректным JSON."
+          : error instanceof Error
+            ? error.message
+            : String(error)
+      );
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function installReferencePack(replace = false) {
+    if (!referenceUploadPack || !referenceValidation) return;
+    setBusy("reference-packs-upload");
+    setReferencePackError(null);
+    setReferenceUploadNotice(null);
+    try {
+      const response = await installProjectPlannerReferencePack(
+        referenceUploadPack,
+        referenceValidation.suggested_filename,
+        replace
+      );
+      setCanReplaceReferencePack(false);
+      setReferenceUploadPack(null);
+      setReferenceValidation(null);
+      setReferenceUploadNotice({
+        type: "success",
+        text: `Справочник установлен: ${response.stored_filename}.`
+      });
+      await refreshReferencePacks();
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        setCanReplaceReferencePack(true);
+        setReferenceUploadNotice({
+          type: "warning",
+          text: "Справочник с таким именем уже установлен."
+        });
+      } else {
+        setReferencePackError(error instanceof Error ? error.message : String(error));
+      }
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function downloadReferencePackTemplate() {
+    const blob = new Blob([JSON.stringify(referencePackTemplate, null, 2) + "\n"], {
+      type: "application/json;charset=utf-8"
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "project-planner-reference-pack-template.json";
+    link.dataset.noSpa = "true";
+    link.style.display = "none";
+    document.body.appendChild(link);
+    try {
+      link.click();
+    } finally {
+      link.remove();
+      URL.revokeObjectURL(url);
     }
   }
 
@@ -755,10 +950,18 @@ export default function ProjectPlannerPage() {
           <div className="mt-4">
             <ReferencePacksBlock
               busy={busy === "reference-packs-preview"}
+              canReplace={canReplaceReferencePack}
               error={referencePackError}
               installed={referencePacks}
+              notice={referenceUploadNotice}
               preview={referencePreview}
+              uploadBusy={busy === "reference-packs-upload"}
+              validation={referenceValidation}
+              onDownloadTemplate={downloadReferencePackTemplate}
+              onInstall={() => installReferencePack(false)}
               onPreview={previewReferencePacks}
+              onReplace={() => installReferencePack(true)}
+              onUploadFile={handleReferencePackFile}
             />
           </div>
         </div>

@@ -1,11 +1,20 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+import json
+
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_session
+from app.project_planner.reference_pack_store import (
+    ReferencePackInstallError,
+    install_reference_pack_data,
+    sanitize_reference_pack_filename,
+    validate_reference_pack_data,
+)
 from app.project_planner.reference_packs import (
+    ReferencePackError,
     build_reference_pack_prompt_context_from_packs,
     load_reference_packs,
     reference_pack_metadata,
@@ -20,6 +29,10 @@ from app.project_planner.schemas import (
     ProjectPlannerRunSummary,
     ReferencePackListResponse,
     ReferencePackSelectionPreviewResponse,
+    ReferencePackUploadRequest,
+    ReferencePackUploadResponse,
+    ReferencePackValidateRequest,
+    ReferencePackValidateResponse,
 )
 from app.project_planner.service import (
     create_project_planner_run,
@@ -30,6 +43,29 @@ from app.project_planner.service import (
 from app.project_planner.validators import build_clarifications
 
 router = APIRouter(prefix="/project-planner")
+MAX_REFERENCE_PACK_UPLOAD_BYTES = 256 * 1024
+
+
+def _ensure_reference_pack_size(raw: dict) -> None:
+    size = len(json.dumps(raw, ensure_ascii=False).encode("utf-8"))
+    if size > MAX_REFERENCE_PACK_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail="Reference pack JSON exceeds 256 KB limit.",
+        )
+
+
+def _reference_pack_validation_error(exc: ReferencePackError) -> HTTPException:
+    return HTTPException(status_code=422, detail=f"Reference pack is invalid: {exc}")
+
+
+def _reference_pack_install_error(exc: ReferencePackInstallError) -> HTTPException:
+    if "already exists" in str(exc):
+        return HTTPException(
+            status_code=409,
+            detail="Справочник с таким именем уже установлен.",
+        )
+    return HTTPException(status_code=400, detail=str(exc))
 
 
 @router.post("/clarifications", response_model=ClarificationResponse)
@@ -59,6 +95,49 @@ async def list_runs(session: AsyncSession = Depends(get_session)) -> list[Projec
 async def list_reference_packs() -> ReferencePackListResponse:
     items = [reference_pack_metadata(pack) for pack in load_reference_packs()]
     return ReferencePackListResponse(items=items, count=len(items))
+
+
+@router.post(
+    "/reference-packs/validate",
+    response_model=ReferencePackValidateResponse,
+)
+async def validate_reference_pack(
+    payload: ReferencePackValidateRequest,
+) -> ReferencePackValidateResponse:
+    _ensure_reference_pack_size(payload.pack)
+    try:
+        pack = validate_reference_pack_data(payload.pack)
+    except ReferencePackError as exc:
+        raise _reference_pack_validation_error(exc) from exc
+    return ReferencePackValidateResponse(
+        item=reference_pack_metadata(pack),
+        suggested_filename=sanitize_reference_pack_filename(pack.pack_name),
+    )
+
+
+@router.post(
+    "/reference-packs/install",
+    response_model=ReferencePackUploadResponse,
+)
+async def install_reference_pack(
+    payload: ReferencePackUploadRequest,
+) -> ReferencePackUploadResponse:
+    _ensure_reference_pack_size(payload.pack)
+    try:
+        pack = validate_reference_pack_data(payload.pack)
+        target = install_reference_pack_data(
+            payload.pack,
+            filename=payload.filename,
+            replace=payload.replace,
+        )
+    except ReferencePackError as exc:
+        raise _reference_pack_validation_error(exc) from exc
+    except ReferencePackInstallError as exc:
+        raise _reference_pack_install_error(exc) from exc
+    return ReferencePackUploadResponse(
+        item=reference_pack_metadata(pack),
+        stored_filename=target.name,
+    )
 
 
 @router.post(
