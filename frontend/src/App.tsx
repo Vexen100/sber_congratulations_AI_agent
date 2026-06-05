@@ -342,10 +342,6 @@ function Layout({
               );
             })}
           </div>
-
-          <div className="mt-4">
-            <div className="delivery-pill">Режим доставки: файловый outbox</div>
-          </div>
         </aside>
 
         <main className="col-12 col-lg-9 col-xl-10 content-shell">
@@ -589,7 +585,7 @@ function ClientsPage({
   return (
     <PageShell name="clients">
       <PageHeader
-        eyebrow="Client graph"
+        eyebrow="Клиентский граф"
         title="Клиенты"
         subtitle="База контактов, ручное добавление и обогащение профилей компаний в одном рабочем контуре."
         actions={
@@ -967,7 +963,7 @@ function EventsPage({
   return (
     <PageShell name="events">
       <PageHeader
-        eyebrow="Occasion map"
+        eyebrow="Карта событий"
         title="События"
         subtitle="Поводы для поздравлений: дни рождения, праздники и ручные сценарии для импортированной клиентской базы."
       />
@@ -1162,7 +1158,7 @@ function GreetingsPage({
   return (
     <PageShell name="greetings">
       <PageHeader
-        eyebrow="Message stream"
+        eyebrow="Поток сообщений"
         title="Поздравления"
         subtitle="Сгенерированные поздравления, отправка по расписанию в день события и сбор отзывов с вердиктом для дообучения."
       />
@@ -1481,7 +1477,7 @@ function DeliveriesPage({ refreshKey }: { refreshKey: number }) {
 
   return (
     <PageShell name="deliveries">
-      <PageHeader eyebrow="Delivery log" title="Доставки" subtitle="Лог отправок, блокировок безопасности и статусов провайдеров." />
+      <PageHeader eyebrow="Лог доставки" title="Доставки" subtitle="Лог отправок, блокировок безопасности и статусов провайдеров." />
       <div className="row g-4 mb-4">
         <div className="col-12 col-md-4">
           <MetricCard label="Всего доставок" value={deliveries.length} hint="Все записи доставки и логирования." />
@@ -1586,7 +1582,7 @@ function RunsPage({
   return (
     <PageShell name="runs">
       <PageHeader
-        eyebrow="Execution audit"
+        eyebrow="Аудит запусков"
         title="Запуски агента"
         subtitle="Аудит запусков, наблюдаемость конвейера и источник данных для презентации результатов."
       />

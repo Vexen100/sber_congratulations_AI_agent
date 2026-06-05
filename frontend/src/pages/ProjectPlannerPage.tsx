@@ -294,7 +294,7 @@ function ReportPreview({ report }: { report: ProjectReport }) {
 
       {report.presentation_outline.length ? (
         <div className="surface-card mb-3">
-          <div className="card-header">Outline презентации</div>
+          <div className="card-header">Шаблон презентации</div>
           <div className="card-body">
             <div className="row g-3">
               {report.presentation_outline.map((slide) => (
@@ -517,7 +517,7 @@ export default function ProjectPlannerPage() {
     <div className="planner-page">
       <section className="planner-hero">
         <div className="planner-hero__content">
-          <div className="planner-hero__eyebrow">ProjectReport Studio</div>
+          <div className="planner-hero__eyebrow">Студия создания отчета</div>
           <div className="page-intro planner-hero__intro">
             <div className="planner-hero__title-row">
               <h2 className="mb-1">Планировщик проектов</h2>
@@ -527,13 +527,13 @@ export default function ProjectPlannerPage() {
                 align="left"
               />
             </div>
-            <div className="planner-hero__copy">Форма → уточнения → ProjectReport → DOCX.</div>
+            <div className="planner-hero__copy">Форма → уточнения → Отчет → DOCX.</div>
           </div>
           <div className="planner-hero__workflow" aria-label="Этапы работы">
-            <span>Brief</span>
-            <span>Clarify</span>
-            <span>Structure</span>
-            <span>Export</span>
+            <span>Сжать</span>
+            <span>Уточнить</span>
+            <span>Разложить</span>
+            <span>Сохранить</span>
           </div>
         </div>
         <div className="planner-hero__stats" aria-label="Сводка планировщика">
@@ -555,7 +555,7 @@ export default function ProjectPlannerPage() {
 
       <section className="planner-input-shell">
         <div className="planner-input-shell__head">
-          <div className="planner-input-shell__eyebrow">Input canvas</div>
+          <div className="planner-input-shell__eyebrow">Форма данных</div>
           <div className="planner-input-shell__title-row">
             <h3 className="planner-input-shell__title">Исходные данные</h3>
             <InfoHint
@@ -691,7 +691,6 @@ export default function ProjectPlannerPage() {
           <section className="planner-stage-shell">
             <div className="planner-stage-shell__head">
               <div>
-                <div className="planner-stage-shell__eyebrow">Output canvas</div>
                 <div className="planner-stage-shell__title-row">
                   <h3 className="planner-stage-shell__title">Проектный пакет</h3>
                   <InfoHint
