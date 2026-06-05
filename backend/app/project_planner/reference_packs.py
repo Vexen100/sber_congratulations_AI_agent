@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from app.project_planner.schemas import ProjectPlannerInput
+from app.project_planner.schemas import ProjectPlannerInput, ReferencePackMetadata
 
 logger = logging.getLogger(__name__)
 
@@ -384,3 +384,28 @@ def build_reference_pack_prompt_context(
     if not packs:
         return ""
     return _build_limited_context(packs)
+
+
+def build_reference_pack_prompt_context_from_packs(packs: list[ReferencePack]) -> str:
+    if not packs:
+        return ""
+    return _build_limited_context(packs)
+
+
+def reference_pack_metadata(pack: ReferencePack) -> ReferencePackMetadata:
+    return ReferencePackMetadata(
+        pack_name=pack.pack_name,
+        pack_version=pack.pack_version,
+        source_name=pack.source_name,
+        source_date=pack.source_date,
+        confidence=pack.confidence,
+        regions=list(pack.scope.regions),
+        keywords=list(pack.scope.keywords),
+        project_types=list(pack.scope.project_types),
+        facts_count=len(pack.facts),
+        constraints_count=len(pack.constraints),
+        concept_prefer_count=len(pack.concept_prefer),
+        concept_avoid_count=len(pack.concept_avoid),
+        resource_notes_count=len(pack.resource_notes),
+        has_budget_notes=bool(pack.budget_notes),
+    )

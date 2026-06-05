@@ -114,3 +114,29 @@ export type ProjectPlannerRunDetail = ProjectPlannerRunSummary & {
 export type ProjectPlannerRunResponse = {
   run: ProjectPlannerRunDetail;
 };
+
+export type ReferencePackMetadata = {
+  pack_name: string;
+  pack_version: string;
+  source_name: string;
+  source_date: string;
+  confidence: string;
+  regions: string[];
+  keywords: string[];
+  project_types: string[];
+  facts_count: number;
+  constraints_count: number;
+  concept_prefer_count: number;
+  concept_avoid_count: number;
+  resource_notes_count: number;
+  has_budget_notes: boolean;
+};
+
+export type ReferencePackListResponse = {
+  items: ReferencePackMetadata[];
+  count: number;
+};
+
+export type ReferencePackSelectionPreviewResponse = ReferencePackListResponse & {
+  reference_context_length: number;
+};

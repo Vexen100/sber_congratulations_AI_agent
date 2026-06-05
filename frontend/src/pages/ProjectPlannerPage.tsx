@@ -1,18 +1,24 @@
 import { useEffect, useState, type FormEvent, type MouseEvent } from "react";
 
+import { ApiError } from "../api";
 import {
   clarifyProjectPlanner,
   createProjectPlannerRun,
   downloadProjectPlannerDocx,
   getProjectPlannerRun,
-  listProjectPlannerRuns
+  listProjectPlannerReferencePacks,
+  listProjectPlannerRuns,
+  previewProjectPlannerReferencePackSelection
 } from "../api/projectPlanner";
 import type {
   ClarificationQuestion,
   ProjectPlannerInput,
   ProjectPlannerRunDetail,
   ProjectPlannerRunSummary,
-  ProjectReport
+  ProjectReport,
+  ReferencePackListResponse,
+  ReferencePackMetadata,
+  ReferencePackSelectionPreviewResponse
 } from "../types/projectPlanner";
 import { formatDate, formatDateTime } from "../utils";
 
@@ -352,6 +358,82 @@ function ClarificationsBlock({
   );
 }
 
+function ReferencePackItem({ pack }: { pack: ReferencePackMetadata }) {
+  return (
+    <div className="planner-question">
+      <b>{pack.pack_name}</b>
+      <div className="text-muted small">
+        версия: {pack.pack_version} · дата источника: {formatDate(pack.source_date)} · confidence:{" "}
+        {pack.confidence}
+      </div>
+    </div>
+  );
+}
+
+function ReferencePacksBlock({
+  installed,
+  preview,
+  error,
+  busy,
+  onPreview
+}: {
+  installed: ReferencePackListResponse | null;
+  preview: ReferencePackSelectionPreviewResponse | null;
+  error: string | null;
+  busy: boolean;
+  onPreview: () => void;
+}) {
+  return (
+    <div className="surface-panel">
+      <div className="d-flex align-items-center justify-content-between gap-2">
+        <div className="section-title mb-0">Справочники проекта</div>
+        <button className="btn btn-sm btn-outline-secondary" disabled={busy} type="button" onClick={onPreview}>
+          {busy ? "Проверяю..." : "Проверить применимые справочники"}
+        </button>
+      </div>
+
+      {error ? <div className="alert alert-warning mt-3 mb-0">{error}</div> : null}
+
+      <div className="mt-3">
+        {installed ? (
+          <>
+            <div className="text-muted small mb-2">Установлено: {installed.count}</div>
+            {installed.items.length ? (
+              <div className="d-grid gap-2">
+                {installed.items.map((pack) => (
+                  <ReferencePackItem pack={pack} key={`${pack.pack_name}:${pack.pack_version}`} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-muted">Локальные справочники не установлены.</div>
+            )}
+          </>
+        ) : (
+          <div className="text-muted">Загружаю список справочников...</div>
+        )}
+      </div>
+
+      {preview ? (
+        <div className="mt-3">
+          <div className="section-title">Применимые справочники</div>
+          <div className="text-muted small mb-2">
+            Выбрано: {preview.count} · длина reference context: {preview.reference_context_length}
+          </div>
+          {preview.items.length ? (
+            <div className="d-grid gap-2">
+              {preview.items.map((pack) => (
+                <ReferencePackItem pack={pack} key={`preview:${pack.pack_name}:${pack.pack_version}`} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-muted">Для текущих исходных данных справочники не выбраны.</div>
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function HistoryTable({
   runs,
   onSelect,
@@ -430,15 +512,29 @@ export default function ProjectPlannerPage() {
   const [flash, setFlash] = useState<PlannerFlash>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [generateWithAssumptions, setGenerateWithAssumptions] = useState(true);
+  const [referencePacks, setReferencePacks] = useState<ReferencePackListResponse | null>(null);
+  const [referencePreview, setReferencePreview] =
+    useState<ReferencePackSelectionPreviewResponse | null>(null);
+  const [referencePackError, setReferencePackError] = useState<string | null>(null);
 
   async function refreshHistory() {
     setRuns(await listProjectPlannerRuns());
+  }
+
+  async function refreshReferencePacks() {
+    try {
+      setReferencePackError(null);
+      setReferencePacks(await listProjectPlannerReferencePacks());
+    } catch (error) {
+      setReferencePackError(error instanceof Error ? error.message : String(error));
+    }
   }
 
   useEffect(() => {
     refreshHistory().catch((error: unknown) => {
       setFlash({ type: "danger", text: error instanceof Error ? error.message : String(error) });
     });
+    refreshReferencePacks();
   }, []);
 
   function updateField<K extends keyof ProjectPlannerInput>(field: K, value: ProjectPlannerInput[K]) {
@@ -504,6 +600,24 @@ export default function ProjectPlannerPage() {
       await downloadProjectPlannerDocx(runId);
     } catch (error) {
       setFlash({ type: "danger", text: error instanceof Error ? error.message : String(error) });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function previewReferencePacks() {
+    setBusy("reference-packs-preview");
+    setReferencePackError(null);
+    try {
+      setReferencePreview(await previewProjectPlannerReferencePackSelection(input));
+    } catch (error) {
+      const text =
+        error instanceof ApiError && error.status === 422
+          ? "Заполните обязательные поля для проверки применимых справочников."
+          : error instanceof Error
+            ? error.message
+            : String(error);
+      setReferencePackError(text);
     } finally {
       setBusy(null);
     }
@@ -636,6 +750,16 @@ export default function ProjectPlannerPage() {
 
           <div className="mt-4">
             <ClarificationsBlock questions={questions} canGenerate={canGenerate} />
+          </div>
+
+          <div className="mt-4">
+            <ReferencePacksBlock
+              busy={busy === "reference-packs-preview"}
+              error={referencePackError}
+              installed={referencePacks}
+              preview={referencePreview}
+              onPreview={previewReferencePacks}
+            />
           </div>
         </div>
 

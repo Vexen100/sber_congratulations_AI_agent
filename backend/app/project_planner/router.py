@@ -5,6 +5,12 @@ from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_session
+from app.project_planner.reference_packs import (
+    build_reference_pack_prompt_context_from_packs,
+    load_reference_packs,
+    reference_pack_metadata,
+    select_reference_packs,
+)
 from app.project_planner.schemas import (
     ClarificationResponse,
     ProjectPlannerInput,
@@ -12,6 +18,8 @@ from app.project_planner.schemas import (
     ProjectPlannerRunDetail,
     ProjectPlannerRunResponse,
     ProjectPlannerRunSummary,
+    ReferencePackListResponse,
+    ReferencePackSelectionPreviewResponse,
 )
 from app.project_planner.service import (
     create_project_planner_run,
@@ -45,6 +53,30 @@ async def create_run(
 @router.get("/runs", response_model=list[ProjectPlannerRunSummary])
 async def list_runs(session: AsyncSession = Depends(get_session)) -> list[ProjectPlannerRunSummary]:
     return await list_project_planner_runs(session)
+
+
+@router.get("/reference-packs", response_model=ReferencePackListResponse)
+async def list_reference_packs() -> ReferencePackListResponse:
+    items = [reference_pack_metadata(pack) for pack in load_reference_packs()]
+    return ReferencePackListResponse(items=items, count=len(items))
+
+
+@router.post(
+    "/reference-packs/selection-preview",
+    response_model=ReferencePackSelectionPreviewResponse,
+)
+async def preview_reference_pack_selection(
+    payload: ProjectPlannerInput,
+) -> ReferencePackSelectionPreviewResponse:
+    packs = load_reference_packs()
+    selected = select_reference_packs(payload, packs)
+    context = build_reference_pack_prompt_context_from_packs(selected)
+    items = [reference_pack_metadata(pack) for pack in selected]
+    return ReferencePackSelectionPreviewResponse(
+        items=items,
+        count=len(items),
+        reference_context_length=len(context),
+    )
 
 
 @router.get("/runs/{run_id}", response_model=ProjectPlannerRunDetail)

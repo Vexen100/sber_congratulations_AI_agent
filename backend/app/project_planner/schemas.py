@@ -185,3 +185,29 @@ class ProjectPlannerRunDetail(ProjectPlannerRunSummary):
 
 class ProjectPlannerRunResponse(BaseModel):
     run: ProjectPlannerRunDetail
+
+
+class ReferencePackMetadata(BaseModel):
+    pack_name: str
+    pack_version: str
+    source_name: str
+    source_date: str
+    confidence: str
+    regions: list[str]
+    keywords: list[str]
+    project_types: list[str]
+    facts_count: int
+    constraints_count: int
+    concept_prefer_count: int
+    concept_avoid_count: int
+    resource_notes_count: int
+    has_budget_notes: bool
+
+
+class ReferencePackListResponse(BaseModel):
+    items: list[ReferencePackMetadata]
+    count: int
+
+
+class ReferencePackSelectionPreviewResponse(ReferencePackListResponse):
+    reference_context_length: int

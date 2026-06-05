@@ -4,7 +4,9 @@ import type {
   ProjectPlannerInput,
   ProjectPlannerRunDetail,
   ProjectPlannerRunResponse,
-  ProjectPlannerRunSummary
+  ProjectPlannerRunSummary,
+  ReferencePackListResponse,
+  ReferencePackSelectionPreviewResponse
 } from "../types/projectPlanner";
 
 export function clarifyProjectPlanner(input: ProjectPlannerInput): Promise<ClarificationResponse> {
@@ -27,6 +29,19 @@ export function listProjectPlannerRuns(): Promise<ProjectPlannerRunSummary[]> {
 
 export function getProjectPlannerRun(runId: number): Promise<ProjectPlannerRunDetail> {
   return api<ProjectPlannerRunDetail>(`/api/project-planner/runs/${runId}`);
+}
+
+export function listProjectPlannerReferencePacks(): Promise<ReferencePackListResponse> {
+  return api<ReferencePackListResponse>("/api/project-planner/reference-packs");
+}
+
+export function previewProjectPlannerReferencePackSelection(
+  input: ProjectPlannerInput
+): Promise<ReferencePackSelectionPreviewResponse> {
+  return postJson<ReferencePackSelectionPreviewResponse>(
+    "/api/project-planner/reference-packs/selection-preview",
+    input
+  );
 }
 
 function filenameFromContentDisposition(value: string | null, runId: number | string): string {
