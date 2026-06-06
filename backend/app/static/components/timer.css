@@ -1,0 +1,159 @@
+.agent-control-widget {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.countdown-wrapper {
+  padding: 3px 0;
+}
+
+.countdown-display {
+  font-family: Inter, "Segoe UI", system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+  font-size: 1.9rem;
+}
+
+.countdown-label {
+  font-size: 0.75rem;
+  color: var(--countdown-muted);
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.divider {
+  height: 1px;
+  background: var(--divider);
+  width: 100%;
+}
+
+.autonomy-status {
+  display: flex;
+  justify-content: center;
+  margin: 0.1rem 0 0.35rem;
+}
+
+.autonomy-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.1px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-glass);
+  color: var(--text);
+}
+
+.autonomy-pill .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--neutral);
+  box-shadow: 0 0 0 3px rgba(154, 167, 160, 0.18);
+}
+
+.autonomy-pill--on {
+  border-color: var(--autonomy-on-border);
+  background: var(--autonomy-on-bg);
+  color: var(--primary-dark);
+}
+
+.autonomy-pill--on .dot {
+  background: var(--primary);
+  box-shadow: 0 0 0 3px rgba(18, 161, 80, 0.18);
+}
+
+.autonomy-pill--off {
+  border-color: var(--autonomy-off-border);
+  background: var(--autonomy-off-bg);
+  color: var(--muted);
+}
+
+.autonomy-pill--off .dot {
+  background: var(--autonomy-off-dot);
+  box-shadow: 0 0 0 3px rgba(118, 133, 125, 0.16);
+}
+
+.actions-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  align-items: stretch;
+}
+
+.btn-control {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  min-height: 56px;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.btn-auto {
+  background: var(--interactive-neutral-bg);
+  color: var(--interactive-neutral-text);
+  border: 1px solid var(--neutral-border);
+}
+
+.btn-auto:hover {
+  background: var(--interactive-neutral-bg-hover);
+}
+
+.btn-auto.active {
+  background: var(--interactive-neutral-active-bg);
+  color: var(--info);
+  border-color: var(--info);
+}
+
+.btn-auto.active .status-dot {
+  background-color: var(--info);
+  box-shadow: 0 0 8px var(--info);
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--neutral);
+  margin-top: 2px;
+  transition: background-color 0.2s;
+}
+
+.btn-manual {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-alt) 100%);
+  color: var(--inverse-text);
+  box-shadow: 0 8px 20px rgba(18, 161, 80, 0.18);
+}
+
+.btn-manual:hover {
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(18, 161, 80, 0.25);
+}
+
+.btn-manual:active {
+  transform: translateY(1px);
+}
+
+.btn-autonomy-toggle {
+  width: 100%;
+}
+
+.btn-autonomy-toggle .text {
+  line-height: 1.15;
+  text-wrap: balance;
+}

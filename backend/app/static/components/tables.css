@@ -1,0 +1,135 @@
+.table-card .card-header,
+.surface-card .card-header {
+  background: transparent;
+  border-bottom: 1px solid var(--border-strong);
+  padding: 1rem 1.2rem 0.95rem;
+  font-weight: 800;
+}
+
+.surface-card .card-body {
+  box-sizing: border-box;
+  height: 100%;
+  padding: 1rem 1.2rem 1.2rem;
+}
+
+.table-clean {
+  --bs-table-bg: transparent;
+  --bs-table-border-color: var(--border-strong);
+}
+
+.table-clean thead th {
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 800;
+  border-top: 0;
+}
+
+.table-clean tbody tr:hover {
+  background: var(--primary-soft-hover);
+}
+
+.actions-col {
+  min-width: 124px;
+  white-space: nowrap;
+  padding-right: 1rem !important;
+}
+
+/* Greeting text (preview + viewer) */
+.gtext-preview {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  white-space: pre-wrap;
+  color: var(--text-subtle);
+  line-height: 1.35;
+}
+
+.gtext-details {
+  margin-top: 0.45rem;
+}
+
+.gtext-toggle {
+  cursor: pointer;
+  user-select: none;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.gtext-toggle::marker,
+.gtext-toggle::-webkit-details-marker {
+display: none;
+}
+
+.gtext-toggle::after {
+content: "▾";
+font-size: 0.9em;
+opacity: 0.75;
+transform: translateY(-1px);
+}
+
+.gtext-details[open] .gtext-toggle::after {
+content: "▴";
+}
+
+.gtext-toggle__label-open {
+display: none;
+}
+
+.gtext-details[open] .gtext-toggle__label-open {
+display: inline;
+}
+
+.gtext-details[open] .gtext-toggle__label-closed {
+display: none;
+}
+
+.gtext-actions {
+display: flex;
+align-items: center;
+gap: 0.6rem;
+margin-top: 0.6rem;
+}
+
+.gtext-copy.btn {
+border-radius: 12px;
+padding: 0.4rem 0.65rem;
+font-weight: 700;
+}
+
+.gtext-copy-status {
+color: var(--muted);
+font-size: 0.85rem;
+min-height: 1.1em;
+}
+
+.gtext-viewer {
+  margin-top: 0.6rem;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-glass);
+  border-radius: 18px;
+  padding: 0.85rem 0.95rem;
+  box-shadow: var(--surface-shadow);
+  white-space: pre-wrap;
+  line-height: 1.45;
+  max-height: 320px;
+  overflow: auto;
+}
+
+.gtext-viewer::before {
+content: "";
+display: block;
+position: sticky;
+top: 0;
+height: 0;
+}
+
+@media (max-width: 992px) {
+  .gtext-viewer {
+    max-height: 240px;
+  }
+}

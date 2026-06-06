@@ -23,7 +23,9 @@ def hermetic_settings(monkeypatch, tmp_path):
     on those external services; force safe offline modes by default.
     """
     outbox = tmp_path / "outbox"
+    docx_dir = tmp_path / "project_planner_docx"
     outbox.mkdir(parents=True, exist_ok=True)
+    docx_dir.mkdir(parents=True, exist_ok=True)
 
     # Offline, deterministic defaults for the test suite.
     monkeypatch.setattr(settings, "send_mode", "file", raising=False)
@@ -32,6 +34,10 @@ def hermetic_settings(monkeypatch, tmp_path):
     monkeypatch.setattr(settings, "outbox_dir", str(outbox), raising=False)
     monkeypatch.setattr(settings, "company_enrichment_provider", "demo", raising=False)
     monkeypatch.setattr(settings, "company_import_csv_path", "", raising=False)
+    monkeypatch.setattr(settings, "project_planner_use_mock_llm", True, raising=False)
+    monkeypatch.setattr(settings, "project_planner_docx_dir", str(docx_dir), raising=False)
+    monkeypatch.setattr(settings, "project_planner_default_clarifying_questions", 3, raising=False)
+    monkeypatch.setattr(settings, "project_planner_max_clarifying_questions", 10, raising=False)
 
     # Avoid accidental external provider usage through leaked credentials.
     monkeypatch.setattr(settings, "openai_api_key", None, raising=False)

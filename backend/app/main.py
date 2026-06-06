@@ -15,12 +15,12 @@ from app.core.config import settings
 from app.core.logging import configure_logging
 from app.db.init_db import create_dirs, init_db, seed_holidays_if_empty
 from app.db.session import SessionLocal
+from app.frontend import mount_react_frontend
 from app.services.autonomy import get_or_create_state
-from app.web.router import router as web_router
 
 _BACKEND_ROOT = Path(__file__).resolve().parent.parent
 _DATA_DIR = str((_BACKEND_ROOT / "data").resolve())
-_WEB_STATIC_DIR = str((_BACKEND_ROOT / "app" / "web" / "static").resolve())
+_STATIC_DIR = str((_BACKEND_ROOT / "app" / "static").resolve())
 
 
 def create_app() -> FastAPI:
@@ -63,16 +63,17 @@ def create_app() -> FastAPI:
     app = FastAPI(title="Sber Congratulations AI Agent (MVP)", lifespan=lifespan)
 
     app.include_router(api_router)
-    app.include_router(web_router)
 
-    # Bundled UI assets (CSS/SVG) must be versioned in git and not live in gitignored backend/data/.
-    app.mount("/static", StaticFiles(directory=_WEB_STATIC_DIR, check_dir=True), name="static")
+    # Shared UI assets (CSS/SVG) live in the app package and are versioned in git.
+    app.mount("/static", StaticFiles(directory=_STATIC_DIR, check_dir=True), name="static")
 
     # Serve generated artifacts for demo convenience (cards/outbox)
     # NOTE: With uvicorn --reload on Windows, the app can be imported before startup hooks run.
     # StaticFiles by default checks directory existence at mount time, so we disable the check
     # and create the directory in the startup event.
     app.mount("/data", StaticFiles(directory=_DATA_DIR, check_dir=False), name="data")
+
+    mount_react_frontend(app, log)
 
     return app
 

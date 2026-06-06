@@ -42,7 +42,7 @@ async def test_autonomy_enable_sets_next_run(db_session):
     assert data["next_run_at"] is not None
 
 
-async def test_runs_page_contains_autonomy_ui(db_session):
+async def test_runs_endpoint_exposes_autonomy_state(db_session):
     app = create_app()
 
     async def override_session():
@@ -51,9 +51,11 @@ async def test_runs_page_contains_autonomy_ui(db_session):
     app.dependency_overrides[get_session] = override_session
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.get("/runs")
+        resp = await client.get("/api/ui/runs")
     app.dependency_overrides.clear()
 
     assert resp.status_code == 200
-    assert "autonomy-status-line" in resp.text
-    assert "countdown-timer" in resp.text
+    data = resp.json()
+    assert "autonomy" in data
+    assert data["autonomy"]["enabled"] is False
+    assert "runs" in data

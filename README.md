@@ -8,7 +8,7 @@
 
 ## Репозиторий
 
-- **CI**: GitHub Actions в `.github/workflows/ci.yml` (ruff, black; unit и integration через `pytest -m` на ветках `main` и `integration`)
+- **CI**: GitHub Actions в `.github/workflows/ci.yml` (ruff, black; unit и integration через `pytest -m` на ветках `main`, `integration` и `react-new-base-backend`)
 - **Ключевые проектные документы**: начните с `docs/PROJECT_OVERVIEW.md` и `docs/DECISIONS.md`
 
 ## Возможности проекта
@@ -34,6 +34,7 @@
 - **Постоянное улучшение**: менеджерский feedback (оценка 1–5 и комментарий); `training_verdict=accepted|rejected` для дообучения выставляется автоматически по оценке (4–5 приняты, иначе отклонены) и сохраняется в БД.
 - **Веб-интерфейс**: просмотр клиентов/событий/поздравлений/доставок, создание клиента, ручной триггер, запуск агента.
 - **Ручные кампании для реальной базы**: можно создать единичное ручное событие или быструю demo-кампанию для импортированных клиентов, чтобы агент сгенерировал поздравления не только по ДР/праздникам.
+- **Project Planner**: отдельная страница `/project-planner` для генерации структурированного проектного отчёта, preview/history, DOCX-отчёта, on-demand PPTX-презентации и работы с локальными Reference Packs в mock/offline или GigaChat-режиме.
 - **Тесты**: базовая проверка детектора событий и идемпотентной отправки.
 
 ## Архитектура (упрощённо)
@@ -48,12 +49,13 @@
 ## Структура репозитория
 
 ```
-backend/                 # FastAPI + web UI (Jinja) + SQLite + агент + планировщик
+backend/                 # FastAPI + API + React static host + SQLite + агент + планировщик
   app/
   tests/
   requirements.txt
   requirements-dev.txt
   env.example
+frontend/                # React/Vite UI (опциональная SPA-сборка поверх API)
 scripts/                 # удобные команды для Windows
 ROADMAP.md
 ```
@@ -61,7 +63,7 @@ ROADMAP.md
 ## Скрипты (Windows)
 
 - **`scripts/setup_backend.cmd`**: создаёт `backend/.venv`, ставит зависимости, создаёт `backend/.env` из `backend/env.example`.
-- **`scripts/run_backend.cmd`**: запускает web UI + API (по умолчанию порт **8001**; можно переопределить через `PORT`).
+- **`scripts/run_backend.cmd`**: запускает API + React-host backend (по умолчанию порт **8001**; можно переопределить через `PORT`).
 - **`scripts/run_scheduler.cmd`**: запускает планировщик (демо «регулярного» режима).
 - **`scripts/kill_port.cmd`**: освобождает порт (если после прошлых запусков остались «залипшие» процессы).
 
@@ -78,6 +80,7 @@ scripts\run_backend.cmd
 
 - **ОС**: Windows поддерживается из коробки через `.cmd`-скрипты; для Linux/macOS команды нужно адаптировать вручную.
 - **Python**: 3.10+
+- **Node.js/npm**: для frontend рекомендуется Node `20.14+` и npm `10+` (см. `.nvmrc` и `frontend/package.json#engines`).
 - **База данных**: SQLite по умолчанию
 
 ## Локальный запуск на Windows
@@ -127,6 +130,28 @@ scripts\run_backend.cmd
 scripts\kill_port.cmd 8000
 ```
 
+### React UI
+
+Dev-режим React:
+
+```bat
+cd frontend
+npm ci
+npm run dev
+```
+
+В dev-режиме Vite проксирует `/api`, `/data` и `/static` на backend. Для полноценной работы UI, включая Project Planner exports и Reference Packs, backend должен быть запущен на `http://127.0.0.1:8001`.
+
+Production-сборка, которую FastAPI начнёт отдавать на `/`, `/clients`, `/events`, `/greetings`, `/deliveries`, `/runs` и `/project-planner`:
+
+```bat
+cd frontend
+npm ci
+npm run build
+```
+
+Если `frontend/dist/index.html` отсутствует, backend покажет служебную страницу с подсказкой собрать frontend или запустить Vite dev server.
+
 ### 4) Демо-сценарий (рекомендуемый)
 
 1. В UI нажмите **Seed demo data** (слева) — он **пересоздаст** демо-набор из **5 случайных клиентов**.
@@ -139,6 +164,50 @@ scripts\kill_port.cmd 8000
 7. Посмотрите «отправленные» материалы:
    - `backend\data\outbox\` (файлы сообщений),
    - `backend\data\cards\` (сгенерированные открытки).
+
+## Project Planner
+
+Project Planner доступен в React UI на `/project-planner`. Пользователь вводит идею проекта, дедлайн, географию, стейкхолдеров и акценты; модуль возвращает уточняющие вопросы, позволяет включить опцию «генерировать с допущениями», создаёт run и показывает preview/history.
+
+Доступные выгрузки:
+- **DOCX export**: полный отчёт через `/api/project-planner/runs/{run_id}/docx`.
+- **PPTX export**: управленческая презентация через `/api/project-planner/runs/{run_id}/pptx`, генерируется on-demand из сохранённого `ProjectReport` без нового вызова GigaChat и без хранения generated `.pptx` в репозитории.
+
+DOCX-отчёт включает исходные данные, паспорт проекта, дорожную карту, Gantt-like таблицу, ресурсы и предварительный бюджет, команду, RACI, варианты концепций, рекомендованную концепцию, риски/предупреждения, outline презентации и defense script. PPTX — это краткая executive pitch-презентация, а не копия полного отчёта; export использует `python-pptx`.
+
+В локальном режиме Project Planner работает без сети и GigaChat credentials:
+
+```env
+PROJECT_PLANNER_USE_MOCK_LLM=true
+```
+
+Чтобы попробовать GigaChat-провайдер именно для Project Planner, выставьте `PROJECT_PLANNER_USE_MOCK_LLM=false` и настройте `GIGACHAT_CREDENTIALS` в `backend/.env`. Секреты не коммитятся; `.env` должен оставаться локальным.
+
+Backend применяет защитные слои к результату LLM: JSON-normalization, нормализацию `effort_level` и RACI scalar fields, budget resolver на встроенном справочном каталоге, hard constraint guardrails, roadmap deadline/start/horizon guardrails, milestone density guardrail, validators и короткие пользовательские warnings.
+
+Reference Packs — локальные curated JSON knowledge packs для Project Planner. В v1 они используются только как prompt-context: не мутируют `ProjectReport`, не меняют напрямую budget totals, roadmap, concepts, resources или warnings. Selection основан на region/keywords. UI поддерживает JSON upload, validation, install, replace-on-confirm, template download и selection preview; CLI поддерживает validate/install/list:
+
+```bat
+python scripts\project_planner_reference_pack.py validate path\to\pack.json
+python scripts\project_planner_reference_pack.py install path\to\pack.json [--target-dir PATH] [--filename NAME] [--replace]
+python scripts\project_planner_reference_pack.py list [--target-dir PATH]
+```
+
+Установленные packs лежат в `backend/data/project_planner/reference_packs`. Не коммитьте real/customer packs, если они не были специально подготовлены для репозитория. Upload в v1 только JSON-only: PDF/DOCX/XLSX parsing, RAG, embeddings, web search и автоматический поиск рыночных цен не реализованы.
+
+Основные API Project Planner:
+- `POST /api/project-planner/clarifications`
+- `POST /api/project-planner/runs`
+- `GET /api/project-planner/runs`
+- `GET /api/project-planner/runs/{run_id}`
+- `GET /api/project-planner/runs/{run_id}/docx`
+- `GET /api/project-planner/runs/{run_id}/pptx`
+- `GET /api/project-planner/reference-packs`
+- `POST /api/project-planner/reference-packs/selection-preview`
+- `POST /api/project-planner/reference-packs/validate`
+- `POST /api/project-planner/reference-packs/install`
+
+Ограничения текущей версии: бюджетная оценка предварительная и требует экспертной проверки; нет PDF export, PDF/DOCX/XLSX import, поиска рыночных цен, web search, RAG/embeddings и RBAC для Project Planner.
 
 ## Переменные окружения
 
@@ -155,6 +224,8 @@ scripts\kill_port.cmd 8000
 - **DADATA_API_KEY**: ключ для `find-party` в DaData.
 - **LLM_MODE**: `template` (по умолчанию, офлайн) или `openai` (OpenAI-compatible HTTP API).
 - **IMAGE_MODE**: `pillow` (по умолчанию) или `gigachat` (генерация открыток через GigaChat).
+- **PROJECT_PLANNER_USE_MOCK_LLM**: `true` (локальный mock/offline Project Planner) или `false` (Project Planner пробует GigaChat provider с fallback).
+- **PROJECT_PLANNER_DOCX_DIR**: директория для DOCX-артефактов Project Planner.
 
 ## Что добавлено сверх исходного MVP
 
@@ -232,6 +303,20 @@ cd backend
 pytest -q
 ```
 
+Проверки качества backend:
+
+```bat
+ruff check .
+black --check .
+pytest
+```
+
+Если менялись scripts:
+
+```bat
+ruff check backend scripts/project_planner_reference_pack.py
+```
+
 Только unit-тесты (без маркера `integration`):
 
 ```bat
@@ -253,5 +338,3 @@ pytest -q -m integration
 - Обогащение по ИНН: ОКВЭД/руководитель (интеграции/парсинг), кэширование.
 - Контентные guardrails (политики, стоп-слова, антигаллюцинации, проверка фактов).
 - Петля обучения: A/B шаблонов, метрики отклика, обучение ранжирования.
-
-

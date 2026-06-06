@@ -1,0 +1,45 @@
+.soft-note {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 1rem 1.1rem;
+}
+
+.status-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  display: inline-block;
+  background: var(--primary);
+}
+
+.card-preview {
+  max-width: 220px;
+  border-radius: 16px;
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--soft-shadow);
+}
+
+.form-panel {
+  background: linear-gradient(180deg, var(--panel-gradient-start), var(--panel-gradient-end));
+}
+
+.page-intro {
+  max-width: 72ch;
+}
+
+.empty-state {
+  padding: 2rem;
+  text-align: center;
+  color: var(--muted);
+}
+
+.contact-pill {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  font-weight: 500;
+  text-align: left;
+  width: fit-content;
+  max-width: 100%;
+}

@@ -1,0 +1,52 @@
+.quick-action {
+  border-radius: 14px;
+  font-weight: 600;
+  box-shadow: 0 8px 20px rgba(var(--bs-primary-rgb), 0.12);
+}
+
+.btn-primary {
+  --bs-btn-bg: var(--primary);
+  --bs-btn-border-color: var(--primary);
+  --bs-btn-hover-bg: var(--primary-dark);
+  --bs-btn-hover-border-color: var(--primary-dark);
+  --bs-btn-active-bg: var(--primary-dark);
+  --bs-btn-active-border-color: var(--primary-dark);
+  --bs-btn-disabled-bg: var(--primary);
+  --bs-btn-disabled-border-color: var(--primary);
+}
+
+.btn-outline-primary,
+.btn-outline-success {
+  --bs-btn-color: var(--primary-dark);
+  --bs-btn-border-color: var(--primary-border-strong);
+  --bs-btn-hover-color: var(--inverse-text);
+  --bs-btn-hover-bg: var(--primary);
+  --bs-btn-hover-border-color: var(--primary);
+  --bs-btn-active-color: var(--inverse-text);
+  --bs-btn-active-bg: var(--primary-dark);
+  --bs-btn-active-border-color: var(--primary-dark);
+  --bs-btn-disabled-color: var(--muted);
+  --bs-btn-disabled-border-color: var(--border);
+  background: var(--surface);
+}
+
+.quick-action.btn-success {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-alt) 100%);
+  border-color: transparent;
+}
+
+.quick-action.btn-outline-secondary,
+.quick-action.btn-outline-danger {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.quick-action.btn-outline-secondary:hover,
+.quick-action.btn-outline-danger:hover {
+  background: var(--surface-2);
+}
+
+.action-btn {
+  min-width: 104px;
+}

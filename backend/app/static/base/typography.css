@@ -1,0 +1,84 @@
+body {
+  background:
+    radial-gradient(circle at top right, var(--body-glow), transparent 28%),
+    linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg) 100%);
+  color: var(--text);
+  font-family: Inter, "Segoe UI", system-ui, sans-serif;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+
+a {
+  color: var(--bs-link-color);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--bs-link-hover-color);
+}
+
+::selection {
+  background: var(--primary);
+  color: var(--inverse-text);
+}
+
+.text-muted {
+  color: var(--muted) !important;
+}
+
+.table {
+  color: var(--text);
+}
+
+.form-control,
+.form-select {
+  background: var(--bs-form-control-bg);
+  border-color: var(--bs-form-control-border-color);
+  color: var(--bs-form-control-color);
+}
+
+.form-control::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+
+.form-control:focus,
+.form-select:focus {
+  background: var(--surface);
+  border-color: var(--bs-form-control-focus-border-color);
+  box-shadow: var(--bs-form-control-focus-box-shadow);
+  color: var(--text);
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: var(--calendar-icon-filter);
+}
+
+.alert {
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.badge.text-bg-light {
+  background: var(--surface-2) !important;
+  border: 1px solid var(--border);
+  color: var(--text) !important;
+}
+
+.badge.text-bg-secondary {
+  background: var(--surface-2) !important;
+  border: 1px solid var(--border);
+  color: var(--muted) !important;
+}
+
+.badge.text-bg-primary,
+.badge.text-bg-success {
+  color: var(--inverse-text) !important;
+}
+
+code {
+  color: var(--primary-dark);
+}
+
+code.small {
+  font-size: 0.85em;
+}

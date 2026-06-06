@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 from app.db.base import Base
 from app.db.models import Holiday
 from app.db.session import engine
+from app.project_planner import models as _project_planner_models  # noqa: F401
 
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 RESOURCES_DIR = Path(__file__).resolve().parents[1] / "resources"
@@ -17,6 +18,7 @@ RESOURCES_DIR = Path(__file__).resolve().parents[1] / "resources"
 async def create_dirs() -> None:
     (DATA_DIR / "outbox").mkdir(parents=True, exist_ok=True)
     (DATA_DIR / "cards").mkdir(parents=True, exist_ok=True)
+    (DATA_DIR / "project_planner" / "docx").mkdir(parents=True, exist_ok=True)
 
 
 async def init_db(db_engine: AsyncEngine | None = None) -> None:

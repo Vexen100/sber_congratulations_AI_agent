@@ -63,5 +63,6 @@ class ClientOut(BaseModel):
     birth_date: dt.date | None
     preferences: dict
     last_interaction_summary: str | None
+    is_demo: bool
 
     model_config = ConfigDict(from_attributes=True)
