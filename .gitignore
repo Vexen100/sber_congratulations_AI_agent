@@ -34,6 +34,8 @@ Desktop.ini
 # Project runtime data
 backend/.env
 backend/data/
+frontend/node_modules/
+frontend/dist/
 ROADMAP_INTERNAL.md
 AI_HANDOFF.md
 docs/*_INTERNAL.md
@@ -47,4 +49,7 @@ drafts/
 *.crt
 *.pem
 
+backend/.venv310/
 
+# TypeScript incremental build cache
+*.tsbuildinfo

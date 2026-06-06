@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: ["main", "integration"]
+    branches: ["main", "integration", "react-new-base-backend"]
     tags: ["v*"]
   pull_request:
   workflow_dispatch:

@@ -11,7 +11,9 @@ from app.api.routes import (
     feedback,
     greetings,
     health,
+    ui,
 )
+from app.project_planner.router import router as project_planner_router
 
 api_router = APIRouter(prefix="/api")
 
@@ -23,3 +25,5 @@ api_router.include_router(deliveries.router, tags=["deliveries"])
 api_router.include_router(feedback.router, tags=["feedback"])
 api_router.include_router(agent.router, tags=["agent"])
 api_router.include_router(autonomy.router, tags=["autonomy"])
+api_router.include_router(ui.router, tags=["ui"])
+api_router.include_router(project_planner_router, tags=["project-planner"])

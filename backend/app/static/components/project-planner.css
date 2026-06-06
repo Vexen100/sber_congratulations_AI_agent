@@ -1,0 +1,80 @@
+.planner-form {
+display: grid;
+gap: .75rem;
+}
+
+.planner-list {
+padding-left: 1.1rem;
+margin-bottom: 0;
+}
+
+.planner-list li + li {
+margin-top: .25rem;
+}
+
+.planner-question,
+.planner-concept,
+.planner-recommendation {
+border: 1px solid rgba(217, 230, 222, 0.9);
+border-radius: 18px;
+background: rgba(255, 255, 255, 0.78);
+padding: .85rem .95rem;
+}
+
+.planner-preview .surface-card {
+box-shadow: 0 10px 26px rgba(17, 52, 37, 0.06);
+}
+
+.planner-gantt {
+display: grid;
+gap: .45rem;
+margin-top: 1rem;
+}
+
+.planner-gantt-row {
+display: grid;
+grid-template-columns: minmax(180px, 1fr) minmax(120px, 220px);
+gap: .75rem;
+align-items: center;
+padding: .55rem .7rem;
+border-radius: 16px;
+background: var(--surface-2);
+}
+
+.planner-gantt-row code {
+display: block;
+white-space: nowrap;
+color: var(--primary-dark);
+background: var(--primary-soft);
+border-radius: 999px;
+padding: .25rem .55rem;
+text-align: center;
+}
+
+.planner-role + .planner-role {
+border-top: 1px solid rgba(217, 230, 222, 0.9);
+margin-top: .75rem;
+padding-top: .75rem;
+}
+
+.planner-money {
+color: var(--primary-dark);
+}
+
+.planner-result-actions {
+display: flex;
+align-items: center;
+gap: .5rem;
+flex-wrap: wrap;
+}
+
+.planner-link {
+font-weight: 700;
+text-decoration: none;
+}
+
+@media (max-width: 768px) {
+  .planner-gantt-row {
+  grid-template-columns: 1fr;
+  }
+}

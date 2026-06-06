@@ -99,6 +99,62 @@ scripts\kill_port.cmd 8000
 
 Важно: агент **может сгенерировать поздравления заранее**, но отправка происходит **только в день события**.
 
+## Project Planner (локальный mock-режим)
+
+Project Planner работает отдельно от агента поздравлений и по умолчанию не требует сети или GigaChat credentials:
+
+```env
+PROJECT_PLANNER_USE_MOCK_LLM=true
+```
+
+1. Запустите backend через `scripts\run_backend.cmd`.
+2. Откройте React UI и перейдите на `/project-planner`.
+3. Заполните идею проекта, дедлайн, географию, стейкхолдеров и акценты.
+4. При необходимости включите чекбокс **Генерировать с допущениями**.
+5. Создайте run, проверьте preview/history и скачайте DOCX или PPTX.
+
+DOCX содержит полный проектный отчёт. PPTX генерируется on-demand из сохранённого run result и предназначен для краткой управленческой защиты; новый вызов GigaChat для export не выполняется.
+
+Reference Packs — локальные curated JSON packs для Project Planner. Они используются только как prompt-context и не меняют напрямую budget, roadmap, concepts, resources или warnings. В UI доступна загрузка JSON, validation, install/replace-on-confirm, template download и preview применимых packs. Установленные packs хранятся в:
+
+```text
+backend\data\project_planner\reference_packs
+```
+
+CLI для локальной проверки и установки packs:
+
+```bat
+python scripts\project_planner_reference_pack.py validate path\to\pack.json
+python scripts\project_planner_reference_pack.py install path\to\pack.json [--target-dir PATH] [--filename NAME] [--replace]
+python scripts\project_planner_reference_pack.py list [--target-dir PATH]
+```
+
+Не коммитьте real/customer reference packs без отдельного решения. В v1 поддерживается только JSON: PDF/DOCX/XLSX parsing, RAG, embeddings и web search не реализованы.
+
+Если используете Vite dev server, backend должен быть запущен на `http://127.0.0.1:8001`: Vite проксирует `/api`, `/data` и `/static` на этот backend.
+
+## React UI (опционально)
+
+Backend теперь обслуживает только React UI. Чтобы открыть интерфейс через FastAPI, сначала соберите frontend:
+
+```bat
+cd frontend
+npm install
+npm run build
+cd ..
+scripts\run_backend.cmd
+```
+
+Для разработки можно запустить Vite отдельно. Он проксирует `/api`, `/data` и `/static` на backend на порту `8001`, поэтому backend должен быть уже запущен:
+
+```bat
+cd frontend
+npm install
+npm run dev
+```
+
+Если React build отсутствует, backend покажет страницу-подсказку с командой `npm run build`.
+
 ## (Опционально) Регулярный режим (планировщик)
 
 Запуск:
@@ -158,5 +214,3 @@ pip install -r requirements-rag.txt
 VECTOR_FEEDBACK_ENABLED=true
 VECTOR_DB_PATH=./data/chroma_feedback
 ```
-
-

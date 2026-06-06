@@ -72,6 +72,8 @@ class Settings(BaseSettings):
     gigachat_base_url: str = "https://gigachat.devices.sberbank.ru/api/v1"
     gigachat_model: str = "GigaChat"
     gigachat_temperature: float | None = 0.1
+    gigachat_max_tokens: int | None = 6000
+    gigachat_retry_count: int = 2
     # Base timeout для обычных запросов (чат, текст)
     gigachat_timeout_sec: float = 30.0
     # Генерация изображения через chat/completions заметно медленнее обычного текста.
@@ -82,6 +84,12 @@ class Settings(BaseSettings):
     # TLS / certificates
     gigachat_verify_ssl_certs: bool = True
     gigachat_ca_bundle_file: str | None = None
+
+    # Project planner agent (mock by default: no network, no credentials required)
+    project_planner_use_mock_llm: bool = True
+    project_planner_docx_dir: str = "./data/project_planner/docx"
+    project_planner_default_clarifying_questions: int = 3
+    project_planner_max_clarifying_questions: int = 10
 
     # DaData company enrichment (optional)
     dadata_api_key: str | None = None
