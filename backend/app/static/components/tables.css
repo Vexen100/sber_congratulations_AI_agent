@@ -1,58 +1,63 @@
 .table-card .card-header,
 .surface-card .card-header {
-background: transparent;
-border-bottom: 1px solid rgba(217, 230, 222, 0.9);
-padding: 1rem 1.2rem .95rem;
-font-weight: 800;
+  background: transparent;
+  border-bottom: 1px solid var(--border-strong);
+  padding: 1rem 1.2rem 0.95rem;
+  font-weight: 800;
 }
+
 .surface-card .card-body {
-box-sizing: border-box;
-height: 100%;
-padding: 1rem 1.2rem 1.2rem;
+  box-sizing: border-box;
+  height: 100%;
+  padding: 1rem 1.2rem 1.2rem;
 }
+
 .table-clean {
---bs-table-bg: transparent;
---bs-table-border-color: rgba(217, 230, 222, 0.8);
+  --bs-table-bg: transparent;
+  --bs-table-border-color: var(--border-strong);
 }
+
 .table-clean thead th {
-color: var(--muted);
-font-size: .78rem;
-text-transform: uppercase;
-letter-spacing: .04em;
-font-weight: 800;
-border-top: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 800;
+  border-top: 0;
 }
+
 .table-clean tbody tr:hover {
-background: rgba(18, 161, 80, 0.04);
+  background: var(--primary-soft-hover);
 }
+
 .actions-col {
-min-width: 124px;
-white-space: nowrap;
-padding-right: 1rem !important;
+  min-width: 124px;
+  white-space: nowrap;
+  padding-right: 1rem !important;
 }
 
 /* Greeting text (preview + viewer) */
 .gtext-preview {
-display: -webkit-box;
--webkit-box-orient: vertical;
--webkit-line-clamp: 3;
-overflow: hidden;
-white-space: pre-wrap;
-color: rgba(20, 27, 52, 0.88);
-line-height: 1.35;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  white-space: pre-wrap;
+  color: var(--text-subtle);
+  line-height: 1.35;
 }
 
 .gtext-details {
-margin-top: 0.45rem;
+  margin-top: 0.45rem;
 }
 
 .gtext-toggle {
-cursor: pointer;
-user-select: none;
-font-weight: 700;
-display: inline-flex;
-align-items: center;
-gap: 0.35rem;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .gtext-toggle::marker,
@@ -103,16 +108,16 @@ min-height: 1.1em;
 }
 
 .gtext-viewer {
-margin-top: 0.6rem;
-border: 1px solid rgba(217, 230, 222, 0.9);
-background: rgba(255, 255, 255, 0.86);
-border-radius: 18px;
-padding: 0.85rem 0.95rem;
-box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
-white-space: pre-wrap;
-line-height: 1.45;
-max-height: 320px;
-overflow: auto;
+  margin-top: 0.6rem;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-glass);
+  border-radius: 18px;
+  padding: 0.85rem 0.95rem;
+  box-shadow: var(--surface-shadow);
+  white-space: pre-wrap;
+  line-height: 1.45;
+  max-height: 320px;
+  overflow: auto;
 }
 
 .gtext-viewer::before {
