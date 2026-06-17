@@ -80,7 +80,7 @@ scripts\run_backend.cmd
 
 - **ОС**: Windows поддерживается из коробки через `.cmd`-скрипты; для Linux/macOS команды нужно адаптировать вручную.
 - **Python**: 3.10+
-- **Node.js/npm**: нужны только для разработки или сборки React UI.
+- **Node.js/npm**: для frontend рекомендуется Node `20.14+` и npm `10+` (см. `.nvmrc` и `frontend/package.json#engines`).
 - **База данных**: SQLite по умолчанию
 
 ## Локальный запуск на Windows
@@ -136,17 +136,17 @@ Dev-режим React:
 
 ```bat
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
 В dev-режиме Vite проксирует `/api`, `/data` и `/static` на backend. Для полноценной работы UI, включая Project Planner exports и Reference Packs, backend должен быть запущен на `http://127.0.0.1:8001`.
 
-Production-сборка, которую FastAPI начнёт отдавать на `/`, `/clients`, `/events`, `/greetings`, `/deliveries`, `/runs`:
+Production-сборка, которую FastAPI начнёт отдавать на `/`, `/clients`, `/events`, `/greetings`, `/deliveries`, `/runs` и `/project-planner`:
 
 ```bat
 cd frontend
-npm install
+npm ci
 npm run build
 ```
 

@@ -50,7 +50,7 @@ def mount_react_frontend(app: FastAPI, log: logging.Logger) -> None:
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>React build not found</title>
+    <title>React build не найден</title>
     <style>
       body { font-family: sans-serif; padding: 40px; line-height: 1.5; }
       code, pre { background: #f5f5f5; padding: 2px 6px; border-radius: 4px; }
@@ -58,13 +58,13 @@ def mount_react_frontend(app: FastAPI, log: logging.Logger) -> None:
     </style>
   </head>
   <body>
-    <h1>React build not found</h1>
-    <p>Backend now serves only the React UI, but <code>frontend/dist/index.html</code> is missing.</p>
-    <p>Build the frontend:</p>
+    <h1>React build не найден</h1>
+    <p>Backend отдаёт React UI, но <code>frontend/dist/index.html</code> пока отсутствует.</p>
+    <p>Соберите frontend:</p>
     <pre>cd frontend
 npm install
 npm run build</pre>
-    <p>Or run the Vite dev server and open <code>http://127.0.0.1:5173</code>.</p>
+    <p>Или запустите Vite dev server и откройте <code>http://127.0.0.1:5173</code>.</p>
   </body>
 </html>
             """.strip()

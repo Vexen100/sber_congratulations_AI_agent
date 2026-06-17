@@ -12,14 +12,14 @@
 
 .countdown-display {
   font-family: Inter, "Segoe UI", system-ui, sans-serif;
-  font-variant-numeric: tabular-nums; 
+  font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
-  font-size: 1.9rem; 
+  font-size: 1.9rem;
 }
 
 .countdown-label {
   font-size: 0.75rem;
-  color: #8896a4;
+  color: var(--countdown-muted);
   margin-top: 4px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -27,7 +27,7 @@
 
 .divider {
   height: 1px;
-  background: #eee;
+  background: var(--divider);
   width: 100%;
 }
 
@@ -46,8 +46,8 @@
   font-weight: 800;
   font-size: 0.85rem;
   letter-spacing: 0.1px;
-  border: 1px solid rgba(217, 230, 222, 0.9);
-  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-glass);
   color: var(--text);
 }
 
@@ -55,13 +55,13 @@
   width: 8px;
   height: 8px;
   border-radius: 999px;
-  background: #9aa7a0;
+  background: var(--neutral);
   box-shadow: 0 0 0 3px rgba(154, 167, 160, 0.18);
 }
 
 .autonomy-pill--on {
-  border-color: rgba(18, 161, 80, 0.25);
-  background: rgba(184, 230, 195, 0.55);
+  border-color: var(--autonomy-on-border);
+  background: var(--autonomy-on-bg);
   color: var(--primary-dark);
 }
 
@@ -71,13 +71,13 @@
 }
 
 .autonomy-pill--off {
-  border-color: rgba(92, 107, 98, 0.22);
-  background: rgba(244, 247, 245, 0.9);
-  color: var(--text-muted);
+  border-color: var(--autonomy-off-border);
+  background: var(--autonomy-off-bg);
+  color: var(--muted);
 }
 
 .autonomy-pill--off .dot {
-  background: #76857d;
+  background: var(--autonomy-off-dot);
   box-shadow: 0 0 0 3px rgba(118, 133, 125, 0.16);
 }
 
@@ -104,43 +104,43 @@
 }
 
 .btn-auto {
-  background: #f1f3f5;
-  color: #636e72;
-  border: 1px solid #dfe6e9;
+  background: var(--interactive-neutral-bg);
+  color: var(--interactive-neutral-text);
+  border: 1px solid var(--neutral-border);
 }
 
 .btn-auto:hover {
-  background: #e9ecef;
+  background: var(--interactive-neutral-bg-hover);
 }
 
 .btn-auto.active {
-  background: #e3f2fd;
-  color: #2196F3;
-  border-color: #2196F3;
+  background: var(--interactive-neutral-active-bg);
+  color: var(--info);
+  border-color: var(--info);
 }
 
 .btn-auto.active .status-dot {
-  background-color: #2196F3;
-  box-shadow: 0 0 8px #2196F3;
+  background-color: var(--info);
+  box-shadow: 0 0 8px var(--info);
 }
 
 .status-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background-color: #ccc;
+  background-color: var(--neutral);
   margin-top: 2px;
   transition: background-color 0.2s;
 }
 
 .btn-manual {
-  background: linear-gradient(135deg, var(--primary) 0%, #26b060 100%);
-  color: #fff;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-alt) 100%);
+  color: var(--inverse-text);
   box-shadow: 0 8px 20px rgba(18, 161, 80, 0.18);
 }
 
 .btn-manual:hover {
-  background: linear-gradient(135deg, #0f8a42 0%, #27b163 100%);
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
   transform: translateY(-1px);
   box-shadow: 0 12px 28px rgba(18, 161, 80, 0.25);
 }
