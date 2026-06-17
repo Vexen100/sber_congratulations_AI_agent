@@ -7,6 +7,20 @@
     />
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      (() => {
+        const storageKey = "ui-theme";
+        const storedTheme = window.localStorage.getItem(storageKey);
+        const theme =
+          storedTheme === "light" || storedTheme === "dark"
+            ? storedTheme
+            : window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.setAttribute("data-bs-theme", theme);
+      })();
+    </script>
     <title>Агент поздравлений</title>
     <link rel="stylesheet" href="/static/main.css" />
   </head>

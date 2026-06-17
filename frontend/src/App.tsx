@@ -8,6 +8,7 @@ import {
 } from "react";
 
 import { api, postJson } from "./api";
+import InfoHint from "./components/InfoHint";
 import ProjectPlannerPage from "./pages/ProjectPlannerPage";
 import type {
   AgentRun,
@@ -39,10 +40,14 @@ type Flash = {
   text: string;
 } | null;
 
+type ThemeMode = "light" | "dark";
+
 type PageState<T> =
   | { loading: true; data?: never; error?: never }
   | { loading: false; data: T; error?: never }
   | { loading: false; data?: never; error: string };
+
+const THEME_STORAGE_KEY = "ui-theme";
 
 const navItems = [
   { href: "/", label: "Дашборд" },
@@ -53,6 +58,24 @@ const navItems = [
   { href: "/project-planner", label: "Планировщик проектов" },
   { href: "/runs", label: "Запуски агента" }
 ];
+
+function readPreferredTheme(): ThemeMode {
+  try {
+    const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+    if (storedTheme === "light" || storedTheme === "dark") {
+      return storedTheme;
+    }
+  } catch {
+    // Ignore storage access failures and fall back to the system preference.
+  }
+
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function applyTheme(theme: ThemeMode) {
+  document.documentElement.dataset.theme = theme;
+  document.documentElement.setAttribute("data-bs-theme", theme);
+}
 
 function usePageData<T>(key: string, load: () => Promise<T>): PageState<T> {
   const [state, setState] = useState<PageState<T>>({ loading: true });
@@ -98,6 +121,57 @@ function StatusBadge({ status }: { status: string }) {
   return <span className={`badge ${statusBadgeClass(status)}`}>{statusLabel(status)}</span>;
 }
 
+function SunIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        d="M12 2.5v2.3M12 19.2v2.3M4.8 4.8l1.6 1.6M17.6 17.6l1.6 1.6M2.5 12h2.3M19.2 12h2.3M4.8 19.2l1.6-1.6M17.6 6.4l1.6-1.6"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+function MoonIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path
+        d="M19.1 14.6A7.8 7.8 0 0 1 9.4 4.9 8.7 8.7 0 1 0 19.1 14.6Z"
+        fill="none"
+        stroke="currentColor"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+function ThemeToggle({ theme, onToggle }: { theme: ThemeMode; onToggle: () => void }) {
+  const nextThemeLabel = theme === "dark" ? "Включить светлую тему" : "Включить темную тему";
+
+  return (
+    <button
+      type="button"
+      className={`theme-toggle theme-toggle--${theme}`}
+      onClick={onToggle}
+      aria-label={nextThemeLabel}
+      title={nextThemeLabel}
+    >
+      <span className="theme-toggle__indicator" aria-hidden="true" />
+      <span className={`theme-toggle__icon ${theme === "light" ? "is-active" : ""}`} aria-hidden="true">
+        <SunIcon />
+      </span>
+      <span className={`theme-toggle__icon ${theme === "dark" ? "is-active" : ""}`} aria-hidden="true">
+        <MoonIcon />
+      </span>
+    </button>
+  );
+}
+
 function MetricCard({
   label,
   value,
@@ -111,10 +185,46 @@ function MetricCard({
 }) {
   return (
     <div className={`surface-panel metric-card h-100 ${className}`}>
-      <div className="metric-label">{label}</div>
+      <div className="metric-label-row">
+        <div className="metric-label">{label}</div>
+        {hint ? <InfoHint text={hint} className="metric-hint-trigger" align="left" /> : null}
+      </div>
       <div className="metric-value">{value}</div>
-      {hint ? <div className="metric-hint">{hint}</div> : null}
     </div>
+  );
+}
+
+function PageShell({ name, children }: { name: string; children: ReactNode }) {
+  return <div className={`app-page app-page--${name}`}>{children}</div>;
+}
+
+function PageHeader({
+  eyebrow,
+  title,
+  subtitle,
+  prefix,
+  actions
+}: {
+  eyebrow: string;
+  title: ReactNode;
+  subtitle?: string;
+  prefix?: ReactNode;
+  actions?: ReactNode;
+}) {
+  return (
+    <section className="app-header">
+      <div className="app-header__intro">
+        <div className="app-header__eyebrow">{eyebrow}</div>
+        <div className="page-intro">
+          {prefix ? <div className="app-header__prefix">{prefix}</div> : null}
+          <div className="app-header__title-row">
+            <h2 className="app-header__title mb-1">{title}</h2>
+            {subtitle ? <InfoHint text={subtitle} className="app-header__hint" align="left" /> : null}
+          </div>
+        </div>
+      </div>
+      {actions ? <div className="app-header__actions">{actions}</div> : null}
+    </section>
   );
 }
 
@@ -122,8 +232,10 @@ function Layout({
   path,
   flash,
   actionBusy,
+  theme,
   children,
   onNavigate,
+  onToggleTheme,
   onRunAgent,
   onSeedDemo,
   onResetRuntime
@@ -131,8 +243,10 @@ function Layout({
   path: string;
   flash: Flash;
   actionBusy: string | null;
+  theme: ThemeMode;
   children: ReactNode;
   onNavigate: (path: string) => void;
+  onToggleTheme: () => void;
   onRunAgent: () => void;
   onSeedDemo: () => void;
   onResetRuntime: () => void;
@@ -200,12 +314,21 @@ function Layout({
           </div>
 
           <div className="sidebar-brand-wrap">
-            <img
-              className="sidebar-brand-logo"
-              src="/static/vibe-team-logo.svg"
-              alt="Vibe Team"
-              loading="lazy"
-            />
+            <div className="sidebar-brand-logo-frame">
+              <img
+                className="sidebar-brand-logo sidebar-brand-logo--light"
+                src="/static/vibe-team-logo.svg"
+                alt="Vibe Team"
+                loading="lazy"
+              />
+              <img
+                className="sidebar-brand-logo sidebar-brand-logo--dark"
+                src="/static/vibe-team-logo-dark.svg"
+                alt=""
+                aria-hidden="true"
+                loading="lazy"
+              />
+            </div>
           </div>
 
           <div className="nav-stack">
@@ -219,15 +342,12 @@ function Layout({
               );
             })}
           </div>
-
-          <div className="mt-4">
-            <div className="delivery-pill">Режим доставки: файловый outbox</div>
-          </div>
         </aside>
 
         <main className="col-12 col-lg-9 col-xl-10 content-shell">
           <div className="topbar">
-            <div />
+            <div className="topbar-spacer" aria-hidden="true" />
+            <ThemeToggle theme={theme} onToggle={onToggleTheme} />
           </div>
           {flash ? <div className={`alert alert-${flash.type}`}>{flash.text}</div> : null}
           {children}
@@ -256,7 +376,7 @@ function DashboardPage({ refreshKey }: { refreshKey: number }) {
   const enrichmentPercent = percent(data.enriched_clients_count, data.clients_count);
 
   return (
-    <>
+    <PageShell name="dashboard">
       <div className="hero-card mb-4">
         <div className="row g-4 align-items-center">
           <div className="col-12 col-xl-8">
@@ -349,9 +469,12 @@ function DashboardPage({ refreshKey }: { refreshKey: number }) {
       <div className="row g-4 mt-1">
         <div className="col-12 col-xl-8">
           <div className="surface-panel h-100">
-            <div className="section-title">Воронка после запуска</div>
-            <div className="section-subtitle mb-4">
-              Показывает, как сгенерированные поздравления проходят через валидацию, доставку и обратную связь.
+            <div className="section-heading mb-4">
+              <div className="section-title">Воронка после запуска</div>
+              <InfoHint
+                text="Показывает, как сгенерированные поздравления проходят через валидацию, доставку и обратную связь."
+                align="left"
+              />
             </div>
             <div className="row g-3">
               <div className="col-12 col-md-6 col-xl-3">
@@ -383,8 +506,10 @@ function DashboardPage({ refreshKey }: { refreshKey: number }) {
         </div>
         <div className="col-12 col-xl-4">
           <div className="surface-panel h-100">
-            <div className="section-title">Операционное здоровье</div>
-            <div className="section-subtitle mb-4">Короткая сводка качества работы конвейера.</div>
+            <div className="section-heading mb-4">
+              <div className="section-title">Операционное здоровье</div>
+              <InfoHint text="Короткая сводка качества работы конвейера." align="left" />
+            </div>
             <div className="d-grid gap-3">
               <HealthLine label="Успешная доставка" value={`${data.delivery_success_rate}%`} />
               <HealthLine label="Покрытие обратной связи" value={`${data.feedback_coverage_rate}%`} />
@@ -409,7 +534,7 @@ function DashboardPage({ refreshKey }: { refreshKey: number }) {
           <RunsTable runs={data.last_runs} compact />
         </div>
       </div>
-    </>
+    </PageShell>
   );
 }
 
@@ -458,37 +583,39 @@ function ClientsPage({
   const demoCount = clients.filter((client) => client.is_demo).length;
 
   return (
-    <>
-      <div className="d-flex align-items-center justify-content-between mb-3">
-        <div className="page-intro">
-          <h2 className="mb-1">Клиенты</h2>
-        </div>
-        <div className="d-flex gap-2 flex-wrap">
-          <button
-            className="btn btn-outline-primary quick-action"
-            disabled={busy === "import"}
-            onClick={() => runAction("import", "/api/ui/clients/import-company-base")}
-          >
-            Импортировать базу компаний
-          </button>
-          <button
-            className="btn btn-success quick-action"
-            disabled={busy === "enrich"}
-            onClick={() => runAction("enrich", "/api/ui/clients/enrich-missing")}
-          >
-            Обогатить профили компаний
-          </button>
-          {provider !== "demo" ? (
+    <PageShell name="clients">
+      <PageHeader
+        eyebrow="Клиентский граф"
+        title="Клиенты"
+        subtitle="База контактов, ручное добавление и обогащение профилей компаний в одном рабочем контуре."
+        actions={
+          <>
             <button
-              className="btn btn-outline-success quick-action"
-              disabled={busy === "refresh"}
-              onClick={() => runAction("refresh", "/api/ui/clients/refresh-external")}
+              className="btn btn-outline-primary quick-action"
+              disabled={busy === "import"}
+              onClick={() => runAction("import", "/api/ui/clients/import-company-base")}
             >
-              Актуализировать через внешний источник
+              Импортировать базу компаний
             </button>
-          ) : null}
-        </div>
-      </div>
+            <button
+              className="btn btn-success quick-action"
+              disabled={busy === "enrich"}
+              onClick={() => runAction("enrich", "/api/ui/clients/enrich-missing")}
+            >
+              Обогатить профили компаний
+            </button>
+            {provider !== "demo" ? (
+              <button
+                className="btn btn-outline-success quick-action"
+                disabled={busy === "refresh"}
+                onClick={() => runAction("refresh", "/api/ui/clients/refresh-external")}
+              >
+                Актуализировать через внешний источник
+              </button>
+            ) : null}
+          </>
+        }
+      />
 
       <div className="row g-4 mb-4">
         <div className="col-12 col-xl-8">
@@ -532,7 +659,7 @@ function ClientsPage({
         onEnrich={(clientId) => runAction(`client-${clientId}`, `/api/ui/clients/${clientId}/enrich`)}
         busy={busy}
       />
-    </>
+    </PageShell>
   );
 }
 
@@ -581,7 +708,7 @@ function ClientCreateForm({
   }
 
   return (
-    <form className="row g-2" onSubmit={submit}>
+    <form className="row g-3 app-form-grid" onSubmit={submit}>
       <div className="col-12">
         <h6 className="section-title text-muted mb-2 mt-1">Личные данные</h6>
       </div>
@@ -834,15 +961,12 @@ function EventsPage({
   const total = events.length;
 
   return (
-    <>
-      <div className="d-flex align-items-center justify-content-between mb-3">
-        <div className="page-intro">
-          <h2 className="mb-1">События</h2>
-          <div className="text-muted">
-            Поводы для поздравлений: дни рождения, праздники и ручные сценарии для импортированной клиентской базы.
-          </div>
-        </div>
-      </div>
+    <PageShell name="events">
+      <PageHeader
+        eyebrow="Карта событий"
+        title="События"
+        subtitle="Поводы для поздравлений: дни рождения, праздники и ручные сценарии для импортированной клиентской базы."
+      />
 
       <div className="row g-4 mb-4">
         <div className="col-12 col-md-3">
@@ -864,7 +988,7 @@ function EventsPage({
           <div className="surface-card">
             <div className="card-header">Создать ручное событие</div>
             <div className="card-body">
-              <form className="row g-2" onSubmit={submit}>
+              <form className="row g-3 app-form-grid" onSubmit={submit}>
                 <div className="col-12">
                   <select className="form-select" name="client_id" required>
                     <option value="">Выберите реального клиента</option>
@@ -916,7 +1040,7 @@ function EventsPage({
               <div className="events-legend">
                 <LegendItem label="ДР" value={birthdayCount} color="var(--primary)" />
                 <LegendItem label="Праздники" value={holidayCount} color="var(--primary-dark)" />
-                <LegendItem label="Ручные" value={manualCount} color="#41c77b" />
+                <LegendItem label="Ручные" value={manualCount} color="var(--primary-alt)" />
               </div>
             </div>
             <div className="events-hint text-center mt-2">
@@ -932,7 +1056,7 @@ function EventsPage({
       </div>
 
       <EventsTable events={events} />
-    </>
+    </PageShell>
   );
 }
 
@@ -1032,15 +1156,12 @@ function GreetingsPage({
   ).length;
 
   return (
-    <>
-      <div className="d-flex align-items-center justify-content-between mb-3">
-        <div className="page-intro">
-          <h2 className="mb-1">Поздравления</h2>
-          <div className="text-muted">
-            Сгенерированные поздравления, отправка по расписанию в день события и сбор отзывов с вердиктом для дообучения.
-          </div>
-        </div>
-      </div>
+    <PageShell name="greetings">
+      <PageHeader
+        eyebrow="Поток сообщений"
+        title="Поздравления"
+        subtitle="Сгенерированные поздравления, отправка по расписанию в день события и сбор отзывов с вердиктом для дообучения."
+      />
 
       <div className="row g-4 mb-4">
         <div className="col-12 col-xl-6">
@@ -1087,7 +1208,7 @@ function GreetingsPage({
               <div className="approval-legend">
                 <ApprovalLegend label="В очереди на отправку" value={metricReady} color="var(--primary)" />
                 <ApprovalLegend label="Отправлено" value={metricSent} color="var(--primary-dark)" />
-                <ApprovalLegend label="Прочие статусы" value={metricRest} color="#9aa99e" />
+                <ApprovalLegend label="Прочие статусы" value={metricRest} color="var(--neutral)" />
               </div>
             </div>
             <div className="approval-hint text-center mt-2">
@@ -1104,7 +1225,7 @@ function GreetingsPage({
         onChanged={onChanged}
         setFlash={setFlash}
       />
-    </>
+    </PageShell>
   );
 }
 
@@ -1279,7 +1400,7 @@ function FeedbackForm({
   }
 
   return (
-    <form className="row g-1" onSubmit={submit}>
+    <form className="row g-2 app-feedback-form" onSubmit={submit}>
       <div className="col-12">
         <select className="form-select form-select-sm" name="score" required>
           <option value="">Оценка</option>
@@ -1355,13 +1476,8 @@ function DeliveriesPage({ refreshKey }: { refreshKey: number }) {
   const errorCount = deliveries.filter((item) => item.status === "error").length;
 
   return (
-    <>
-      <div className="d-flex align-items-center justify-content-between mb-3">
-        <div className="page-intro">
-          <h2 className="mb-1">Доставки</h2>
-          <div className="text-muted">Лог отправок и безопасных блокировок.</div>
-        </div>
-      </div>
+    <PageShell name="deliveries">
+      <PageHeader eyebrow="Лог доставки" title="Доставки" subtitle="Лог отправок, блокировок безопасности и статусов провайдеров." />
       <div className="row g-4 mb-4">
         <div className="col-12 col-md-4">
           <MetricCard label="Всего доставок" value={deliveries.length} hint="Все записи доставки и логирования." />
@@ -1374,7 +1490,7 @@ function DeliveriesPage({ refreshKey }: { refreshKey: number }) {
         </div>
       </div>
       <DeliveriesTable deliveries={deliveries} />
-    </>
+    </PageShell>
   );
 }
 
@@ -1440,12 +1556,6 @@ function RunsPage({
 }) {
   const state = usePageData<RunsData>(`runs:${refreshKey}`, () => api<RunsData>("/api/ui/runs"));
   const [busy, setBusy] = useState(false);
-  const [now, setNow] = useState(Date.now());
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
 
   async function toggleAutonomy(enabled: boolean) {
     setBusy(true);
@@ -1468,26 +1578,20 @@ function RunsPage({
   if (!state.data) return <ErrorState error="Данные запусков не получены." />;
 
   const data = state.data;
-  const nextRunMs = data.autonomy.next_run_at ? Date.parse(data.autonomy.next_run_at) : null;
-  const countdown = data.autonomy.enabled && nextRunMs ? formatCountdown(Math.max(0, nextRunMs - now)) : "--:--:--";
 
   return (
-    <>
-      <div className="d-flex align-items-center justify-content-between mb-3">
-        <div className="page-intro">
-          <h2 className="mb-1">Запуски агента</h2>
-          <div className="text-muted">Аудит запусков, наблюдаемость конвейера и источник данных для презентации результатов.</div>
-        </div>
-      </div>
+    <PageShell name="runs">
+      <PageHeader
+        eyebrow="Аудит запусков"
+        title="Запуски агента"
+        subtitle="Аудит запусков, наблюдаемость конвейера и источник данных для презентации результатов."
+      />
 
       <div className="row g-1 mb-4">
         <div className="col-12 col-md-3">
           <div className="surface-panel metric-card metric-card--action" style={{ paddingTop: ".7rem" }}>
             <div className="agent-control-widget" style={{ marginTop: 0 }}>
-              <div className="countdown-wrapper">
-                <div className="countdown-display">{countdown}</div>
-                <div className="countdown-label">До следующего автозапуска (09:00)</div>
-              </div>
+              <AutonomyCountdown enabled={data.autonomy.enabled} nextRunAt={data.autonomy.next_run_at} />
               <div className="divider" />
               <div className="autonomy-status">
                 <span className={`autonomy-pill ${data.autonomy.enabled ? "autonomy-pill--on" : "autonomy-pill--off"}`}>
@@ -1525,7 +1629,27 @@ function RunsPage({
       </div>
 
       <RunsTable runs={data.runs} />
-    </>
+    </PageShell>
+  );
+}
+
+function AutonomyCountdown({ enabled, nextRunAt }: { enabled: boolean; nextRunAt: string | null }) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!enabled || !nextRunAt) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [enabled, nextRunAt]);
+
+  const nextRunMs = nextRunAt ? Date.parse(nextRunAt) : null;
+  const countdown = enabled && nextRunMs ? formatCountdown(Math.max(0, nextRunMs - now)) : "--:--:--";
+
+  return (
+    <div className="countdown-wrapper">
+      <div className="countdown-display">{countdown}</div>
+      <div className="countdown-label">До следующего автозапуска (09:00)</div>
+    </div>
   );
 }
 
@@ -1541,15 +1665,15 @@ function RunsTable({ runs, compact = false }: { runs: AgentRun[]; compact?: bool
   return (
     <div className="surface-card">
       <div className="card-header d-flex align-items-center justify-content-between">
-        <span>{compact ? "Последние запуски агента" : "Последние 100 запусков"}</span>
+        <div className="title-with-hint">
+          <span>{compact ? "Последние запуски агента" : "Последние 100 запусков"}</span>
+          {!compact ? (
+            <InfoHint text="Авто-отправки — отправки, которые успели выполниться в конце этого же запуска агента." />
+          ) : null}
+        </div>
         {compact ? <a href="/runs" className="small">Все запуски</a> : null}
       </div>
       <div className="card-body table-responsive">
-        {!compact ? (
-          <div className="soft-note small text-muted mb-3">
-            <b>Авто-отправки</b> — отправки, которые успели выполниться в конце этого же запуска агента.
-          </div>
-        ) : null}
         <table className="table table-sm align-middle mb-0 table-clean">
           <thead>
             <tr>
@@ -1612,24 +1736,21 @@ function RunDetailPage({ runId, refreshKey }: { runId: number; refreshKey: numbe
   const run = data.run;
 
   return (
-    <>
-      <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
-        <div className="page-intro">
-          <div className="text-muted small mb-2">
-            <a href="/runs">Все запуски</a>
-          </div>
-          <h2 className="mb-1">Детали запуска #{run.id}</h2>
-          <div className="text-muted">
-            Что именно создал этот прогон агента, в каком статусе находятся поздравления и дошли ли они до доставки или обратной связи.
-          </div>
-        </div>
-        <div className="d-flex flex-wrap gap-2">
-          <StatusBadge status={run.status} />
-          <span className="badge text-bg-light">Источник: {run.triggered_by}</span>
-          <span className="badge text-bg-light">LLM: {run.llm_mode}</span>
-          <span className="badge text-bg-light">Картинки: {run.image_mode}</span>
-        </div>
-      </div>
+    <PageShell name="run-detail">
+      <PageHeader
+        eyebrow="Run analysis"
+        prefix={<a href="/runs">Все запуски</a>}
+        title={`Детали запуска #${run.id}`}
+        subtitle="Что именно создал этот прогон агента, в каком статусе находятся поздравления и дошли ли они до доставки или обратной связи."
+        actions={
+          <>
+            <StatusBadge status={run.status} />
+            <span className="badge text-bg-light">Источник: {run.triggered_by}</span>
+            <span className="badge text-bg-light">LLM: {run.llm_mode}</span>
+            <span className="badge text-bg-light">Картинки: {run.image_mode}</span>
+          </>
+        }
+      />
 
       <div className="row g-3 mb-4">
         <div className="col-12 col-md-3">
@@ -1659,7 +1780,7 @@ function RunDetailPage({ runId, refreshKey }: { runId: number; refreshKey: numbe
       </div>
 
       <RunGreetingsTable run={run} greetings={data.greetings} />
-    </>
+    </PageShell>
   );
 }
 
@@ -1767,6 +1888,7 @@ export default function App() {
   const [flash, setFlash] = useState<Flash>(null);
   const [actionBusy, setActionBusy] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [theme, setTheme] = useState<ThemeMode>(() => readPreferredTheme());
 
   useEffect(() => {
     const listener = () => setPath(window.location.pathname);
@@ -1774,10 +1896,19 @@ export default function App() {
     return () => window.removeEventListener("popstate", listener);
   }, []);
 
+  useEffect(() => {
+    applyTheme(theme);
+    try {
+      window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+    } catch {
+      // Ignore storage access failures and keep the in-memory theme.
+    }
+  }, [theme]);
+
   function navigate(nextPath: string) {
     window.history.pushState({}, "", nextPath);
     setPath(window.location.pathname);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo(0, 0);
   }
 
   function refresh() {
@@ -1824,7 +1955,9 @@ export default function App() {
       path={path}
       flash={flash}
       actionBusy={actionBusy}
+      theme={theme}
       onNavigate={navigate}
+      onToggleTheme={() => setTheme((currentTheme) => (currentTheme === "light" ? "dark" : "light"))}
       onRunAgent={() => runGlobalAction("run", "/api/ui/agent/run-once", "/greetings", "Агент запущен.")}
       onSeedDemo={() => runGlobalAction("seed", "/api/ui/seed-demo", "/clients", "Демо-данные загружены.")}
       onResetRuntime={() => runGlobalAction("reset", "/api/ui/reset-runtime", "/", "Среда очищена.")}
